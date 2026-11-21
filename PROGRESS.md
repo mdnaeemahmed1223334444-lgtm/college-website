@@ -19,6 +19,7 @@ Legend: DONE | IN PROGRESS | TODO
 | 5.4 | **Portal Access & Middleware Fix** | DONE | Fixed redirect loop on `/admin`, `/teacher`, `/student`; automatic role assignment in testing mode |
 | 5.5 | **Administration: Teacher & Staff Management + Profiles** | DONE | 10 admin screens under `/admin/staff/*`, profile creation modal, assignments, workloads, attendance, accounts, REST APIs, and public faculty directories |
 | 5.6 | **Direct Photo & File Upload — all admin forms** | DONE | `ImageUploadInput`, `FileUploadInput`, `/api/upload` endpoint, R2+local+data-URL fallback chain. Upgraded: TeacherProfiles, StaffList, Gallery, Notice, NewsEvent, Career, Document, BrandingForm (logo+favicon), HomepageForm (banner), SeoForm (OG image). Build: 252 routes ✓ |
+| 5.7 | **Staff / Teacher Profile Form UX & Auto-cleanup** | DONE | Removed Employee ID, Room Number, NID, Specialization from form; single-scroll modal with controlled state (no data loss on validation error); automatic cleanup of orphan/unused uploaded pictures; resolved "Full name must be at least 2 characters" validation issue. |
 | 6 | Academic Management (departments, subjects, sessions, routines, calendar) | TODO | **Next** |
 | 7 | Student Management: batches, add student, list/edit, transfer/group change, ID generation, photos; teacher read-only student views; Teacher/Staff mgmt | TODO | DB schema already done (2b) |
 | 8 | Attendance (teacher entry by batch/group, draft/submit, admin view) | TODO | |
