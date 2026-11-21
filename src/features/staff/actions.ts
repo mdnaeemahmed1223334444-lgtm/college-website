@@ -7,6 +7,15 @@ import { deleteUploadedFile } from "@/lib/storage/uploader";
 import { staffProfileSchema, staffAssignmentSchema, staffStatusSchema } from "./schema";
 import type { StaffFeedback } from "./types";
 
+function extractErrorMessage(err: any, fallback: string): string {
+  const msg =
+    err?.message ||
+    err?.error_description ||
+    (err instanceof Error ? err.message : typeof err === "string" ? err : fallback);
+  const hint = err?.hint ? ` (Hint: ${err.hint})` : err?.details ? ` (${err.details})` : "";
+  return `${msg}${hint}`;
+}
+
 function normalizeDate(raw?: string | null): string {
   if (!raw || !raw.trim()) return new Date().toISOString().split("T")[0];
   const s = raw.trim();
@@ -165,9 +174,7 @@ export async function saveStaffProfileAction(
     };
   } catch (err: any) {
     console.error("saveStaffProfileAction database error:", err);
-    const msg = err?.message || err?.error_description || (err instanceof Error ? err.message : typeof err === "string" ? err : "Failed to save profile");
-    const hint = err?.hint ? ` (Hint: ${err.hint})` : err?.details ? ` (${err.details})` : "";
-    return { error: `${msg}${hint}` };
+    return { error: extractErrorMessage(err, "Failed to save profile") };
   }
 }
 
@@ -199,8 +206,7 @@ export async function deleteStaffProfileAction(id: string): Promise<StaffFeedbac
 
     return { success: true, message: "Staff profile deleted successfully." };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Failed to delete profile";
-    return { error: msg };
+    return { error: extractErrorMessage(err, "Failed to delete profile") };
   }
 }
 
@@ -231,8 +237,7 @@ export async function toggleStaffStatusAction(
 
     return { success: true, message: `Status updated to ${newStatus}.` };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Failed to update status";
-    return { error: msg };
+    return { error: extractErrorMessage(err, "Failed to update status") };
   }
 }
 
@@ -308,7 +313,6 @@ export async function saveStaffAssignmentsAction(
 
     return { success: true, message: "Assignments saved successfully." };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Failed to save assignments";
-    return { error: msg };
+    return { error: extractErrorMessage(err, "Failed to save assignments") };
   }
 }
