@@ -10,11 +10,11 @@ const schema = z.object({
   PRIVATE_SUPABASE_ANON_KEY: z.string().min(1),
   PRIVATE_SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
-  R2_ACCOUNT_ID: z.string().min(1),
-  R2_ACCESS_KEY_ID: z.string().min(1),
-  R2_SECRET_ACCESS_KEY: z.string().min(1),
-  R2_BUCKET_NAME: z.string().min(1),
-  R2_PUBLIC_URL: z.string().url().optional(),
+  R2_ACCOUNT_ID: z.string().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_BUCKET_NAME: z.string().optional(),
+  R2_PUBLIC_URL: z.string().url().optional().or(z.literal("")),
 });
 
 export type Env = z.infer<typeof schema>;
