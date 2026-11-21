@@ -7,6 +7,30 @@ import { deleteUploadedFile } from "@/lib/storage/uploader";
 import { staffProfileSchema, staffAssignmentSchema, staffStatusSchema } from "./schema";
 import type { StaffFeedback } from "./types";
 
+function normalizeDate(raw?: string | null): string {
+  if (!raw || !raw.trim()) return new Date().toISOString().split("T")[0];
+  const s = raw.trim();
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [m, d, y] = s.split("/");
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const parsed = new Date(s);
+  return !isNaN(parsed.getTime()) ? parsed.toISOString().split("T")[0] : new Date().toISOString().split("T")[0];
+}
+
+function normalizeOptionalDate(raw?: string | null): string | undefined {
+  if (!raw || !raw.trim()) return undefined;
+  const s = raw.trim();
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [m, d, y] = s.split("/");
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const parsed = new Date(s);
+  return !isNaN(parsed.getTime()) ? parsed.toISOString().split("T")[0] : undefined;
+}
+
 export async function saveStaffProfileAction(
   _prevState: StaffFeedback,
   formData: FormData
@@ -58,7 +82,7 @@ export async function saveStaffProfileAction(
       phone: str("phone"),
       gender: str("gender") || "male",
       blood_group: str("blood_group") || "A+",
-      date_of_birth: opt("date_of_birth"),
+      date_of_birth: normalizeOptionalDate(opt("date_of_birth")),
       nid: opt("nid"),
       present_address: opt("present_address"),
       permanent_address: opt("permanent_address"),
@@ -66,7 +90,7 @@ export async function saveStaffProfileAction(
       institution: opt("institution"),
       specialization: opt("specialization"),
       experience_years: str("experience_years") || 0,
-      joining_date: str("joining_date") || new Date().toISOString().split("T")[0],
+      joining_date: normalizeDate(str("joining_date")),
       employment_type: str("employment_type") || "permanent",
       status: str("status") || "active",
       photo_url: opt("photo_url"),
@@ -87,7 +111,7 @@ export async function saveStaffProfileAction(
       return { error: err };
     }
 
-    const payload = parsed.data;
+    const payload: Record<string, any> = { ...parsed.data };
     const privClient = privateAdmin();
 
     if (privClient) {
@@ -111,6 +135,9 @@ export async function saveStaffProfileAction(
           .eq("id", id);
         if (error) throw error;
       } else {
+        // Remove undefined/null id so PostgreSQL uses default gen_random_uuid()
+        delete payload.id;
+
         const { error } = await privClient.from("staff_profiles").insert({
           ...payload,
           created_at: new Date().toISOString(),
@@ -136,9 +163,11 @@ export async function saveStaffProfileAction(
         ? `Profile for ${payload.full_name} (${payload.employee_id}) updated successfully.`
         : `New profile for ${payload.full_name} (${payload.employee_id}) created successfully.`,
     };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Failed to save profile";
-    return { error: msg };
+  } catch (err: any) {
+    console.error("saveStaffProfileAction database error:", err);
+    const msg = err?.message || err?.error_description || (err instanceof Error ? err.message : typeof err === "string" ? err : "Failed to save profile");
+    const hint = err?.hint ? ` (Hint: ${err.hint})` : err?.details ? ` (${err.details})` : "";
+    return { error: `${msg}${hint}` };
   }
 }
 
