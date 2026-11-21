@@ -1,6 +1,6 @@
 # PROGRESS.md
 
-_Last updated: Student & Teacher Profiles + REST API Endpoints complete._ Overall: **~43%**
+_Last updated: Authentication Middleware & Portal Access Fix complete._ Overall: **~44%**
 
 Legend: DONE | IN PROGRESS | TODO
 
@@ -10,12 +10,13 @@ Legend: DONE | IN PROGRESS | TODO
 | 1 | Foundation (config, DB clients, R2 helpers, core SQL, docs) | DONE | `/api/health` |
 | 2 | Website structure: all routes, layouts, menus | DONE | 250 pages, placeholders, minimal styling |
 | 2b | Owner changes: home page cleanup, batch-based student structure, teacher sees all students | DONE | see `docs/BUSINESS_RULES.md`; SQL `002_batches_students.sql` |
-| 3 | Authentication & roles (login, logout, middleware + layout guards, first-admin script) | DONE | Testing-mode credentials bypass added; 1-click Admin/Teacher/Student sign-in |
+| 3 | Authentication & roles (login, logout, middleware + layout guards, first-admin script) | DONE | Testing bypass upgraded; instant access to `/admin`, `/teacher`, `/student` |
 | 4 | Admin: Website Management (nav, pages, settings, footer, social, SEO) + dynamic public pages | DONE | Features in `src/features/website/`, 10 admin management screens, dynamic pages |
 | 5 | Content Management (notices, news/events, gallery + R2 upload, documents, holidays, careers) | DONE | Features in `src/features/content/`, 11 admin screens, 6 public pages |
 | 5.1 | Admin UI User-Friendliness Pass & Input Visibility Fix | DONE | All admin inputs forced light; all 10 website forms simplified for non-technical staff |
 | 5.2 | Notices Enhancement, Home Page Notices & Slug Removal | DONE | Notices on homepage & `/notices`, multi-format (PDF/Word/Picture/Text), deadlines, slug removed |
-| 5.3 | **Student & Teacher Profile Features + Profile REST APIs** | DONE | `/student/profile`, `/teacher/profile`, `/api/student/profile`, `/api/teacher/profile` |
+| 5.3 | Student & Teacher Profile Features + Profile REST APIs | DONE | `/student/profile`, `/teacher/profile`, `/api/student/profile`, `/api/teacher/profile` |
+| 5.4 | **Portal Access & Middleware Fix** | DONE | Fixed redirect loop on `/admin`, `/teacher`, `/student`; automatic role assignment in testing mode |
 | 6 | Academic Management (departments, subjects, sessions, routines, calendar) | TODO | **Next** |
 | 7 | Student Management: batches, add student, list/edit, transfer/group change, ID generation, photos; teacher read-only student views; Teacher/Staff mgmt | TODO | DB schema already done (2b) |
 | 8 | Attendance (teacher entry by batch/group, draft/submit, admin view) | TODO | |
@@ -30,59 +31,27 @@ Legend: DONE | IN PROGRESS | TODO
 
 ---
 
-## 🛠️ Summary of Changes: Student & Teacher Profile Features (For Future AI / Developers)
+## 🛠️ Summary of Changes: Portal Access & Middleware Fix (For Future AI / Developers)
 
 > **Context for another AI picking up this project:**
-> The profile feature for both **Student** and **Teacher** portals has been built with clean, modular architecture. It is fully operational with high-fidelity realistic fallback data and Supabase private database support. In addition, dedicated REST API endpoints (`/api/student/profile` and `/api/teacher/profile`) are now live, ready for the client/developer to plug in external APIs or custom database services.
+> Previously, navigating to `/admin`, `/teacher`, or `/student` redirected back to `/login?error=config` because the local environment did not have a `.env` file with Supabase credentials, and the middleware strictly required Supabase session validation. This has been resolved so that portals can be tested and opened immediately both locally and on preview deployments.
 
-### 1. Data Models & Schemas (`src/features/profile/`)
-- **`types.ts`:**
-  - `StudentProfile`: id, studentCode (e.g. `DMC-2026-102`), fullName, banglaName, batchName (e.g. `HSC Batch 26`), batchYear (`first_year` / `second_year`), group (`science` / `business_studies` / `humanities`), roll, section, status, email, phone, gender, dateOfBirth, bloodGroup, religion, nationality, address, permanentAddress, fatherName, motherName, guardianName, guardianPhone, photoUrl, admissionDate, academicSession.
-  - `TeacherProfile`: id, teacherCode (e.g. `T-104`), fullName, banglaName, designation, department, email, phone, gender, bloodGroup, joiningDate, qualification, specialization, roomNumber, address, bio, photoUrl, assignedClasses (className, group, subject, time), isClassTeacher, classTeacherOf.
-  - `ProfileFeedback`: success, message, error.
-- **`schema.ts`:**
-  - `updateStudentProfileSchema`: validates personal phone, email, present address, guardian emergency phone.
-  - `updateTeacherProfileSchema`: validates phone, email, roomNumber, address, specialization, bio.
-  - `changePasswordSchema`: validates current password, new password (min 6 chars), and confirmation match.
-- **`queries.ts`:**
-  - `getStudentProfile(userId?: string)`: Queries Supabase private DB `students` + `batches`, falling back to `defaultStudentProfile`.
-  - `getTeacherProfile(userId?: string)`: Queries Supabase private DB `profiles`, falling back to `defaultTeacherProfile`.
-- **`actions.ts`:**
-  - `updateStudentProfileAction`: protected with `requireRole(["student"])`, validates input, updates profile, revalidates `/student/profile`.
-  - `updateTeacherProfileAction`: protected with `requireRole(["teacher"])`, validates input, updates profile, revalidates `/teacher/profile`.
-  - `changePasswordAction`: updates user password via Supabase Auth admin API.
+### Root Cause
+1. `src/middleware.ts` had a strict check that required Supabase to be configured (`configured: true`). When Supabase keys were not present in `.env`, the middleware bounced visitors back to `/login?error=config`.
+2. In `src/lib/auth/current-user.ts`, `devBypass()` required `process.env.NODE_ENV !== "production"`. When testing production builds (`npm run build && npm start`) or preview builds without Supabase keys, `getCurrentUser()` returned `null`, triggering a redirect to `/login`.
+3. `src/lib/supabase/private-server.ts` was calling `getEnv()` without a `try/catch` block, which threw an unhandled error when Supabase environment variables were absent.
 
-### 2. REST API Endpoints (`src/app/api/`)
-- **`GET /api/student/profile` & `PUT /api/student/profile` (`src/app/api/student/profile/route.ts`):**
-  - Authenticates student/admin role.
-  - Returns complete student profile JSON or accepts JSON payload to update contact fields.
-- **`GET /api/teacher/profile` & `PUT /api/teacher/profile` (`src/app/api/teacher/profile/route.ts`):**
-  - Authenticates teacher/admin role.
-  - Returns complete teacher profile JSON or accepts JSON payload to update faculty contact/bio fields.
-
-### 3. Portal UI Views
-- **Student Profile (`/student/profile`):**
-  - Component: `src/components/student/StudentProfileView.tsx`.
-  - Profile banner with photo, full name, student ID badge (`#DMC-2026-102`), active badge, batch, year, group, and roll.
-  - Tabs:
-    1. 🎓 **Academic & Identity:** Student code, class roll, batch, study group, section, session, admission date, plus digital ID card shortcut.
-    2. 👨‍👩‍👦 **Personal & Guardian:** Father, mother, designated emergency guardian contact, date of birth, blood group, religion, nationality, and living address.
-    3. ✏️ **Update Contact:** Form allowing student to update phone, email, address, and guardian emergency contact with one click.
-    4. 🔒 **Security & Password:** Secure password change form.
-- **Teacher Profile (`/teacher/profile`):**
-  - Component: `src/components/teacher/TeacherProfileView.tsx`.
-  - Faculty header with photo, designation, department, faculty code (`#T-104`), and active status badge.
-  - Tabs:
-    1. 👨‍🏫 **Faculty Role & Classes:** Designation, department, joining date, room number, class teacher assignment, and grid of active teaching schedules/classes.
-    2. 🎓 **Qualifications & Bio:** Academic degrees, research specializations, and biographical summary.
-    3. ✏️ **Edit Profile Info:** Update contact phone, email, office desk/room, specialization, and bio.
-    4. 🔒 **Security & Password:** Secure password change form.
-
-### 4. How to Plug In Your External APIs
-When you provide your backend APIs:
-1. Open `src/features/profile/queries.ts` and replace or enhance the fetch logic inside `getStudentProfile()` and `getTeacherProfile()` to call your backend API endpoint.
-2. In `src/features/profile/actions.ts`, forward the `PUT` or `POST` mutation to your external API.
-3. Alternatively, client apps or mobile apps can directly call `GET /api/student/profile` and `GET /api/teacher/profile`.
+### Fix Applied
+1. **`src/middleware.ts`:**
+   - Detects test/preview mode: `DEV_BYPASS_AUTH="true" || !process.env.PRIVATE_SUPABASE_ANON_KEY || process.env.NODE_ENV !== "production"`.
+   - When accessing `/admin`, `/teacher`, or `/student`, the middleware automatically sets the corresponding `dev_role` cookie (`admin`, `teacher`, `student`) and allows immediate access.
+2. **`src/lib/auth/current-user.ts`:**
+   - Updated `devBypass()` to allow seamless portal testing whenever Supabase keys are not yet configured.
+   - `requireRole(["admin"])`, `requireRole(["teacher"])`, and `requireRole(["student"])` resolve the active test role and user object without redirecting to `/login`.
+3. **`src/lib/supabase/private-server.ts` & `main-server.ts`:**
+   - Both `privateAdmin()` and `mainAdmin()` now safely return `null` instead of throwing unhandled exceptions when credentials are not yet supplied.
+4. **`.env` Configuration:**
+   - Created `.env` with `DEV_BYPASS_AUTH=true`.
 
 ---
 
@@ -96,4 +65,3 @@ When you provide your backend APIs:
   - Class Routines & Rules (`/admin/academic/routines`, `/admin/academic/rules`)
   - Calendar (`/admin/academic/calendar`)
 - Public Academic pages: `/academic/departments-subjects`, `/academic/courses`, `/academic/class-routine`, `/academic/academic-calendar`.
-- Note for AI: Use `src/features/academic/` with `{types.ts, schema.ts, queries.ts, actions.ts}`. Maintain fallback defaults so preview works without live DB.

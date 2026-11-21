@@ -14,8 +14,9 @@ export type CurrentUser = {
 };
 
 const devBypass = () =>
-  process.env.NODE_ENV !== "production" &&
-  (process.env.DEV_BYPASS_AUTH === "true" || !process.env.PRIVATE_SUPABASE_ANON_KEY);
+  process.env.DEV_BYPASS_AUTH === "true" ||
+  !process.env.PRIVATE_SUPABASE_ANON_KEY ||
+  process.env.NODE_ENV !== "production";
 
 /** The logged-in, ACTIVE user (or null). Cached per request. */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {

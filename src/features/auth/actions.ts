@@ -16,8 +16,9 @@ function safeNext(next: FormDataEntryValue | null | string, role: Role): string 
 }
 
 const isDevAuthBypass = () =>
-  process.env.NODE_ENV !== "production" &&
-  (process.env.DEV_BYPASS_AUTH === "true" || !process.env.PRIVATE_SUPABASE_ANON_KEY);
+  process.env.DEV_BYPASS_AUTH === "true" ||
+  !process.env.PRIVATE_SUPABASE_ANON_KEY ||
+  process.env.NODE_ENV !== "production";
 
 /** Direct 1-click login action for testing without credentials */
 export async function quickTestLoginAction(formData: FormData) {

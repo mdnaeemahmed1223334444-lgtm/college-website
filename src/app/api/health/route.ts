@@ -28,8 +28,13 @@ export async function GET() {
     result.main_db = "error";
   }
 
-  const priv = await privateAdmin().from("academic_sessions").select("id").limit(1);
-  result.private_db = priv.error ? "error" : "ok";
+  const privClient = privateAdmin();
+  if (privClient) {
+    const priv = await privClient.from("academic_sessions").select("id").limit(1);
+    result.private_db = priv.error ? "error" : "ok";
+  } else {
+    result.private_db = "error";
+  }
 
   return ok(result);
 }
