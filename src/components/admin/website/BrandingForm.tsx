@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { updateBrandingAction } from "@/features/website/actions";
 import type { BrandingSettings, ActionFeedback } from "@/features/website/types";
 import { SubmitButton, FeedbackAlert } from "./FormControls";
+import ImageUploadInput from "@/components/shared/ImageUploadInput";
 
 export default function BrandingForm({ initialData }: { initialData: BrandingSettings }) {
   const [state, formAction] = useActionState<ActionFeedback, FormData>(updateBrandingAction, {});
@@ -122,17 +123,12 @@ export default function BrandingForm({ initialData }: { initialData: BrandingSet
           </h3>
 
           <div>
-            <label className="block text-xs font-bold text-gray-800">
-              Logo Image Web Link (URL)
-            </label>
-            <p className="text-[11px] text-gray-500 mb-1">
-              Paste the link to your college logo image. Leave blank to use the short name badge.
-            </p>
-            <input
+            <ImageUploadInput
               name="logoUrl"
-              defaultValue={initialData.logoUrl}
-              placeholder="e.g. https://... or /logo.png"
-              className="w-full rounded-md border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900 shadow-xs focus:border-blue-500 focus:bg-white focus:outline-none"
+              label="College Logo Image"
+              defaultValue={initialData.logoUrl || ""}
+              folder="branding"
+              helperText="Upload your college logo directly from your computer. Leave blank to use the short name badge instead. (PNG with transparent background recommended, up to 10MB)"
             />
           </div>
         </div>
@@ -176,12 +172,12 @@ export default function BrandingForm({ initialData }: { initialData: BrandingSet
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-gray-800">Browser Favicon Link (URL)</label>
-                <input
+                <ImageUploadInput
                   name="faviconUrl"
-                  defaultValue={initialData.faviconUrl}
-                  placeholder="e.g. /favicon.ico"
-                  className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900 shadow-xs focus:border-blue-500 focus:bg-white focus:outline-none"
+                  label="Browser Favicon / Tab Icon"
+                  defaultValue={initialData.faviconUrl || ""}
+                  folder="branding"
+                  helperText="Upload your favicon (ICO, PNG or SVG, ideally 32×32px). This appears in the browser tab."
                 />
               </div>
             </div>

@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { saveNoticeAction, deleteNoticeAction } from "@/features/content/actions";
 import type { NoticeRecord, ContentFeedback } from "@/features/content/types";
 import { SubmitButton, FeedbackAlert } from "@/components/admin/website/FormControls";
+import FileUploadInput from "@/components/shared/FileUploadInput";
 
 export default function NoticeManager({ notices }: { notices: NoticeRecord[] }) {
   const [editing, setEditing] = useState<NoticeRecord | null>(null);
@@ -200,29 +201,35 @@ export default function NoticeManager({ notices }: { notices: NoticeRecord[] }) 
 
               <input type="hidden" name="attachment_type" value={formatType} />
 
-              {/* Attachment File Input if not text-only */}
+              {/* Direct File Upload if not text-only */}
               {formatType !== "none" && (
                 <div className="pt-2">
-                  <label className="block text-xs font-semibold text-gray-800">
-                    {formatType === "pdf" && "PDF File URL or Path (.pdf)"}
-                    {formatType === "image" && "Picture / Photo Image URL (.jpg, .png, .webp)"}
-                    {formatType === "word" && "Word Document URL (.doc, .docx)"}
-                  </label>
-                  <input
+                  <FileUploadInput
                     name="attachment_url"
-                    defaultValue={editing?.attachment_url || ""}
-                    placeholder={
+                    label={
                       formatType === "pdf"
-                        ? "e.g. /documents/routine-2026.pdf or https://..."
+                        ? "Upload PDF File"
                         : formatType === "image"
-                        ? "e.g. /images/notice-poster.jpg or https://..."
-                        : "e.g. /documents/notice.docx or https://..."
+                        ? "Upload Notice Photo / Picture"
+                        : "Upload Word Document"
                     }
-                    className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
+                    defaultValue={editing?.attachment_url || ""}
+                    folder="notices"
+                    accept={
+                      formatType === "pdf"
+                        ? ".pdf"
+                        : formatType === "image"
+                        ? "image/*"
+                        : ".doc,.docx"
+                    }
+                    helperText={
+                      formatType === "pdf"
+                        ? "Choose a PDF file from your device (it will be hosted automatically)."
+                        : formatType === "image"
+                        ? "Choose an image file from your device (it will be hosted automatically)."
+                        : "Choose a Word document from your device."
+                    }
                   />
-                  <p className="mt-1 text-[11px] text-gray-500">
-                    💡 You can paste a link, or use files uploaded in <strong>Media Uploads</strong>.
-                  </p>
                 </div>
               )}
             </div>

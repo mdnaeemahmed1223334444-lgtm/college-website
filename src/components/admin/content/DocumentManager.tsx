@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { saveDocumentAction, deleteDocumentAction } from "@/features/content/actions";
 import type { DocumentRecord, ContentFeedback } from "@/features/content/types";
 import { SubmitButton, FeedbackAlert } from "@/components/admin/website/FormControls";
+import FileUploadInput from "@/components/shared/FileUploadInput";
 
 export default function DocumentManager({ documents }: { documents: DocumentRecord[] }) {
   const [editing, setEditing] = useState<DocumentRecord | null>(null);
@@ -89,13 +90,14 @@ export default function DocumentManager({ documents }: { documents: DocumentReco
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700">File / Download URL *</label>
-                <input
+                <FileUploadInput
                   name="file_url"
+                  label="File / Document Upload *"
                   defaultValue={editing?.file_url || ""}
+                  folder="documents"
+                  helperText="Upload the document directly from your computer. PDF, Word, ZIP, images all accepted (up to 10MB)."
+                  accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/zip,image/*"
                   required
-                  placeholder="https://... or /documents/file.pdf"
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
                 />
               </div>
 

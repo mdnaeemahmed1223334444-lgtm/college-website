@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { updateHomepageAction } from "@/features/website/actions";
 import type { HomepageSettings, ActionFeedback } from "@/features/website/types";
 import { SubmitButton, FeedbackAlert } from "./FormControls";
+import ImageUploadInput from "@/components/shared/ImageUploadInput";
 
 export default function HomepageForm({ initialData }: { initialData: HomepageSettings }) {
   const [state, formAction] = useActionState<ActionFeedback, FormData>(updateHomepageAction, {});
@@ -91,15 +92,12 @@ export default function HomepageForm({ initialData }: { initialData: HomepageSet
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-800">Banner Background Image (optional)</label>
-          <p className="text-xs text-gray-500 mb-1">
-            Paste a full image URL here. If left blank, a blue gradient is shown instead.
-          </p>
-          <input
+          <ImageUploadInput
             name="bannerImageUrl"
-            defaultValue={initialData.bannerImageUrl}
-            placeholder="https://... (or leave blank for the default blue background)"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
+            label="Banner Background Image (optional)"
+            defaultValue={initialData.bannerImageUrl || ""}
+            folder="homepage"
+            helperText="Upload a photo for the main welcome banner background. If left blank, a blue gradient is shown instead. (JPG, PNG, WebP up to 10MB — wide/landscape photos work best)"
           />
         </div>
       </div>

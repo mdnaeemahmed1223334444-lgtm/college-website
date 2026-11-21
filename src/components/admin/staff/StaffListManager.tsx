@@ -8,6 +8,7 @@ import {
   toggleStaffStatusAction,
 } from "@/features/staff/actions";
 import { SubmitButton, FeedbackAlert } from "@/components/admin/website/FormControls";
+import ImageUploadInput from "@/components/shared/ImageUploadInput";
 
 const DEPARTMENTS = [
   "Physics",
@@ -532,21 +533,6 @@ export default function StaffListManager({
 
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Profile Photo URL
-                      </label>
-                      <input
-                        type="url"
-                        name="photo_url"
-                        defaultValue={editingStaff?.photo_url || ""}
-                        placeholder="https://example.com/photo.jpg"
-                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
                         Room / Office Location
                       </label>
                       <input
@@ -557,17 +543,27 @@ export default function StaffListManager({
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       />
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Display Priority Order</label>
-                      <input
-                        type="number"
-                        name="display_order"
-                        defaultValue={editingStaff?.display_order || 0}
-                        placeholder="0"
-                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
-                      />
-                    </div>
+                  <div>
+                    <ImageUploadInput
+                      name="photo_url"
+                      label="Staff / Teacher Photo"
+                      defaultValue={editingStaff?.photo_url || ""}
+                      folder="staff"
+                      helperText="Upload employee photo directly from your device (JPG, PNG, WebP up to 10MB)."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Display Priority Order</label>
+                    <input
+                      type="number"
+                      name="display_order"
+                      defaultValue={editingStaff?.display_order || 0}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
+                    />
                   </div>
 
                   <div className="pt-2 flex justify-end">

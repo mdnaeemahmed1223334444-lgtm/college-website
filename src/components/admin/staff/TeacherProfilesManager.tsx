@@ -4,6 +4,7 @@ import { useState, useActionState } from "react";
 import type { StaffProfileRecord, StaffFeedback } from "@/features/staff/types";
 import { saveStaffProfileAction, deleteStaffProfileAction } from "@/features/staff/actions";
 import { SubmitButton, FeedbackAlert } from "@/components/admin/website/FormControls";
+import ImageUploadInput from "@/components/shared/ImageUploadInput";
 
 export default function TeacherProfilesManager({
   teachers,
@@ -571,17 +572,16 @@ export default function TeacherProfilesManager({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Photo URL</label>
-                  <input
-                    type="url"
+                <div className="sm:col-span-2">
+                  <ImageUploadInput
                     name="photo_url"
+                    label="Teacher Profile Photo"
                     defaultValue={editingTeacher?.photo_url || ""}
-                    placeholder="https://example.com/photo.jpg"
-                    className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
+                    folder="teachers"
+                    helperText="Upload teacher photo directly from your device (JPG, PNG, WebP up to 10MB)."
                   />
                 </div>
-                <div>
+                <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Campus Room / Office</label>
                   <input
                     type="text"

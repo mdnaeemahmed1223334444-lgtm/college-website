@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { saveCareerCircularAction, deleteCareerCircularAction } from "@/features/content/actions";
 import type { CareerCircularRecord, ContentFeedback } from "@/features/content/types";
 import { SubmitButton, FeedbackAlert } from "@/components/admin/website/FormControls";
+import FileUploadInput from "@/components/shared/FileUploadInput";
 
 export default function CareerManager({ circulars }: { circulars: CareerCircularRecord[] }) {
   const [editing, setEditing] = useState<CareerCircularRecord | null>(null);
@@ -110,12 +111,13 @@ export default function CareerManager({ circulars }: { circulars: CareerCircular
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700">Circular PDF / Download Link</label>
-                <input
+                <FileUploadInput
                   name="circular_file_url"
+                  label="Circular PDF / Job Circular Download"
                   defaultValue={editing?.circular_file_url || ""}
-                  placeholder="https://... or /careers/circular.pdf"
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
+                  folder="careers"
+                  helperText="Upload the job circular PDF or document directly from your computer (PDF, Word, up to 10MB)."
+                  accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 />
               </div>
 

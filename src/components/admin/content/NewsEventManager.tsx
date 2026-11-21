@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { saveNewsEventAction, deleteNewsEventAction } from "@/features/content/actions";
 import type { NewsEventRecord, ContentFeedback } from "@/features/content/types";
 import { SubmitButton, FeedbackAlert } from "@/components/admin/website/FormControls";
+import ImageUploadInput from "@/components/shared/ImageUploadInput";
 
 export default function NewsEventManager({ items }: { items: NewsEventRecord[] }) {
   const [editing, setEditing] = useState<NewsEventRecord | null>(null);
@@ -110,12 +111,12 @@ export default function NewsEventManager({ items }: { items: NewsEventRecord[] }
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700">Cover Image URL</label>
-                <input
+                <ImageUploadInput
                   name="cover_image_url"
+                  label="Cover Photo / Featured Image"
                   defaultValue={editing?.cover_image_url || ""}
-                  placeholder="https://... or /images/event.jpg"
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
+                  folder="news-events"
+                  helperText="Upload a photo for this news article or event (JPG, PNG, WebP up to 10MB)."
                 />
               </div>
 

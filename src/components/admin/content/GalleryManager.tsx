@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { saveGalleryAlbumAction, deleteGalleryAlbumAction } from "@/features/content/actions";
 import type { GalleryAlbumRecord, ContentFeedback } from "@/features/content/types";
 import { SubmitButton, FeedbackAlert } from "@/components/admin/website/FormControls";
+import ImageUploadInput from "@/components/shared/ImageUploadInput";
 
 export default function GalleryManager({ albums }: { albums: GalleryAlbumRecord[] }) {
   const [editing, setEditing] = useState<GalleryAlbumRecord | null>(null);
@@ -75,13 +76,13 @@ export default function GalleryManager({ albums }: { albums: GalleryAlbumRecord[
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-gray-700">Cover Image URL *</label>
-                <input
+                <ImageUploadInput
                   name="cover_image_url"
+                  label="Album Cover Photo *"
                   defaultValue={editing?.cover_image_url || ""}
+                  folder="gallery"
+                  helperText="Upload the main cover photo for this album (JPG, PNG, WebP up to 10MB)."
                   required
-                  placeholder="https://... or /gallery/sports.jpg"
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
                 />
               </div>
 

@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { updateSeoAction } from "@/features/website/actions";
 import type { SeoSettings, ActionFeedback } from "@/features/website/types";
 import { SubmitButton, FeedbackAlert } from "./FormControls";
+import ImageUploadInput from "@/components/shared/ImageUploadInput";
 
 export default function SeoForm({ initialData }: { initialData: SeoSettings }) {
   const [state, formAction] = useActionState<ActionFeedback, FormData>(updateSeoAction, {});
@@ -68,16 +69,12 @@ export default function SeoForm({ initialData }: { initialData: SeoSettings }) {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-800">Image shown when sharing your website link</label>
-          <p className="text-xs text-gray-500 mb-1">
-            When someone shares your website link on Facebook, WhatsApp, or Messenger, this image is shown as a preview.
-            Recommended size: 1200×630 pixels.
-          </p>
-          <input
+          <ImageUploadInput
             name="ogImageUrl"
-            defaultValue={initialData.ogImageUrl}
-            placeholder="https://... (paste the full image URL)"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
+            label="Image shown when sharing your website link"
+            defaultValue={initialData.ogImageUrl || ""}
+            folder="seo"
+            helperText="Upload a preview image (1200×630px recommended). This is shown when someone shares your link on Facebook, WhatsApp, or Messenger. (JPG, PNG, WebP up to 10MB)"
           />
         </div>
       </div>
