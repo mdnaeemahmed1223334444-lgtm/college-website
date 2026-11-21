@@ -144,6 +144,38 @@ create policy "public read holidays" on holidays for select
 create policy "public read published careers" on career_circulars for select
   using (status = 'published');
 
+-- Service role full access policies
+drop policy if exists "service_role full access on notices" on notices;
+create policy "service_role full access on notices" on notices for all to service_role using (true) with check (true);
+
+drop policy if exists "service_role full access on news_events" on news_events;
+create policy "service_role full access on news_events" on news_events for all to service_role using (true) with check (true);
+
+drop policy if exists "service_role full access on gallery_albums" on gallery_albums;
+create policy "service_role full access on gallery_albums" on gallery_albums for all to service_role using (true) with check (true);
+
+drop policy if exists "service_role full access on gallery_items" on gallery_items;
+create policy "service_role full access on gallery_items" on gallery_items for all to service_role using (true) with check (true);
+
+drop policy if exists "service_role full access on documents" on documents;
+create policy "service_role full access on documents" on documents for all to service_role using (true) with check (true);
+
+drop policy if exists "service_role full access on holidays" on holidays;
+create policy "service_role full access on holidays" on holidays for all to service_role using (true) with check (true);
+
+drop policy if exists "service_role full access on career_circulars" on career_circulars;
+create policy "service_role full access on career_circulars" on career_circulars for all to service_role using (true) with check (true);
+
+-- Permissions & Grants
+grant usage on schema public to anon, authenticated, service_role;
+grant all on all tables in schema public to service_role, postgres;
+grant all on all sequences in schema public to service_role, postgres;
+grant all on all routines in schema public to service_role, postgres;
+grant select on all tables in schema public to anon, authenticated;
+alter default privileges in schema public grant all on tables to service_role, postgres;
+alter default privileges in schema public grant all on sequences to service_role, postgres;
+alter default privileges in schema public grant all on routines to service_role, postgres;
+
 -- ---------- Initial Seed Data ----------
 insert into notices (title, slug, content, category, is_pinned, is_urgent, status) values
 (
