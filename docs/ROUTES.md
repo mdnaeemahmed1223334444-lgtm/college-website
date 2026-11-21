@@ -1,0 +1,319 @@
+# ROUTES.md: complete route map (generated)
+
+Page file = `src/app/<route>/page.tsx` (public routes live in the `(public)` group, which is not part of the URL).
+
+
+## Public
+
+- `/about`: About Us
+  - `/about/overview`: College Overview
+  - `/about/principals-message`: Principal's Message
+  - `/about/teachers`: Teachers
+    - `/about/teachers/science`: Science Teachers
+    - `/about/teachers/business-studies`: Business Studies Teachers
+    - `/about/teachers/humanities`: Humanities Teachers
+  - `/about/staff`: Other Staff
+  - `/about/mission-vision`: Mission & Vision
+  - `/about/history`: College History
+  - `/about/management-committee`: Management Committee
+  - `/about/departments`: Departments
+- `/academic`: Academic
+  - `/academic/departments-subjects`: Departments & Subjects
+  - `/academic/courses`: Courses
+  - `/academic/class-routine`: Class Routine
+  - `/academic/academic-calendar`: Academic Calendar
+  - `/academic/exam-schedule`: Exam Schedule
+  - `/academic/parent-guidelines`: Guidelines for Parents
+  - `/academic/dress-code`: Student Dress Code
+  - `/academic/co-curricular`: Co-curricular Activities
+  - `/academic/regulations`: Academic Regulations
+- `/information`: Information
+  - `/information/notice-board`: Notice Board
+  - `/information/news-events`: News & Events
+  - `/information/facilities`: College Facilities
+  - `/information/achievements`: Achievements
+  - `/information/holidays`: Holiday List
+  - `/information/policies`: Policies & Guidelines
+  - `/information/library`: Library
+  - `/information/health-awareness`: Health & Environment Awareness
+  - `/information/payment-information`: Payment Information
+  - `/information/documents`: Important Documents
+- `/admission`: Admission
+  - `/admission/circular`: Admission Circular
+  - `/admission/apply`: Online Application
+  - `/admission/requirements`: Admission Requirements
+  - `/admission/fees-payment`: Fees & Payment
+  - `/admission/scholarships`: Scholarships
+  - `/admission/transfer`: Transfer Procedures
+  - `/admission/results`: Admission Results
+  - `/admission/faq`: Admission FAQ
+- `/gallery`: Photo & Video Gallery
+- `/career`: Career / Employment _(hidden from menus)_
+  - `/career/at-a-glance`: At a Glance
+  - `/career/circulars`: Employment Circulars
+  - `/career/apply`: Online Job Application
+  - `/career/results`: Recruitment Exam Results
+- `/contact`: Contact Us
+- `/login`: Login / Portal
+
+## Student
+
+- `/student`: Student Dashboard
+  - _(on page)_ Personal Overview
+  - _(on page)_ Upcoming Events
+  - _(on page)_ Important Notifications
+- `/student/profile`: My Profile
+- `/student/id-card`: Digital Student ID Card
+- `/student/class-routine`: Class Routine
+- `/student/exam-schedule`: Exam Schedule
+- `/student/results`: Examination Results
+  - `/student/results/history`: Result History
+  - `/student/results/subject-marks`: Subject-wise Marks
+  - `/student/results/grades-gpa`: Grades & GPA
+  - `/student/results/marksheet`: Marksheet Download
+- `/student/attendance`: Attendance Records
+  - `/student/attendance/history`: Attendance History
+  - `/student/attendance/percentage`: Attendance Percentage
+- `/student/fees`: Fees & Payments
+  - `/student/fees/paid`: Paid Fees
+  - `/student/fees/due`: Due Fees
+  - `/student/fees/history`: Payment History
+  - `/student/fees/receipts`: Payment Receipts
+- `/student/notices`: Notices & Announcements
+- `/student/performance`: Academic Performance
+  - `/student/performance/overall`: Overall Performance
+  - `/student/performance/subject-wise`: Subject-wise Performance
+  - `/student/performance/ranking`: Class Ranking
+- `/student/library`: Library
+  - `/student/library/available`: Available Books
+  - `/student/library/issued`: Issued Books
+- `/student/documents`: Download Documents
+
+## Teacher
+
+- `/teacher`: Teacher Dashboard
+  - _(on page)_ Today's Classes
+  - _(on page)_ Pending Attendance
+  - _(on page)_ Pending Marks Submission
+  - _(on page)_ Recent Activities
+  - _(on page)_ Notifications
+- `/teacher/profile`: My Profile
+- `/teacher/classes`: Assigned Classes
+- `/teacher/routines`: Class Routines
+- `/teacher/students`: Student Information
+  - _(on page)_ ALL students (every batch, group and status), read-only
+  - _(on page)_ Search & filter: Batch, Year, Group, Status
+  - _(on page)_ Open any student to see FULL details
+  - `/teacher/students/performance`: Student Performance
+  - `/teacher/students/attendance`: Student Attendance Records
+- `/teacher/attendance`: Attendance Management
+  - _(on page)_ Select Batch (running)
+  - _(on page)_ Select Year (1st / 2nd)
+  - _(on page)_ Select Group (Science / Business Studies / Humanities)
+  - _(on page)_ Select Date
+  - _(on page)_ View Student List
+  - _(on page)_ Mark Attendance (Present / Absent / Late / Excused)
+  - _(on page)_ Save as Draft
+  - _(on page)_ Submit Attendance
+  - `/teacher/attendance/history`: Attendance History
+  - `/teacher/attendance/corrections`: Edit / Correction Requests
+- `/teacher/marks`: Examination & Marks
+  - _(on page)_ Select Examination
+  - _(on page)_ Select Batch & Group
+  - _(on page)_ Select Subject
+  - _(on page)_ Student Marks Entry (Obtained / Maximum / Practical-Written)
+  - _(on page)_ Save as Draft
+  - _(on page)_ Submit Marks
+  - `/teacher/marks/history`: Marks Submission History
+  - `/teacher/marks/corrections`: Edit / Correction Requests
+- `/teacher/exam-duties`: Exam Hall Duties
+- `/teacher/notices`: Notices & Announcements
+- `/teacher/reports`: Academic Reports
+  - `/teacher/reports/attendance`: Attendance Reports
+  - `/teacher/reports/examination`: Examination Reports
+  - `/teacher/reports/performance`: Student Performance Reports
+- `/teacher/submissions`: Submission History
+
+## Admin
+
+- `/admin`: Dashboard & Analytics
+  - _(on page)_ Total Students
+  - _(on page)_ Total Teachers & Staff
+  - _(on page)_ Attendance Statistics
+  - _(on page)_ Examination Statistics
+  - _(on page)_ Admission Statistics
+  - _(on page)_ Financial Overview
+  - _(on page)_ Recent Activities
+  - _(on page)_ Pending Tasks
+- `/admin/website`: Website Management
+  - `/admin/website/homepage`: Manage Homepage
+  - `/admin/website/navigation`: Navigation Menu Management
+  - `/admin/website/pages`: Website Pages Management
+  - `/admin/website/branding`: Logo & Branding
+  - `/admin/website/homepage-sections`: Homepage Sections
+  - `/admin/website/appearance`: Website Appearance
+  - `/admin/website/seo`: SEO & Metadata
+  - `/admin/website/footer`: Footer Management
+  - `/admin/website/social-links`: Social Media Links
+  - `/admin/website/features`: Enable / Disable Features
+- `/admin/students`: Student Management
+  - `/admin/students/batches`: Batches
+    - _(on page)_ Create batch (e.g. HSC Batch 26)
+    - _(on page)_ Batch status: Running / Passed
+    - _(on page)_ Running batch year: 1st Year / 2nd Year (promote 1st to 2nd)
+    - _(on page)_ Students of each batch, split by Science / Business Studies / Humanities
+  - `/admin/students/add`: Add Student
+    - _(on page)_ Select batch (running)
+    - _(on page)_ Select group: Science / Business Studies / Humanities
+    - _(on page)_ Personal, guardian & contact details
+    - _(on page)_ Photo upload (R2, private)
+    - _(on page)_ Create login account (optional)
+  - `/admin/students/list`: All Students (Edit / Delete)
+    - _(on page)_ Filter: Batch, Year, Group, Status
+    - _(on page)_ Open a student to edit EVERYTHING (incl. group)
+  - `/admin/students/transfer`: Transfer & Group Change
+    - _(on page)_ Select student
+    - _(on page)_ Move to another RUNNING batch (e.g. did not pass HSC)
+    - _(on page)_ Change group (Science / Business Studies / Humanities)
+    - _(on page)_ New roll (optional)
+    - _(on page)_ Reason
+    - _(on page)_ Transfer history log
+  - `/admin/students/admission-records`: Admission Records
+  - `/admin/students/id-generation`: Student ID Generation
+  - `/admin/students/status`: Student Status Management
+  - `/admin/students/import-export`: Bulk Import / Export
+  - `/admin/students/documents`: Student Documents
+  - `/admin/students/accounts`: Student Account Management
+- `/admin/staff`: Teacher & Staff Management
+  - `/admin/staff/list`: Add / Edit / Remove Staff
+  - `/admin/staff/profiles`: Teacher Profiles
+  - `/admin/staff/departments`: Department Assignment
+  - `/admin/staff/subjects`: Subject Assignment
+  - `/admin/staff/class-section`: Class & Section Assignment
+  - `/admin/staff/workload`: Teacher Workload
+  - `/admin/staff/attendance`: Staff Attendance
+  - `/admin/staff/employment`: Employment Records
+  - `/admin/staff/accounts`: Teacher Account Management
+- `/admin/academic`: Academic Management
+  - `/admin/academic/departments`: Manage Departments
+  - `/admin/academic/classes`: Manage Classes
+  - `/admin/academic/sections`: Manage Sections
+  - `/admin/academic/subjects`: Manage Subjects
+  - `/admin/academic/sessions`: Academic Sessions
+  - `/admin/academic/routines`: Class Routines
+  - `/admin/academic/calendar`: Academic Calendar
+  - `/admin/academic/class-teachers`: Class Teacher Assignment
+  - `/admin/academic/subject-teachers`: Subject Teacher Assignment
+  - `/admin/academic/rules`: Academic Rules & Regulations
+- `/admin/examinations`: Examination Management
+  - `/admin/examinations/create`: Create Examinations
+  - `/admin/examinations/schedule`: Exam Schedule
+  - `/admin/examinations/halls`: Exam Hall Management
+  - `/admin/examinations/marks`: Marks Management
+  - `/admin/examinations/grading`: Grading System
+  - `/admin/examinations/approval`: Result Approval
+  - `/admin/examinations/publish`: Publish Results
+  - `/admin/examinations/correction`: Result Correction
+  - `/admin/examinations/merit-list`: Merit List & Ranking
+  - `/admin/examinations/marksheets`: Marksheet Generation
+  - `/admin/examinations/history`: Result History
+- `/admin/attendance`: Attendance Management
+  - `/admin/attendance/all`: View All Attendance
+  - `/admin/attendance/students`: Student Attendance
+  - `/admin/attendance/staff`: Staff Attendance
+  - `/admin/attendance/correction`: Attendance Correction
+  - `/admin/attendance/reports`: Attendance Reports
+  - `/admin/attendance/rules`: Attendance Rules
+  - `/admin/attendance/deadlines`: Attendance Deadlines
+  - `/admin/attendance/locking`: Attendance Locking
+- `/admin/admissions`: Admission Management
+  - `/admin/admissions/applications`: Admission Applications
+  - `/admin/admissions/review`: Application Review
+  - `/admin/admissions/verification`: Applicant Verification
+  - `/admin/admissions/selection`: Admission Selection
+  - `/admin/admissions/results`: Admission Results
+  - `/admin/admissions/enrollment`: Student Enrollment
+  - `/admin/admissions/settings`: Admission Settings
+- `/admin/finance`: Finance Management
+  - `/admin/finance/fee-structure`: Fee Structure
+  - `/admin/finance/payments`: Student Payments
+  - `/admin/finance/dues`: Due Payments
+  - `/admin/finance/verification`: Payment Verification
+  - `/admin/finance/scholarships`: Scholarships & Waivers
+  - `/admin/finance/receipts`: Payment Receipts
+  - `/admin/finance/reports`: Financial Reports
+  - `/admin/finance/settings`: Payment Settings
+- `/admin/content`: Content Management
+  - `/admin/content/notices`: Notice Management
+  - `/admin/content/news-events`: News & Events
+  - `/admin/content/gallery`: Gallery Management
+  - `/admin/content/uploads`: Photo & Video Uploads
+  - `/admin/content/page-editor`: Page Content Editor
+  - `/admin/content/documents`: Document Management
+  - `/admin/content/career-circulars`: Career Circulars
+  - `/admin/content/holidays`: Holiday Management
+  - `/admin/content/drafts`: Draft & Publish
+  - `/admin/content/scheduled`: Scheduled Publishing
+- `/admin/library`: Library Management
+  - `/admin/library/books`: Book Management
+  - `/admin/library/categories`: Book Categories
+  - `/admin/library/issue-return`: Book Issue & Return
+  - `/admin/library/members`: Library Members
+  - `/admin/library/reports`: Library Reports
+- `/admin/communication`: Communication Management
+  - `/admin/communication/notifications`: Send Notifications
+  - `/admin/communication/student-announcements`: Student Announcements
+  - `/admin/communication/teacher-announcements`: Teacher Announcements
+  - `/admin/communication/email`: Email Integration
+  - `/admin/communication/sms`: SMS Integration
+  - `/admin/communication/contact-messages`: Contact Messages
+- `/admin/reports`: Reports & Analytics
+  - `/admin/reports/students`: Student Reports
+  - `/admin/reports/academic`: Academic Reports
+  - `/admin/reports/examination`: Examination Reports
+  - `/admin/reports/attendance`: Attendance Reports
+  - `/admin/reports/financial`: Financial Reports
+  - `/admin/reports/admission`: Admission Reports
+  - `/admin/reports/teacher-performance`: Teacher Performance Reports
+  - `/admin/reports/export`: Export PDF / Excel / CSV
+- `/admin/users`: User & Permission Management
+  - `/admin/users/accounts`: Create User Accounts
+  - `/admin/users/roles`: Manage Roles
+  - `/admin/users/permissions`: Assign Permissions
+  - `/admin/users/reset-passwords`: Reset Passwords
+  - `/admin/users/status`: Activate / Suspend Accounts
+  - `/admin/users/login-history`: Login History
+  - `/admin/users/custom-roles`: Custom Roles
+- `/admin/settings`: System Settings
+  - `/admin/settings/college-info`: College Information
+  - `/admin/settings/academic`: Academic Settings
+  - `/admin/settings/grading`: Grading Configuration
+  - `/admin/settings/fees`: Fee Configuration
+  - `/admin/settings/portal`: Portal Settings
+  - `/admin/settings/language-timezone`: Language & Timezone
+  - `/admin/settings/integrations`: Integrations & API
+  - `/admin/settings/website`: Website Configuration
+  - `/admin/settings/features`: Feature Configuration
+- `/admin/security`: Security & Backup
+  - `/admin/security/activity-logs`: Activity Logs
+  - `/admin/security/admin-history`: Admin Action History
+  - `/admin/security/backup`: Database Backup
+  - `/admin/security/restore`: Database Restore
+  - `/admin/security/security-settings`: Security Settings
+  - `/admin/security/sessions`: Session Management
+  - `/admin/security/login-security`: Login Security
+- `/admin/approvals`: Submission Approval Center
+  - _(on page)_ Review submission
+  - _(on page)_ Approved? Yes -> Confirm & Publish
+  - _(on page)_ Approved? No -> Return to teacher for correction
+  - `/admin/approvals/pending-attendance`: Pending Attendance Submissions
+  - `/admin/approvals/pending-marks`: Pending Marks Submissions
+  - `/admin/approvals/attendance-corrections`: Attendance Correction Requests
+  - `/admin/approvals/marks-corrections`: Marks Correction Requests
+
+## Dynamic routes (hand-written, not in the generator)
+- `/teacher/students/[studentId]`: full student details, READ-ONLY
+- `/admin/students/[studentId]`: edit everything about a student
+- `/admin/students/batches/[batchId]`: one batch (status, year, students by group)
+
+Career section (`/career/*`) exists but is hidden from header/footer menus (flag `hidden: true` in `config/navigation/public.ts`).

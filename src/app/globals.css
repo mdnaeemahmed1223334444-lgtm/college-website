@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    color-scheme: light;
+    background-color: #f9fafb;
+    color: #111827;
+  }
+
+  body {
+    background-color: #f9fafb;
+    color: #111827;
+  }
+
+  /* Force all input boxes, textareas, and dropdown selects to stay crisp white with clear dark text */
+  input,
+  textarea,
+  select {
+    color-scheme: light !important;
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border-color: #d1d5db;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    outline: none;
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #9ca3af !important;
+  }
+}
