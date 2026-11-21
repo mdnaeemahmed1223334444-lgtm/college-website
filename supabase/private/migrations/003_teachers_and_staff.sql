@@ -68,6 +68,32 @@ create index if not exists idx_staff_att_date on staff_attendance(date);
 alter table staff_profiles enable row level security;
 alter table staff_attendance enable row level security;
 
--- Policies: Only service_role can write; authenticated staff can read own
+-- Policies
+drop policy if exists "Read staff public" on staff_profiles;
 create policy "Read staff public" on staff_profiles for select using (true);
+
+drop policy if exists "Service role full access on staff_profiles" on staff_profiles;
+create policy "Service role full access on staff_profiles" on staff_profiles for all to service_role using (true) with check (true);
+
+drop policy if exists "Read staff attendance" on staff_attendance;
 create policy "Read staff attendance" on staff_attendance for select using (true);
+
+drop policy if exists "Service role full access on staff_attendance" on staff_attendance;
+create policy "Service role full access on staff_attendance" on staff_attendance for all to service_role using (true) with check (true);
+
+-- Table Permissions & Grants
+grant usage on schema public to anon, authenticated, service_role;
+
+grant all on table public.staff_profiles to postgres, service_role;
+grant select on table public.staff_profiles to anon, authenticated;
+
+grant all on table public.staff_attendance to postgres, service_role;
+grant select on table public.staff_attendance to authenticated;
+
+grant all on all tables in schema public to postgres, service_role;
+grant all on all sequences in schema public to postgres, service_role;
+grant all on all routines in schema public to postgres, service_role;
+
+alter default privileges in schema public grant all on tables to postgres, service_role;
+alter default privileges in schema public grant all on sequences to postgres, service_role;
+alter default privileges in schema public grant all on routines to postgres, service_role;
