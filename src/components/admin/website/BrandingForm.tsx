@@ -149,39 +149,37 @@ export default function BrandingForm({ initialData }: { initialData: BrandingSet
             </button>
           </div>
 
-          {showAdvanced && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-3 border-t">
-              <div>
-                <label className="block text-xs font-bold text-gray-800">EIIN Number</label>
-                <input
-                  name="eiin"
-                  defaultValue={initialData.eiin}
-                  placeholder="e.g. 134250"
-                  className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900 shadow-xs focus:border-blue-500 focus:bg-white focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-800">College Board Code</label>
-                <input
-                  name="collegeCode"
-                  defaultValue={initialData.collegeCode}
-                  placeholder="e.g. 1082"
-                  className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900 shadow-xs focus:border-blue-500 focus:bg-white focus:outline-none"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <ImageUploadInput
-                  name="faviconUrl"
-                  label="Browser Favicon / Tab Icon"
-                  defaultValue={initialData.faviconUrl || ""}
-                  folder="branding"
-                  helperText="Upload your favicon (ICO, PNG or SVG, ideally 32×32px). This appears in the browser tab."
-                />
-              </div>
+          <div className={showAdvanced ? "grid grid-cols-1 gap-4 sm:grid-cols-2 pt-3 border-t" : "hidden"}>
+            <div>
+              <label className="block text-xs font-bold text-gray-800">EIIN Number</label>
+              <input
+                name="eiin"
+                defaultValue={initialData.eiin}
+                placeholder="e.g. 134250"
+                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900 shadow-xs focus:border-blue-500 focus:bg-white focus:outline-none"
+              />
             </div>
-          )}
+
+            <div>
+              <label className="block text-xs font-bold text-gray-800">College Board Code</label>
+              <input
+                name="collegeCode"
+                defaultValue={initialData.collegeCode}
+                placeholder="e.g. 1082"
+                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900 shadow-xs focus:border-blue-500 focus:bg-white focus:outline-none"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <ImageUploadInput
+                name="faviconUrl"
+                label="Browser Favicon / Tab Icon"
+                defaultValue={initialData.faviconUrl || ""}
+                folder="branding"
+                helperText="Upload your favicon (ICO, PNG or SVG, ideally 32×32px). This appears in the browser tab."
+              />
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end pt-3 border-t">

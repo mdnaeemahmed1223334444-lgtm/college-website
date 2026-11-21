@@ -3,6 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/current-user";
 import { mainAdmin } from "@/lib/supabase/main-server";
+import { deleteUploadedFile } from "@/lib/storage/uploader";
+import {
+  getBrandingSettings,
+  getAppearanceSettings,
+  getHomepageSettings,
+  getSeoSettings,
+} from "./queries";
 import {
   brandingSchema,
   appearanceSchema,
@@ -15,7 +22,7 @@ import {
   navigationItemSchema,
   pageSchema,
 } from "./schema";
-import type { ActionFeedback } from "./types";
+import type { ActionFeedback, BrandingSettings } from "./types";
 
 /** Save any JSON object into site_settings table */
 async function saveSettingRecord(key: string, value: Record<string, any>): Promise<ActionFeedback> {
@@ -34,7 +41,9 @@ async function saveSettingRecord(key: string, value: Record<string, any>): Promi
   });
 
   if (error) {
-    return { success: false, error: `Failed to save setting: ${error.message}` };
+    const msg = error.message || (error as any).details || "Database error";
+    const hint = (error as any).hint ? ` (Hint: ${(error as any).hint})` : "";
+    return { success: false, error: `Failed to save setting: ${msg}${hint}` };
   }
 
   revalidatePath("/", "layout");
@@ -42,32 +51,56 @@ async function saveSettingRecord(key: string, value: Record<string, any>): Promi
 }
 
 export async function updateBrandingAction(_prev: ActionFeedback, formData: FormData): Promise<ActionFeedback> {
+  const existing = await getBrandingSettings();
+  const getVal = (key: string): string => {
+    if (!formData.has(key)) return (existing as any)[key] || "";
+    const v = formData.get(key);
+    return typeof v === "string" ? v.trim() : "";
+  };
+
   const parsed = brandingSchema.safeParse({
-    collegeName: formData.get("collegeName"),
-    shortName: formData.get("shortName"),
-    motto: formData.get("motto"),
-    establishedYear: formData.get("establishedYear"),
-    eiin: formData.get("eiin"),
-    collegeCode: formData.get("collegeCode"),
-    logoUrl: formData.get("logoUrl"),
-    faviconUrl: formData.get("faviconUrl"),
+    collegeName: getVal("collegeName"),
+    shortName: getVal("shortName"),
+    motto: getVal("motto"),
+    establishedYear: getVal("establishedYear"),
+    eiin: getVal("eiin"),
+    collegeCode: getVal("collegeCode"),
+    logoUrl: getVal("logoUrl"),
+    faviconUrl: getVal("faviconUrl"),
   });
 
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Invalid branding data." };
   }
 
+  // Automatic cleanup of old replaced logo or favicon
+  if (existing.logoUrl && existing.logoUrl !== parsed.data.logoUrl) {
+    await deleteUploadedFile(existing.logoUrl);
+  }
+  if (existing.faviconUrl && existing.faviconUrl !== parsed.data.faviconUrl) {
+    await deleteUploadedFile(existing.faviconUrl);
+  }
+
   return saveSettingRecord("branding", parsed.data);
 }
 
 export async function updateAppearanceAction(_prev: ActionFeedback, formData: FormData): Promise<ActionFeedback> {
+  const existing = await getAppearanceSettings();
+  const getVal = (key: string): string => {
+    if (!formData.has(key)) return (existing as any)[key] || "";
+    const v = formData.get(key);
+    return typeof v === "string" ? v.trim() : "";
+  };
+
   const parsed = appearanceSchema.safeParse({
-    primaryColor: formData.get("primaryColor"),
-    secondaryColor: formData.get("secondaryColor"),
-    accentColor: formData.get("accentColor"),
-    fontFamily: formData.get("fontFamily"),
-    headerSticky: formData.get("headerSticky") === "on" || formData.get("headerSticky") === "true",
-    containerWidth: formData.get("containerWidth"),
+    primaryColor: getVal("primaryColor"),
+    secondaryColor: getVal("secondaryColor"),
+    accentColor: getVal("accentColor"),
+    fontFamily: getVal("fontFamily"),
+    headerSticky: formData.has("headerSticky")
+      ? formData.get("headerSticky") === "on" || formData.get("headerSticky") === "true"
+      : existing.headerSticky,
+    containerWidth: getVal("containerWidth"),
   });
 
   if (!parsed.success) {
@@ -78,20 +111,28 @@ export async function updateAppearanceAction(_prev: ActionFeedback, formData: Fo
 }
 
 export async function updateHomepageAction(_prev: ActionFeedback, formData: FormData): Promise<ActionFeedback> {
+  const existing = await getHomepageSettings();
+  const str = (key: string): string => ((formData.get(key) as string) ?? "").trim();
+
   const parsed = homepageSchema.safeParse({
-    heroTitle: formData.get("heroTitle"),
-    heroSubtitle: formData.get("heroSubtitle"),
-    heroCtaText: formData.get("heroCtaText"),
-    heroCtaLink: formData.get("heroCtaLink"),
-    heroSecondaryText: formData.get("heroSecondaryText"),
-    heroSecondaryLink: formData.get("heroSecondaryLink"),
-    bannerImageUrl: formData.get("bannerImageUrl"),
+    heroTitle: str("heroTitle"),
+    heroSubtitle: str("heroSubtitle"),
+    heroCtaText: str("heroCtaText"),
+    heroCtaLink: str("heroCtaLink"),
+    heroSecondaryText: str("heroSecondaryText"),
+    heroSecondaryLink: str("heroSecondaryLink"),
+    bannerImageUrl: str("bannerImageUrl"),
     noticeTickerSpeed: formData.get("noticeTickerSpeed"),
-    noticeTickerText: formData.get("noticeTickerText"),
+    noticeTickerText: str("noticeTickerText"),
   });
 
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Invalid homepage data." };
+  }
+
+  // Automatic cleanup of replaced banner image
+  if (existing.bannerImageUrl && existing.bannerImageUrl !== parsed.data.bannerImageUrl) {
+    await deleteUploadedFile(existing.bannerImageUrl);
   }
 
   return saveSettingRecord("homepage", parsed.data);
@@ -99,13 +140,13 @@ export async function updateHomepageAction(_prev: ActionFeedback, formData: Form
 
 export async function updateHomepageSectionsAction(_prev: ActionFeedback, formData: FormData): Promise<ActionFeedback> {
   const parsed = homepageSectionsSchema.safeParse({
-    noticeTicker: formData.get("noticeTicker") === "on",
-    heroSection: formData.get("heroSection") === "on",
-    quickLinks: formData.get("quickLinks") === "on",
-    latestNews: formData.get("latestNews") === "on",
-    galleryPreview: formData.get("galleryPreview") === "on",
-    statistics: formData.get("statistics") === "on",
-    principalMessage: formData.get("principalMessage") === "on",
+    noticeTicker: formData.get("noticeTicker") === "on" || formData.get("noticeTicker") === "true",
+    heroSection: formData.get("heroSection") === "on" || formData.get("heroSection") === "true",
+    quickLinks: formData.get("quickLinks") === "on" || formData.get("quickLinks") === "true",
+    latestNews: formData.get("latestNews") === "on" || formData.get("latestNews") === "true",
+    galleryPreview: formData.get("galleryPreview") === "on" || formData.get("galleryPreview") === "true",
+    statistics: formData.get("statistics") === "on" || formData.get("statistics") === "true",
+    principalMessage: formData.get("principalMessage") === "on" || formData.get("principalMessage") === "true",
   });
 
   if (!parsed.success) {
@@ -116,29 +157,38 @@ export async function updateHomepageSectionsAction(_prev: ActionFeedback, formDa
 }
 
 export async function updateSeoAction(_prev: ActionFeedback, formData: FormData): Promise<ActionFeedback> {
+  const existing = await getSeoSettings();
+  const str = (key: string): string => ((formData.get(key) as string) ?? "").trim();
+
   const parsed = seoSchema.safeParse({
-    metaTitle: formData.get("metaTitle"),
-    metaDescription: formData.get("metaDescription"),
-    keywords: formData.get("keywords"),
-    ogImageUrl: formData.get("ogImageUrl"),
-    googleAnalyticsId: formData.get("googleAnalyticsId"),
+    metaTitle: str("metaTitle"),
+    metaDescription: str("metaDescription"),
+    keywords: str("keywords"),
+    ogImageUrl: str("ogImageUrl"),
+    googleAnalyticsId: str("googleAnalyticsId"),
   });
 
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Invalid SEO data." };
   }
 
+  // Automatic cleanup of replaced OG image
+  if (existing.ogImageUrl && existing.ogImageUrl !== parsed.data.ogImageUrl) {
+    await deleteUploadedFile(existing.ogImageUrl);
+  }
+
   return saveSettingRecord("seo", parsed.data);
 }
 
 export async function updateFooterAction(_prev: ActionFeedback, formData: FormData): Promise<ActionFeedback> {
+  const str = (key: string): string => ((formData.get(key) as string) ?? "").trim();
   const parsed = footerSchema.safeParse({
-    copyrightText: formData.get("copyrightText"),
-    aboutText: formData.get("aboutText"),
-    address: formData.get("address"),
-    phone: formData.get("phone"),
-    email: formData.get("email"),
-    emergencyHelpline: formData.get("emergencyHelpline"),
+    copyrightText: str("copyrightText"),
+    aboutText: str("aboutText"),
+    address: str("address"),
+    phone: str("phone"),
+    email: str("email"),
+    emergencyHelpline: str("emergencyHelpline"),
   });
 
   if (!parsed.success) {
@@ -149,13 +199,14 @@ export async function updateFooterAction(_prev: ActionFeedback, formData: FormDa
 }
 
 export async function updateSocialLinksAction(_prev: ActionFeedback, formData: FormData): Promise<ActionFeedback> {
+  const str = (key: string): string => ((formData.get(key) as string) ?? "").trim();
   const parsed = socialLinksSchema.safeParse({
-    facebook: formData.get("facebook"),
-    youtube: formData.get("youtube"),
-    twitter: formData.get("twitter"),
-    linkedin: formData.get("linkedin"),
-    instagram: formData.get("instagram"),
-    whatsapp: formData.get("whatsapp"),
+    facebook: str("facebook"),
+    youtube: str("youtube"),
+    twitter: str("twitter"),
+    linkedin: str("linkedin"),
+    instagram: str("instagram"),
+    whatsapp: str("whatsapp"),
   });
 
   if (!parsed.success) {

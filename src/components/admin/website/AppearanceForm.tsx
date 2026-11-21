@@ -59,90 +59,88 @@ export default function AppearanceForm({ initialData }: { initialData: Appearanc
           </span>
         </button>
 
-        {showAdvanced && (
-          <div className="border-t p-4 space-y-5">
-            {/* Colors */}
-            <div>
-              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Website Colors</h4>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700">Primary Color</label>
-                  <p className="text-[10px] text-gray-400 mb-1">Header bar, main buttons, active links</p>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      name="primaryColor"
-                      defaultValue={initialData.primaryColor || "#1e40af"}
-                      className="h-9 w-12 cursor-pointer rounded border p-1"
-                    />
-                    <span className="text-xs font-mono text-gray-500">{initialData.primaryColor || "#1e40af"}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700">Secondary Color</label>
-                  <p className="text-[10px] text-gray-400 mb-1">Sub-headings, tags, accents</p>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      name="secondaryColor"
-                      defaultValue={initialData.secondaryColor || "#0f766e"}
-                      className="h-9 w-12 cursor-pointer rounded border p-1"
-                    />
-                    <span className="text-xs font-mono text-gray-500">{initialData.secondaryColor || "#0f766e"}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700">Accent Color</label>
-                  <p className="text-[10px] text-gray-400 mb-1">Notice badges, highlights, alerts</p>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      name="accentColor"
-                      defaultValue={initialData.accentColor || "#f59e0b"}
-                      className="h-9 w-12 cursor-pointer rounded border p-1"
-                    />
-                    <span className="text-xs font-mono text-gray-500">{initialData.accentColor || "#f59e0b"}</span>
-                  </div>
+        <div className={showAdvanced ? "border-t p-4 space-y-5" : "hidden"}>
+          {/* Colors */}
+          <div>
+            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Website Colors</h4>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700">Primary Color</label>
+                <p className="text-[10px] text-gray-400 mb-1">Header bar, main buttons, active links</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    name="primaryColor"
+                    defaultValue={initialData.primaryColor || "#1e40af"}
+                    className="h-9 w-12 cursor-pointer rounded border p-1"
+                  />
+                  <span className="text-xs font-mono text-gray-500">{initialData.primaryColor || "#1e40af"}</span>
                 </div>
               </div>
-            </div>
 
-            {/* Typography & Layout */}
-            <div>
-              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Font & Page Width</h4>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700">Website Font</label>
-                  <select
-                    name="fontFamily"
-                    defaultValue={initialData.fontFamily || "Inter, sans-serif"}
-                    className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="Inter, sans-serif">Inter — Modern & Clean (Recommended)</option>
-                    <option value="Roboto, sans-serif">Roboto — Standard Google Font</option>
-                    <option value="Merriweather, serif">Merriweather — Traditional Academic</option>
-                    <option value="system-ui, sans-serif">System Font — Fastest Loading</option>
-                  </select>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700">Secondary Color</label>
+                <p className="text-[10px] text-gray-400 mb-1">Sub-headings, tags, accents</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    name="secondaryColor"
+                    defaultValue={initialData.secondaryColor || "#0f766e"}
+                    className="h-9 w-12 cursor-pointer rounded border p-1"
+                  />
+                  <span className="text-xs font-mono text-gray-500">{initialData.secondaryColor || "#0f766e"}</span>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700">Page Content Width</label>
-                  <select
-                    name="containerWidth"
-                    defaultValue={initialData.containerWidth || "max-w-7xl"}
-                    className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="max-w-6xl">Compact — Better on small screens (1152px)</option>
-                    <option value="max-w-7xl">Standard — Balanced layout (1280px) ✓</option>
-                    <option value="max-w-screen-2xl">Wide — Full-width on large monitors (1536px)</option>
-                  </select>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700">Accent Color</label>
+                <p className="text-[10px] text-gray-400 mb-1">Notice badges, highlights, alerts</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    name="accentColor"
+                    defaultValue={initialData.accentColor || "#f59e0b"}
+                    className="h-9 w-12 cursor-pointer rounded border p-1"
+                  />
+                  <span className="text-xs font-mono text-gray-500">{initialData.accentColor || "#f59e0b"}</span>
                 </div>
               </div>
             </div>
           </div>
-        )}
+
+          {/* Typography & Layout */}
+          <div>
+            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Font & Page Width</h4>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700">Website Font</label>
+                <select
+                  name="fontFamily"
+                  defaultValue={initialData.fontFamily || "Inter, sans-serif"}
+                  className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="Inter, sans-serif">Inter — Modern & Clean (Recommended)</option>
+                  <option value="Roboto, sans-serif">Roboto — Standard Google Font</option>
+                  <option value="Merriweather, serif">Merriweather — Traditional Academic</option>
+                  <option value="system-ui, sans-serif">System Font — Fastest Loading</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700">Page Content Width</label>
+                <select
+                  name="containerWidth"
+                  defaultValue={initialData.containerWidth || "max-w-7xl"}
+                  className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="max-w-6xl">Compact — Better on small screens (1152px)</option>
+                  <option value="max-w-7xl">Standard — Balanced layout (1280px) ✓</option>
+                  <option value="max-w-screen-2xl">Wide — Full-width on large monitors (1536px)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end pt-2 border-t">

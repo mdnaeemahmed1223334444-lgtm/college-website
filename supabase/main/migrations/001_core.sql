@@ -50,12 +50,41 @@ create trigger trg_pages_updated before update on pages
 
 -- ---------- Row Level Security ----------
 -- Public (anon) can only READ published/visible content. All writes go through the
--- server using the service-role key after an admin check, so no write policies exist.
+-- server using the service-role key after an admin check.
 alter table site_settings    enable row level security;
 alter table navigation_items enable row level security;
 alter table pages            enable row level security;
 
-create policy "public read settings"   on site_settings    for select using (true);
+drop policy if exists "public read settings" on site_settings;
+create policy "public read settings" on site_settings for select using (true);
+
+drop policy if exists "public read visible nav" on navigation_items;
 create policy "public read visible nav" on navigation_items for select using (is_visible);
+
+drop policy if exists "public read published pages" on pages;
 create policy "public read published pages" on pages for select
   using (status = 'published' or (status = 'scheduled' and publish_at <= now()));
+
+drop policy if exists "service_role full access on site_settings" on site_settings;
+create policy "service_role full access on site_settings" on site_settings for all to service_role using (true) with check (true);
+
+drop policy if exists "service_role full access on navigation_items" on navigation_items;
+create policy "service_role full access on navigation_items" on navigation_items for all to service_role using (true) with check (true);
+
+drop policy if exists "service_role full access on pages" on pages;
+create policy "service_role full access on pages" on pages for all to service_role using (true) with check (true);
+
+-- ---------- Permissions & Grants ----------
+grant usage on schema public to anon, authenticated, service_role;
+
+grant all on all tables in schema public to service_role, postgres;
+grant all on all sequences in schema public to service_role, postgres;
+grant all on all routines in schema public to service_role, postgres;
+
+grant select on table public.site_settings to anon, authenticated;
+grant select on table public.navigation_items to anon, authenticated;
+grant select on table public.pages to anon, authenticated;
+
+alter default privileges in schema public grant all on tables to service_role, postgres;
+alter default privileges in schema public grant all on sequences to service_role, postgres;
+alter default privileges in schema public grant all on routines to service_role, postgres;
