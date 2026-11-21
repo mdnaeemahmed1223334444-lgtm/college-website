@@ -1,6 +1,13 @@
-import PlaceholderPage from "@/components/shared/PlaceholderPage";
+import { getDailyStaffAttendance } from "@/features/staff/queries";
+import StaffAttendanceManager from "@/components/admin/staff/StaffAttendanceManager";
 
-// Staff Attendance
-export default function Page() {
-  return <PlaceholderPage href="/admin/staff/attendance" />;
+export const metadata = {
+  title: "Staff Attendance | Administration",
+};
+
+export default async function Page() {
+  const today = new Date().toISOString().split("T")[0];
+  const attendance = await getDailyStaffAttendance(today);
+
+  return <StaffAttendanceManager attendanceList={attendance} currentDate={today} />;
 }

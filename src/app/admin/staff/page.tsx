@@ -1,6 +1,12 @@
-import PlaceholderPage from "@/components/shared/PlaceholderPage";
+import { getStaffList, getStaffStats } from "@/features/staff/queries";
+import StaffOverview from "@/components/admin/staff/StaffOverview";
 
-// Teacher & Staff Management
-export default function Page() {
-  return <PlaceholderPage href="/admin/staff" />;
+export const metadata = {
+  title: "Teacher & Staff Management | Administration",
+};
+
+export default async function Page() {
+  const [allStaff, stats] = await Promise.all([getStaffList(), getStaffStats()]);
+
+  return <StaffOverview stats={stats} recentStaff={allStaff} />;
 }

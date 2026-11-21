@@ -1,6 +1,11 @@
-import PlaceholderPage from "@/components/shared/PlaceholderPage";
+import { getTeacherProfiles } from "@/features/staff/queries";
+import TeacherWorkloadManager from "@/components/admin/staff/TeacherWorkloadManager";
 
-// Teacher Workload
-export default function Page() {
-  return <PlaceholderPage href="/admin/staff/workload" />;
+export const metadata = {
+  title: "Teacher Workload | Administration",
+};
+
+export default async function Page() {
+  const teachers = await getTeacherProfiles();
+  return <TeacherWorkloadManager teachers={teachers} />;
 }

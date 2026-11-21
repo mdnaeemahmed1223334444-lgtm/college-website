@@ -17,6 +17,7 @@ Legend: DONE | IN PROGRESS | TODO
 | 5.2 | Notices Enhancement, Home Page Notices & Slug Removal | DONE | Notices on homepage & `/notices`, multi-format (PDF/Word/Picture/Text), deadlines, slug removed |
 | 5.3 | Student & Teacher Profile Features + Profile REST APIs | DONE | `/student/profile`, `/teacher/profile`, `/api/student/profile`, `/api/teacher/profile` |
 | 5.4 | **Portal Access & Middleware Fix** | DONE | Fixed redirect loop on `/admin`, `/teacher`, `/student`; automatic role assignment in testing mode |
+| 5.5 | **Administration: Teacher & Staff Management + Profiles** | DONE | 10 admin screens under `/admin/staff/*`, profile creation modal, assignments, workloads, attendance, accounts, REST APIs, and public faculty directories |
 | 6 | Academic Management (departments, subjects, sessions, routines, calendar) | TODO | **Next** |
 | 7 | Student Management: batches, add student, list/edit, transfer/group change, ID generation, photos; teacher read-only student views; Teacher/Staff mgmt | TODO | DB schema already done (2b) |
 | 8 | Attendance (teacher entry by batch/group, draft/submit, admin view) | TODO | |

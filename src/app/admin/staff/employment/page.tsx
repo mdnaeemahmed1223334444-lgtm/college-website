@@ -1,6 +1,11 @@
-import PlaceholderPage from "@/components/shared/PlaceholderPage";
+import { getStaffList } from "@/features/staff/queries";
+import EmploymentRecordsManager from "@/components/admin/staff/EmploymentRecordsManager";
 
-// Employment Records
-export default function Page() {
-  return <PlaceholderPage href="/admin/staff/employment" />;
+export const metadata = {
+  title: "Employment Records | Administration",
+};
+
+export default async function Page() {
+  const staff = await getStaffList();
+  return <EmploymentRecordsManager staffList={staff} />;
 }

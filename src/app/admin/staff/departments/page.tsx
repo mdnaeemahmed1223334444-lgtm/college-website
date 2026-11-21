@@ -1,6 +1,11 @@
-import PlaceholderPage from "@/components/shared/PlaceholderPage";
+import { getTeacherProfiles } from "@/features/staff/queries";
+import DepartmentAssignmentManager from "@/components/admin/staff/DepartmentAssignmentManager";
 
-// Department Assignment
-export default function Page() {
-  return <PlaceholderPage href="/admin/staff/departments" />;
+export const metadata = {
+  title: "Department Assignment | Administration",
+};
+
+export default async function Page() {
+  const teachers = await getTeacherProfiles();
+  return <DepartmentAssignmentManager teachers={teachers} />;
 }

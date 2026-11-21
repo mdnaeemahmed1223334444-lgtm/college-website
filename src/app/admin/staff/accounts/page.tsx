@@ -1,6 +1,11 @@
-import PlaceholderPage from "@/components/shared/PlaceholderPage";
+import { getStaffList } from "@/features/staff/queries";
+import StaffAccountsManager from "@/components/admin/staff/StaffAccountsManager";
 
-// Teacher Account Management
-export default function Page() {
-  return <PlaceholderPage href="/admin/staff/accounts" />;
+export const metadata = {
+  title: "Teacher Account Management | Administration",
+};
+
+export default async function Page() {
+  const staff = await getStaffList();
+  return <StaffAccountsManager staffList={staff} />;
 }
