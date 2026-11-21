@@ -6,22 +6,27 @@ interface ImageUploadInputProps {
   name: string;
   label?: string;
   defaultValue?: string;
+  value?: string;
   folder?: string;
   helperText?: string;
   required?: boolean;
   allowManualUrl?: boolean;
+  onChange?: (url: string) => void;
 }
 
 export default function ImageUploadInput({
   name,
   label = "Upload Photo",
   defaultValue = "",
+  value,
   folder = "photos",
   helperText = "Directly upload a photo from your computer or phone (JPG, PNG, WebP up to 10MB).",
   required = false,
   allowManualUrl = true,
+  onChange,
 }: ImageUploadInputProps) {
-  const [imageUrl, setImageUrl] = useState<string>(defaultValue);
+  const [internalUrl, setInternalUrl] = useState<string>(value ?? defaultValue);
+  const imageUrl = value !== undefined ? value : internalUrl;
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showManualUrl, setShowManualUrl] = useState<boolean>(false);
@@ -29,6 +34,11 @@ export default function ImageUploadInput({
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const uniqueId = useId();
+
+  function updateUrl(newUrl: string) {
+    setInternalUrl(newUrl);
+    onChange?.(newUrl);
+  }
 
   async function handleFileSelect(file: File) {
     if (!file) return;
@@ -61,7 +71,16 @@ export default function ImageUploadInput({
         throw new Error(data.error || "Failed to upload image");
       }
 
-      setImageUrl(data.url);
+      // If an existing photo was uploaded during this session, delete it so unused files don't pile up
+      if (imageUrl && imageUrl.startsWith("/uploads/") && imageUrl !== defaultValue) {
+        fetch("/api/upload", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: imageUrl }),
+        }).catch(() => {});
+      }
+
+      updateUrl(data.url);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Upload error";
       setUploadError(msg);
@@ -87,7 +106,16 @@ export default function ImageUploadInput({
   }
 
   function handleRemove() {
-    setImageUrl("");
+    // If user removes an uploaded picture, delete it from the website storage immediately
+    if (imageUrl && imageUrl.startsWith("/uploads/")) {
+      fetch("/api/upload", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: imageUrl }),
+      }).catch(() => {});
+    }
+
+    updateUrl("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -124,7 +152,7 @@ export default function ImageUploadInput({
           <input
             type="text"
             value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
+            onChange={(e) => updateUrl(e.target.value)}
             placeholder="https://example.com/photo.jpg or /uploads/..."
             className="w-full rounded-lg border border-gray-300 p-2 text-xs focus:border-teal-500 focus:outline-none"
           />

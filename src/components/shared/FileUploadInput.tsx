@@ -57,6 +57,14 @@ export default function FileUploadInput({
         throw new Error(data.error || "Failed to upload file");
       }
 
+      if (fileUrl && fileUrl.startsWith("/uploads/") && fileUrl !== defaultValue) {
+        fetch("/api/upload", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: fileUrl }),
+        }).catch(() => {});
+      }
+
       setFileUrl(data.url);
       setFileName(file.name);
 
@@ -82,6 +90,13 @@ export default function FileUploadInput({
   }
 
   function handleRemove() {
+    if (fileUrl && fileUrl.startsWith("/uploads/")) {
+      fetch("/api/upload", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: fileUrl }),
+      }).catch(() => {});
+    }
     setFileUrl("");
     setFileName("");
     if (fileInputRef.current) fileInputRef.current.value = "";

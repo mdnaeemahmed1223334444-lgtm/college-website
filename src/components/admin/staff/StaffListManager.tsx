@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useState, useActionState, useEffect } from "react";
 import type { StaffProfileRecord, StaffFeedback } from "@/features/staff/types";
 import {
   saveStaffProfileAction,
@@ -32,6 +32,62 @@ const DEPARTMENTS = [
   "General Office",
 ];
 
+interface StaffFormData {
+  full_name: string;
+  bangla_name: string;
+  role: "teacher" | "staff";
+  designation: string;
+  department: string;
+  phone: string;
+  email: string;
+  highest_degree: string;
+  institution: string;
+  gender: "male" | "female" | "other";
+  blood_group: string;
+  joining_date: string;
+  experience_years: number;
+  employment_type: "permanent" | "contractual" | "part_time" | "guest";
+  status: "active" | "on_leave" | "suspended" | "retired";
+  photo_url: string;
+  assigned_subjects: string;
+  assigned_classes: string;
+  weekly_periods: number;
+  is_head_of_department: boolean;
+  is_class_teacher: boolean;
+  class_teacher_section: string;
+  bio: string;
+  present_address: string;
+  permanent_address: string;
+}
+
+const DEFAULT_FORM: StaffFormData = {
+  full_name: "",
+  bangla_name: "",
+  role: "teacher",
+  designation: "",
+  department: "Physics",
+  phone: "",
+  email: "",
+  highest_degree: "M.Sc",
+  institution: "",
+  gender: "male",
+  blood_group: "A+",
+  joining_date: new Date().toISOString().split("T")[0],
+  experience_years: 0,
+  employment_type: "permanent",
+  status: "active",
+  photo_url: "",
+  assigned_subjects: "",
+  assigned_classes: "",
+  weekly_periods: 18,
+  is_head_of_department: false,
+  is_class_teacher: false,
+  class_teacher_section: "",
+  bio: "",
+  present_address: "",
+  permanent_address: "",
+};
+
 export default function StaffListManager({
   initialStaff,
   initialEditId,
@@ -45,12 +101,11 @@ export default function StaffListManager({
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [deptFilter, setDeptFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("" );
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(
     Boolean(startCreate || initialEditId)
   );
-  const [activeTab, setActiveTab] = useState<"basic" | "contact" | "academic" | "assignments">("basic");
   const [editingStaff, setEditingStaff] = useState<StaffProfileRecord | null>(() => {
     if (initialEditId) {
       return initialStaff.find((s) => s.id === initialEditId) || null;
@@ -58,11 +113,74 @@ export default function StaffListManager({
     return null;
   });
 
+  const [formValues, setFormValues] = useState<StaffFormData>(DEFAULT_FORM);
+  const [clientError, setClientError] = useState<string | null>(null);
+
   const [state, formAction] = useActionState<StaffFeedback, FormData>(
     saveStaffProfileAction,
     {}
   );
   const [deleteMsg, setDeleteMsg] = useState<string | null>(null);
+
+  // When editingStaff changes, populate formValues
+  useEffect(() => {
+    if (editingStaff) {
+      setFormValues({
+        full_name: editingStaff.full_name || "",
+        bangla_name: editingStaff.bangla_name || "",
+        role: editingStaff.role || "teacher",
+        designation: editingStaff.designation || "",
+        department: editingStaff.department || "Physics",
+        phone: editingStaff.phone || "",
+        email: editingStaff.email || "",
+        highest_degree: editingStaff.highest_degree || "",
+        institution: editingStaff.institution || "",
+        gender: editingStaff.gender || "male",
+        blood_group: editingStaff.blood_group || "A+",
+        joining_date: editingStaff.joining_date || new Date().toISOString().split("T")[0],
+        experience_years: editingStaff.experience_years || 0,
+        employment_type: editingStaff.employment_type || "permanent",
+        status: editingStaff.status || "active",
+        photo_url: editingStaff.photo_url || "",
+        assigned_subjects: editingStaff.assigned_subjects?.join(", ") || "",
+        assigned_classes: editingStaff.assigned_classes?.join(", ") || "",
+        weekly_periods: editingStaff.weekly_periods || 18,
+        is_head_of_department: editingStaff.is_head_of_department || false,
+        is_class_teacher: editingStaff.is_class_teacher || false,
+        class_teacher_section: editingStaff.class_teacher_section || "",
+        bio: editingStaff.bio || "",
+        present_address: editingStaff.present_address || "",
+        permanent_address: editingStaff.permanent_address || "",
+      });
+    } else {
+      setFormValues(DEFAULT_FORM);
+    }
+    setClientError(null);
+  }, [editingStaff]);
+
+  // Handle successful save
+  useEffect(() => {
+    if (state.success && state.message) {
+      setDeleteMsg(state.message);
+      // If was editing, update locally
+      if (editingStaff) {
+        setStaffList((prev) =>
+          prev.map((s) =>
+            s.id === editingStaff.id
+              ? {
+                  ...s,
+                  ...formValues,
+                  assigned_subjects: formValues.assigned_subjects.split(",").map((x) => x.trim()).filter(Boolean),
+                  assigned_classes: formValues.assigned_classes.split(",").map((x) => x.trim()).filter(Boolean),
+                }
+              : s
+          )
+        );
+      }
+      setIsModalOpen(false);
+      setEditingStaff(null);
+    }
+  }, [state]);
 
   // Filtered view
   const filtered = staffList.filter((item) => {
@@ -87,19 +205,30 @@ export default function StaffListManager({
 
   function handleOpenCreate() {
     setEditingStaff(null);
-    setActiveTab("basic");
+    setFormValues(DEFAULT_FORM);
+    setClientError(null);
     setIsModalOpen(true);
   }
 
   function handleOpenEdit(staff: StaffProfileRecord) {
     setEditingStaff(staff);
-    setActiveTab("basic");
+    setClientError(null);
     setIsModalOpen(true);
   }
 
   function handleCloseModal() {
+    // If a photo was uploaded in this session but not saved, automatically delete it from storage
+    if (formValues.photo_url && formValues.photo_url.startsWith("/uploads/") && formValues.photo_url !== editingStaff?.photo_url) {
+      fetch("/api/upload", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: formValues.photo_url }),
+      }).catch(() => {});
+    }
+
     setIsModalOpen(false);
     setEditingStaff(null);
+    setClientError(null);
   }
 
   async function handleDelete(id: string, name: string) {
@@ -124,6 +253,19 @@ export default function StaffListManager({
       setStaffList((prev) =>
         prev.map((s) => (s.id === id ? { ...s, status: newStatus } : s))
       );
+    }
+  }
+
+  function handleFieldChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+    const { name, value, type } = e.target;
+    if (type === "checkbox") {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormValues((prev) => ({ ...prev, [name]: checked }));
+    } else {
+      setFormValues((prev) => ({ ...prev, [name]: value }));
+    }
+    if (name === "full_name" && value.trim().length >= 2) {
+      setClientError(null);
     }
   }
 
@@ -312,9 +454,6 @@ export default function StaffListManager({
                     <td className="px-4 py-3.5 text-xs">
                       <div className="font-medium text-gray-800">{staff.phone}</div>
                       <div className="text-gray-500">{staff.email}</div>
-                      {staff.room_number && (
-                        <div className="text-gray-400 text-[11px]">📍 {staff.room_number}</div>
-                      )}
                     </td>
                     <td className="px-4 py-3.5 text-xs">
                       <div className="font-medium text-gray-900">{staff.highest_degree}</div>
@@ -370,7 +509,7 @@ export default function StaffListManager({
         </div>
       </div>
 
-      {/* Add / Edit Profile Modal */}
+      {/* Add / Edit Profile Modal — Single Unified Form, No Tabs, Controlled Inputs */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs overflow-y-auto">
           <div className="relative w-full max-w-3xl rounded-2xl bg-white shadow-2xl my-8 overflow-hidden">
@@ -381,10 +520,11 @@ export default function StaffListManager({
                   {editingStaff ? `Edit Profile: ${editingStaff.full_name}` : "Add New Staff / Teacher Profile"}
                 </h3>
                 <p className="text-xs text-teal-100">
-                  Fill in the details below. Non-technical inputs with instant preview.
+                  All fields are preserved even if an error occurs. Required fields are marked *.
                 </p>
               </div>
               <button
+                type="button"
                 onClick={handleCloseModal}
                 className="rounded-lg p-1.5 text-teal-200 hover:bg-teal-700 hover:text-white"
               >
@@ -392,61 +532,35 @@ export default function StaffListManager({
               </button>
             </div>
 
-            {/* Modal Navigation Tabs */}
-            <div className="flex border-b border-gray-200 bg-gray-50 px-6">
-              <button
-                type="button"
-                onClick={() => setActiveTab("basic")}
-                className={`border-b-2 py-3 px-4 text-xs font-semibold transition ${
-                  activeTab === "basic"
-                    ? "border-teal-600 text-teal-800"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                1. Basic Info & Role
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("contact")}
-                className={`border-b-2 py-3 px-4 text-xs font-semibold transition ${
-                  activeTab === "contact"
-                    ? "border-teal-600 text-teal-800"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                2. Contact & Personal
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("academic")}
-                className={`border-b-2 py-3 px-4 text-xs font-semibold transition ${
-                  activeTab === "academic"
-                    ? "border-teal-600 text-teal-800"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                3. Qualifications & Bio
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("assignments")}
-                className={`border-b-2 py-3 px-4 text-xs font-semibold transition ${
-                  activeTab === "assignments"
-                    ? "border-teal-600 text-teal-800"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                4. Workload & Classes
-              </button>
-            </div>
-
-            {/* Modal Form */}
-            <form action={formAction} className="p-6">
+            {/* Scrollable Form Body */}
+            <form
+              action={(formData) => {
+                if (formValues.full_name.trim().length < 2) {
+                  setClientError("Full name must be at least 2 characters.");
+                  return;
+                }
+                setClientError(null);
+                formAction(formData);
+              }}
+              className="p-6 space-y-6 max-h-[78vh] overflow-y-auto"
+            >
               {editingStaff && <input type="hidden" name="id" value={editingStaff.id} />}
+              {editingStaff?.employee_id && (
+                <input type="hidden" name="employee_id" value={editingStaff.employee_id} />
+              )}
+
+              {clientError && (
+                <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+                  ⚠️ {clientError}
+                </div>
+              )}
               <FeedbackAlert state={state} />
 
-              {/* Tab 1: Basic Info & Role */}
-              {activeTab === "basic" && (
+              {/* ── Section 1: Basic Information ── */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-teal-900 border-b border-teal-100 pb-1 mb-3">
+                  1. Basic Information
+                </h4>
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
@@ -457,7 +571,8 @@ export default function StaffListManager({
                         type="text"
                         name="full_name"
                         required
-                        defaultValue={editingStaff?.full_name || ""}
+                        value={formValues.full_name}
+                        onChange={handleFieldChange}
                         placeholder="e.g. Dr. Kazi Mahbubur Rahman"
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                       />
@@ -469,9 +584,10 @@ export default function StaffListManager({
                       <input
                         type="text"
                         name="bangla_name"
-                        defaultValue={editingStaff?.bangla_name || ""}
+                        value={formValues.bangla_name}
+                        onChange={handleFieldChange}
                         placeholder="e.g. ড. কাজী মাহবুবুর রহমান"
-                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -481,46 +597,32 @@ export default function StaffListManager({
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Role Type *</label>
                       <select
                         name="role"
-                        defaultValue={editingStaff?.role || "teacher"}
+                        value={formValues.role}
+                        onChange={handleFieldChange}
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       >
                         <option value="teacher">Teaching Faculty</option>
                         <option value="staff">Administrative / Support Staff</option>
                       </select>
                     </div>
-
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Designation *</label>
                       <input
                         type="text"
                         name="designation"
                         required
-                        defaultValue={editingStaff?.designation || ""}
+                        value={formValues.designation}
+                        onChange={handleFieldChange}
                         placeholder="e.g. Associate Professor"
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       />
                     </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Employee ID (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        name="employee_id"
-                        defaultValue={editingStaff?.employee_id || ""}
-                        placeholder="Leave blank to auto-generate"
-                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Department *</label>
                       <select
                         name="department"
-                        defaultValue={editingStaff?.department || "Physics"}
+                        value={formValues.department}
+                        onChange={handleFieldChange}
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       >
                         {DEPARTMENTS.map((d) => (
@@ -530,77 +632,37 @@ export default function StaffListManager({
                         ))}
                       </select>
                     </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Room / Office Location
-                      </label>
-                      <input
-                        type="text"
-                        name="room_number"
-                        defaultValue={editingStaff?.room_number || ""}
-                        placeholder="e.g. Science Lab Complex, Room 204"
-                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <ImageUploadInput
-                      name="photo_url"
-                      label="Staff / Teacher Photo"
-                      defaultValue={editingStaff?.photo_url || ""}
-                      folder="staff"
-                      helperText="Upload employee photo directly from your device (JPG, PNG, WebP up to 10MB)."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Display Priority Order</label>
-                    <input
-                      type="number"
-                      name="display_order"
-                      defaultValue={editingStaff?.display_order || 0}
-                      placeholder="0"
-                      className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="pt-2 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("contact")}
-                      className="rounded-lg bg-teal-700 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-800"
-                    >
-                      Next: Contact & Personal &rarr;
-                    </button>
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Tab 2: Contact & Personal */}
-              {activeTab === "contact" && (
+              {/* ── Section 2: Contact & Personal ── */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-teal-900 border-b border-teal-100 pb-1 mb-3">
+                  2. Contact & Personal Details
+                </h4>
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
-                      <input
-                        type="email"
-                        name="email"
-                        defaultValue={editingStaff?.email || ""}
-                        placeholder="teacher@college.edu.bd"
-                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
-                      />
-                    </div>
-
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number *</label>
                       <input
                         type="text"
                         name="phone"
                         required
-                        defaultValue={editingStaff?.phone || ""}
+                        value={formValues.phone}
+                        onChange={handleFieldChange}
                         placeholder="+880 1711-XXXXXX"
+                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formValues.email}
+                        onChange={handleFieldChange}
+                        placeholder="staff@college.edu.bd"
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       />
                     </div>
@@ -608,10 +670,11 @@ export default function StaffListManager({
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Gender *</label>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Gender</label>
                       <select
                         name="gender"
-                        defaultValue={editingStaff?.gender || "male"}
+                        value={formValues.gender}
+                        onChange={handleFieldChange}
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       >
                         <option value="male">Male</option>
@@ -619,12 +682,12 @@ export default function StaffListManager({
                         <option value="other">Other</option>
                       </select>
                     </div>
-
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Blood Group</label>
                       <select
                         name="blood_group"
-                        defaultValue={editingStaff?.blood_group || "A+"}
+                        value={formValues.blood_group}
+                        onChange={handleFieldChange}
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       >
                         {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
@@ -634,27 +697,17 @@ export default function StaffListManager({
                         ))}
                       </select>
                     </div>
-
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Date of Birth</label>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Joining Date *</label>
                       <input
                         type="date"
-                        name="date_of_birth"
-                        defaultValue={editingStaff?.date_of_birth || ""}
+                        name="joining_date"
+                        required
+                        value={formValues.joining_date}
+                        onChange={handleFieldChange}
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">National ID (NID)</label>
-                    <input
-                      type="text"
-                      name="nid"
-                      defaultValue={editingStaff?.nid || ""}
-                      placeholder="e.g. 1985269000101001"
-                      className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
-                    />
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -663,7 +716,8 @@ export default function StaffListManager({
                       <textarea
                         name="present_address"
                         rows={2}
-                        defaultValue={editingStaff?.present_address || ""}
+                        value={formValues.present_address}
+                        onChange={handleFieldChange}
                         placeholder="House, Road, Area, City"
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       />
@@ -673,107 +727,66 @@ export default function StaffListManager({
                       <textarea
                         name="permanent_address"
                         rows={2}
-                        defaultValue={editingStaff?.permanent_address || ""}
+                        value={formValues.permanent_address}
+                        onChange={handleFieldChange}
                         placeholder="Village, Post, Thana, District"
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       />
                     </div>
                   </div>
-
-                  <div className="pt-2 flex justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("basic")}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100"
-                    >
-                      &larr; Back
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("academic")}
-                      className="rounded-lg bg-teal-700 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-800"
-                    >
-                      Next: Qualifications & Bio &rarr;
-                    </button>
-                  </div>
                 </div>
-              )}
+              </div>
 
-              {/* Tab 3: Qualifications & Bio */}
-              {activeTab === "academic" && (
+              {/* ── Section 3: Academic Qualifications & Employment ── */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-teal-900 border-b border-teal-100 pb-1 mb-3">
+                  3. Academic Qualifications & Status
+                </h4>
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Highest Degree & Subject *
-                      </label>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Highest Degree *</label>
                       <input
                         type="text"
                         name="highest_degree"
                         required
-                        defaultValue={editingStaff?.highest_degree || ""}
+                        value={formValues.highest_degree}
+                        onChange={handleFieldChange}
                         placeholder="e.g. M.Sc in Physics, B.Sc (Hons)"
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Graduating University / Institution
-                      </label>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Graduating Institution</label>
                       <input
                         type="text"
                         name="institution"
-                        defaultValue={editingStaff?.institution || ""}
+                        value={formValues.institution}
+                        onChange={handleFieldChange}
                         placeholder="e.g. University of Dhaka"
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Academic Specialization / Research Area
-                    </label>
-                    <input
-                      type="text"
-                      name="specialization"
-                      defaultValue={editingStaff?.specialization || ""}
-                      placeholder="e.g. Quantum Mechanics, Nuclear Physics & Electronics"
-                      className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
-                    />
-                  </div>
-
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Experience (Years)
-                      </label>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Experience (Years)</label>
                       <input
                         type="number"
                         name="experience_years"
-                        defaultValue={editingStaff?.experience_years || 0}
+                        min={0}
+                        value={formValues.experience_years}
+                        onChange={handleFieldChange}
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       />
                     </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Joining Date *</label>
-                      <input
-                        type="date"
-                        name="joining_date"
-                        required
-                        defaultValue={
-                          editingStaff?.joining_date || new Date().toISOString().split("T")[0]
-                        }
-                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
-                      />
-                    </div>
-
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Employment Type</label>
                       <select
                         name="employment_type"
-                        defaultValue={editingStaff?.employment_type || "permanent"}
+                        value={formValues.employment_type}
+                        onChange={handleFieldChange}
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       >
                         <option value="permanent">Full-time Permanent</option>
@@ -782,138 +795,12 @@ export default function StaffListManager({
                         <option value="guest">Guest Faculty</option>
                       </select>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Teacher Bio / Summary
-                    </label>
-                    <textarea
-                      name="bio"
-                      rows={3}
-                      defaultValue={editingStaff?.bio || ""}
-                      placeholder="A short description of teaching experience, achievements, and contributions..."
-                      className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="pt-2 flex justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("contact")}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100"
-                    >
-                      &larr; Back
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("assignments")}
-                      className="rounded-lg bg-teal-700 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-800"
-                    >
-                      Next: Workload & Classes &rarr;
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 4: Workload & Classes */}
-              {activeTab === "assignments" && (
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-teal-200 bg-teal-50/60 p-3">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="is_head_of_department"
-                        name="is_head_of_department"
-                        value="true"
-                        defaultChecked={editingStaff?.is_head_of_department || false}
-                        className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-                      />
-                      <label htmlFor="is_head_of_department" className="text-xs font-semibold text-teal-900">
-                        Designate as Head of Department (HOD)
-                      </label>
-                    </div>
-                    <p className="text-[11px] text-teal-700 ml-6 mt-0.5">
-                      Check this box if this faculty member is currently the head of their academic department.
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-indigo-200 bg-indigo-50/60 p-3">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="is_class_teacher"
-                        name="is_class_teacher"
-                        value="true"
-                        defaultChecked={editingStaff?.is_class_teacher || false}
-                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <label htmlFor="is_class_teacher" className="text-xs font-semibold text-indigo-900">
-                        Appoint as Class Teacher
-                      </label>
-                    </div>
-                    <div className="ml-6 mt-2">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Class Teacher of Section:
-                      </label>
-                      <input
-                        type="text"
-                        name="class_teacher_section"
-                        defaultValue={editingStaff?.class_teacher_section || ""}
-                        placeholder="e.g. Class XI - Science A"
-                        className="w-full sm:w-72 rounded-lg border border-gray-300 p-1.5 text-xs focus:border-indigo-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Assigned Subjects (comma separated)
-                      </label>
-                      <input
-                        type="text"
-                        name="assigned_subjects"
-                        defaultValue={editingStaff?.assigned_subjects?.join(", ") || ""}
-                        placeholder="e.g. Physics 1st Paper, Physics 2nd Paper, Practical"
-                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
-                      />
-                      <span className="text-[11px] text-gray-500">Separate subjects with commas</span>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Assigned Classes / Batches (comma separated)
-                      </label>
-                      <input
-                        type="text"
-                        name="assigned_classes"
-                        defaultValue={editingStaff?.assigned_classes?.join(", ") || ""}
-                        placeholder="e.g. XI Science A, XI Science B, XII Science A"
-                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
-                      />
-                      <span className="text-[11px] text-gray-500">Separate sections with commas</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Weekly Teaching Periods (Periods/Week)
-                      </label>
-                      <input
-                        type="number"
-                        name="weekly_periods"
-                        defaultValue={editingStaff?.weekly_periods || 18}
-                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Status *</label>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Status</label>
                       <select
                         name="status"
-                        defaultValue={editingStaff?.status || "active"}
+                        value={formValues.status}
+                        onChange={handleFieldChange}
                         className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                       >
                         <option value="active">Active (On Duty)</option>
@@ -923,28 +810,149 @@ export default function StaffListManager({
                       </select>
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  <div className="pt-4 border-t border-gray-200 flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("academic")}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100"
-                    >
-                      &larr; Back
-                    </button>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleCloseModal}
-                        className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100"
-                      >
-                        Cancel
-                      </button>
-                      <SubmitButton label={editingStaff ? "Update Profile" : "Save Profile"} />
+              {/* ── Section 4: Profile Picture ── */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-teal-900 border-b border-teal-100 pb-1 mb-3">
+                  4. Profile Picture
+                </h4>
+                <ImageUploadInput
+                  name="photo_url"
+                  label="Staff / Teacher Photo"
+                  value={formValues.photo_url}
+                  onChange={(url) => setFormValues((prev) => ({ ...prev, photo_url: url }))}
+                  folder="staff"
+                  helperText="Upload employee photo directly from your device (JPG, PNG, WebP up to 10MB). Photos removed or replaced are automatically deleted from server storage."
+                />
+              </div>
+
+              {/* ── Section 5: Teaching Duties & Load (For Teachers) ── */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-teal-900 border-b border-teal-100 pb-1 mb-3">
+                  5. Teaching Duties & Responsibilities
+                </h4>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        Assigned Subjects <span className="text-gray-400 font-normal">(comma separated)</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="assigned_subjects"
+                        value={formValues.assigned_subjects}
+                        onChange={handleFieldChange}
+                        placeholder="e.g. Physics 1st Paper, Physics 2nd Paper"
+                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        Assigned Classes / Batches <span className="text-gray-400 font-normal">(comma separated)</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="assigned_classes"
+                        value={formValues.assigned_classes}
+                        onChange={handleFieldChange}
+                        placeholder="e.g. XI Science A, XII Science B"
+                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
+                      />
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Weekly Teaching Periods</label>
+                      <input
+                        type="number"
+                        name="weekly_periods"
+                        min={0}
+                        value={formValues.weekly_periods}
+                        onChange={handleFieldChange}
+                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center gap-2 rounded-lg border border-teal-200 bg-teal-50 p-2">
+                        <input
+                          type="checkbox"
+                          id="is_head_of_department"
+                          name="is_head_of_department"
+                          checked={formValues.is_head_of_department}
+                          onChange={handleFieldChange}
+                          className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                        />
+                        <label htmlFor="is_head_of_department" className="text-xs font-semibold text-teal-900 cursor-pointer">
+                          Head of Department (HOD)
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 p-2">
+                        <input
+                          type="checkbox"
+                          id="is_class_teacher"
+                          name="is_class_teacher"
+                          checked={formValues.is_class_teacher}
+                          onChange={handleFieldChange}
+                          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <label htmlFor="is_class_teacher" className="text-xs font-semibold text-indigo-900 cursor-pointer">
+                          Appoint as Class Teacher
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {formValues.is_class_teacher && (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        Class Teacher Section:
+                      </label>
+                      <input
+                        type="text"
+                        name="class_teacher_section"
+                        value={formValues.class_teacher_section}
+                        onChange={handleFieldChange}
+                        placeholder="e.g. Class XI - Science A"
+                        className="w-full sm:w-72 rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Biography / Summary</label>
+                    <textarea
+                      name="bio"
+                      rows={2}
+                      value={formValues.bio}
+                      onChange={handleFieldChange}
+                      placeholder="A short introduction or background..."
+                      className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
+                    />
+                  </div>
                 </div>
-              )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="border-t border-gray-200 pt-4 flex items-center justify-between">
+                {clientError ? (
+                  <p className="text-xs text-red-600 font-medium">⚠️ {clientError}</p>
+                ) : (
+                  <span />
+                )}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition"
+                  >
+                    Cancel
+                  </button>
+                  <SubmitButton label={editingStaff ? "Update Profile" : "Save Profile"} />
+                </div>
+              </div>
             </form>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import "server-only";
 import fs from "fs/promises";
 import path from "path";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 export interface UploadOptions {
   buffer: Buffer;
@@ -125,4 +125,69 @@ export async function uploadFile({
       provider: "data-url",
     };
   }
+}
+
+/**
+ * Automatically delete an uploaded file from local storage or R2 when it is removed
+ * or replaced, so orphan/unused pictures don't take up space.
+ */
+export async function deleteUploadedFile(fileUrl?: string | null): Promise<boolean> {
+  if (!fileUrl || typeof fileUrl !== "string") return false;
+
+  // Ignore external URLs (e.g. Unsplash) and Data URLs
+  if (fileUrl.startsWith("data:") || fileUrl.startsWith("http://") || (fileUrl.startsWith("https://") && !fileUrl.includes("r2.cloudflarestorage.com"))) {
+    return false;
+  }
+
+  try {
+    // 1. Delete from local disk
+    if (fileUrl.startsWith("/uploads/")) {
+      const relativePart = fileUrl.replace(/^\/uploads\//, "");
+      const safeRelative = path.normalize(relativePart).replace(/^(\.\.[\/\\])+/, "");
+      const fullPath = path.join(process.cwd(), "public", "uploads", safeRelative);
+
+      try {
+        await fs.unlink(fullPath);
+        return true;
+      } catch (err: unknown) {
+        const error = err as { code?: string };
+        if (error.code !== "ENOENT") {
+          console.warn(`Failed to delete local file ${fullPath}:`, err);
+        }
+      }
+    }
+
+    // 2. Delete from Cloudflare R2 if configured
+    const r2AccountId = process.env.R2_ACCOUNT_ID;
+    const r2AccessKey = process.env.R2_ACCESS_KEY_ID;
+    const r2SecretKey = process.env.R2_SECRET_ACCESS_KEY;
+    const r2Bucket = process.env.R2_BUCKET_NAME;
+
+    if (r2AccountId && r2AccessKey && r2SecretKey && r2Bucket) {
+      let objectKey = fileUrl;
+      if (fileUrl.includes("/uploads/")) {
+        objectKey = "uploads/" + fileUrl.split("/uploads/")[1];
+      }
+      const client = new S3Client({
+        region: "auto",
+        endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
+        credentials: {
+          accessKeyId: r2AccessKey,
+          secretAccessKey: r2SecretKey,
+        },
+      });
+
+      await client.send(
+        new DeleteObjectCommand({
+          Bucket: r2Bucket,
+          Key: objectKey,
+        })
+      );
+      return true;
+    }
+  } catch (err) {
+    console.warn(`deleteUploadedFile failed for ${fileUrl}:`, err);
+  }
+
+  return false;
 }

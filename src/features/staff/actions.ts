@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/current-user";
 import { privateAdmin } from "@/lib/supabase/private-server";
+import { deleteUploadedFile } from "@/lib/storage/uploader";
 import { staffProfileSchema, staffAssignmentSchema, staffStatusSchema } from "./schema";
 import type { StaffFeedback } from "./types";
 
@@ -91,6 +92,16 @@ export async function saveStaffProfileAction(
 
     if (privClient) {
       if (id) {
+        // If photo was changed, automatically delete the old unused photo from the website
+        const { data: existing } = await privClient
+          .from("staff_profiles")
+          .select("photo_url")
+          .eq("id", id)
+          .single();
+        if (existing?.photo_url && existing.photo_url !== payload.photo_url) {
+          await deleteUploadedFile(existing.photo_url);
+        }
+
         const { error } = await privClient
           .from("staff_profiles")
           .update({
@@ -137,6 +148,16 @@ export async function deleteStaffProfileAction(id: string): Promise<StaffFeedbac
 
     const privClient = privateAdmin();
     if (privClient) {
+      // Find staff photo and delete it if hosted on website so unused pictures are removed
+      const { data: existing } = await privClient
+        .from("staff_profiles")
+        .select("photo_url")
+        .eq("id", id)
+        .single();
+      if (existing?.photo_url) {
+        await deleteUploadedFile(existing.photo_url);
+      }
+
       const { error } = await privClient.from("staff_profiles").delete().eq("id", id);
       if (error) throw error;
     }

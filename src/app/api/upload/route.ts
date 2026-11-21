@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   uploadFile,
+  deleteUploadedFile,
   ALLOWED_IMAGE_TYPES,
   ALLOWED_DOCUMENT_TYPES,
   MAX_UPLOAD_SIZE,
@@ -71,4 +72,19 @@ export async function GET() {
     maxSizeBytes: MAX_UPLOAD_SIZE,
     allowedTypes: [...ALLOWED_IMAGE_TYPES, ...ALLOWED_DOCUMENT_TYPES],
   });
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const url = body?.url;
+    if (!url) {
+      return NextResponse.json({ error: "Missing url parameter" }, { status: 400 });
+    }
+    const deleted = await deleteUploadedFile(url);
+    return NextResponse.json({ success: true, deleted });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Failed to delete file";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
