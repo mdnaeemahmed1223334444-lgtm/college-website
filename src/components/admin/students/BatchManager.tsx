@@ -175,10 +175,10 @@ export default function BatchManager({ initialBatches }: BatchManagerProps) {
 
             <div className="pt-3 border-t flex items-center justify-between text-xs">
               <Link
-                href={`/admin/students/list`}
+                href={`/admin/students/batches/${batch.id}`}
                 className="font-semibold text-blue-600 hover:underline"
               >
-                View Students →
+                View Batch Students →
               </Link>
               <div className="flex items-center gap-2">
                 <button

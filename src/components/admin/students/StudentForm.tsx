@@ -48,6 +48,7 @@ export default function StudentForm({
     roll: initialData?.roll ?? 1,
     status: initialData?.status || "active",
     gender: initialData?.gender || "male",
+    religion: initialData?.religion || "Islam",
     date_of_birth: initialData?.date_of_birth || "",
     blood_group: initialData?.blood_group || "A+",
     phone: initialData?.phone || "",
@@ -304,6 +305,22 @@ export default function StudentForm({
               <option value="AB-">AB-</option>
               <option value="O+">O+</option>
               <option value="O-">O-</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-800">Religion</label>
+            <select
+              name="religion"
+              value={formValues.religion}
+              onChange={handleChange}
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="Islam">Islam (ইসলাম)</option>
+              <option value="Hinduism">Hinduism (সনাতন / হিন্দু)</option>
+              <option value="Buddhism">Buddhism (বৌদ্ধ)</option>
+              <option value="Christianity">Christianity (খ্রিস্টান)</option>
+              <option value="Other">Other (অন্যান্য)</option>
             </select>
           </div>
 

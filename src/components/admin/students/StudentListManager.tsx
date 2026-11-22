@@ -9,15 +9,17 @@ import StudentForm from "./StudentForm";
 interface StudentListManagerProps {
   initialStudents: StudentRecord[];
   batches: BatchRecord[];
+  initialBatchId?: string;
 }
 
 export default function StudentListManager({
   initialStudents,
   batches,
+  initialBatchId,
 }: StudentListManagerProps) {
   const [students, setStudents] = useState<StudentRecord[]>(initialStudents);
   const [search, setSearch] = useState("");
-  const [selectedBatch, setSelectedBatch] = useState<string>("all");
+  const [selectedBatch, setSelectedBatch] = useState<string>(initialBatchId || "all");
   const [selectedGroup, setSelectedGroup] = useState<StudyGroup | "all">("all");
   const [selectedStatus, setSelectedStatus] = useState<StudentStatus | "all">("all");
 
@@ -28,7 +30,18 @@ export default function StudentListManager({
 
   // Filter students
   const filteredStudents = students.filter((s) => {
-    if (selectedBatch !== "all" && s.batch_id !== selectedBatch) return false;
+    if (selectedBatch !== "all") {
+      const target = selectedBatch.toLowerCase();
+      const matchId = s.batch_id.toLowerCase() === target;
+      const matchName = s.batch_name?.toLowerCase() === target;
+      const batchObj = batches.find(
+        (b) => b.id.toLowerCase() === target || b.name.toLowerCase() === target
+      );
+      const matchBatchObj = batchObj
+        ? s.batch_id === batchObj.id || s.batch_name?.toLowerCase() === batchObj.name.toLowerCase()
+        : false;
+      if (!matchId && !matchName && !matchBatchObj) return false;
+    }
     if (selectedGroup !== "all" && s.study_group !== selectedGroup) return false;
     if (selectedStatus !== "all" && s.status !== selectedStatus) return false;
     if (search.trim()) {

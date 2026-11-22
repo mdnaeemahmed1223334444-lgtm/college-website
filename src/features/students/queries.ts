@@ -29,9 +29,9 @@ export const defaultStudents: StudentRecord[] = [
     batch_name: "HSC Batch 26",
     study_group: "science",
     roll: 101,
-    section: "A",
     status: "active",
     gender: "male",
+    religion: "Islam",
     date_of_birth: "2008-04-15",
     blood_group: "B+",
     phone: "01712345678",
@@ -60,9 +60,9 @@ export const defaultStudents: StudentRecord[] = [
     batch_name: "HSC Batch 26",
     study_group: "science",
     roll: 102,
-    section: "A",
     status: "active",
     gender: "female",
+    religion: "Islam",
     date_of_birth: "2008-08-20",
     blood_group: "A+",
     phone: "01798765432",
@@ -88,9 +88,9 @@ export const defaultStudents: StudentRecord[] = [
     batch_name: "HSC Batch 26",
     study_group: "business_studies",
     roll: 201,
-    section: "B",
     status: "active",
     gender: "male",
+    religion: "Islam",
     date_of_birth: "2008-02-10",
     blood_group: "O+",
     phone: "01855667788",
@@ -116,9 +116,9 @@ export const defaultStudents: StudentRecord[] = [
     batch_name: "HSC Batch 27",
     study_group: "humanities",
     roll: 301,
-    section: "A",
     status: "active",
     gender: "female",
+    religion: "Islam",
     date_of_birth: "2009-01-12",
     blood_group: "AB+",
     phone: "01999887766",
@@ -179,7 +179,22 @@ export async function getStudents(filters?: {
         .order("roll", { ascending: true });
 
       if (filters?.batchId && filters.batchId !== "all") {
-        query = query.eq("batch_id", filters.batchId);
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filters.batchId);
+        if (isUuid) {
+          query = query.eq("batch_id", filters.batchId);
+        } else {
+          // If a batch name or slug was passed, find batch id
+          const { data: bMatch } = await supabase
+            .from("batches")
+            .select("id")
+            .or(`id.eq.${filters.batchId},name.ilike.%${filters.batchId}%`)
+            .maybeSingle();
+          if (bMatch?.id) {
+            query = query.eq("batch_id", bMatch.id);
+          } else {
+            query = query.eq("batch_id", filters.batchId);
+          }
+        }
       }
       if (filters?.group && filters.group !== "all") {
         query = query.eq("study_group", filters.group);
@@ -208,7 +223,10 @@ export async function getStudents(filters?: {
   // Fallback filtering
   let list = [...defaultStudents];
   if (filters?.batchId && filters.batchId !== "all") {
-    list = list.filter((s) => s.batch_id === filters.batchId);
+    const qb = filters.batchId.toLowerCase();
+    list = list.filter(
+      (s) => s.batch_id.toLowerCase() === qb || (s.batch_name && s.batch_name.toLowerCase().includes(qb))
+    );
   }
   if (filters?.group && filters.group !== "all") {
     list = list.filter((s) => s.study_group === filters.group);

@@ -17,6 +17,7 @@ interface TeacherFormData {
   institution: string;
   gender: "male" | "female" | "other";
   blood_group: string;
+  religion: string;
   joining_date: string;
   experience_years: number;
   employment_type: "permanent" | "contractual" | "part_time" | "guest";
@@ -40,6 +41,7 @@ const DEFAULT_TEACHER_FORM: TeacherFormData = {
   institution: "",
   gender: "male",
   blood_group: "A+",
+  religion: "Islam",
   joining_date: new Date().toISOString().split("T")[0],
   experience_years: 0,
   employment_type: "permanent",
@@ -87,6 +89,7 @@ export default function TeacherProfilesManager({
         institution: editingTeacher.institution || "",
         gender: editingTeacher.gender || "male",
         blood_group: editingTeacher.blood_group || "A+",
+        religion: editingTeacher.religion || "Islam",
         joining_date: editingTeacher.joining_date || new Date().toISOString().split("T")[0],
         experience_years: editingTeacher.experience_years || 0,
         employment_type: editingTeacher.employment_type || "permanent",
@@ -291,6 +294,8 @@ export default function TeacherProfilesManager({
                 <div><span className="text-gray-500">Weekly Load:</span><p className="font-semibold">{viewingProfile.weekly_periods || 0} periods</p></div>
                 <div><span className="text-gray-500">Phone:</span><p className="font-semibold">{viewingProfile.phone}</p></div>
                 <div><span className="text-gray-500">Email:</span><p className="font-semibold">{viewingProfile.email || "N/A"}</p></div>
+                <div><span className="text-gray-500">Religion:</span><p className="font-semibold">{viewingProfile.religion || "Islam"}</p></div>
+                <div><span className="text-gray-500">Blood Group:</span><p className="font-semibold">{viewingProfile.blood_group || "N/A"}</p></div>
               </div>
             </div>
             <div className="border-t bg-gray-50 p-4 flex items-center justify-between">
@@ -447,8 +452,8 @@ export default function TeacherProfilesManager({
                 </div>
               </div>
 
-              {/* Gender + Blood Group + Joining Date */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Gender + Blood Group + Religion + Joining Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Gender</label>
                   <select
@@ -471,6 +476,21 @@ export default function TeacherProfilesManager({
                     className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
                   >
                     {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map((bg) => <option key={bg} value={bg}>{bg}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Religion</label>
+                  <select
+                    name="religion"
+                    value={formValues.religion}
+                    onChange={handleFieldChange}
+                    className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
+                  >
+                    <option value="Islam">Islam</option>
+                    <option value="Hinduism">Hinduism</option>
+                    <option value="Buddhism">Buddhism</option>
+                    <option value="Christianity">Christianity</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
                 <div>

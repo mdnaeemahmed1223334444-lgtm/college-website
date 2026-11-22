@@ -193,6 +193,13 @@ export default function TeacherProfileView({ profile }: { profile: TeacherProfil
                   </dd>
                 </div>
 
+                {profile.religion && (
+                  <div>
+                    <dt className="text-gray-400 font-medium">Religion</dt>
+                    <dd className="font-semibold text-gray-900 mt-0.5">{profile.religion}</dd>
+                  </div>
+                )}
+
                 {profile.address && (
                   <div>
                     <dt className="text-gray-400 font-medium">Residential Address</dt>

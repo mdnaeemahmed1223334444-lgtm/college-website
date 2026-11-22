@@ -32,6 +32,7 @@ export const studentSchema = z.object({
   section: optionalString,
   status: z.enum(["active", "suspended", "dropped", "passed_out"]).default("active"),
   gender: z.enum(["male", "female", "other"]).default("male"),
+  religion: optionalString,
   date_of_birth: optionalString,
   blood_group: optionalString,
   phone: optionalString,

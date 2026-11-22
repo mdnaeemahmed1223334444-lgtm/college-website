@@ -160,6 +160,10 @@ export default async function TeacherStudentDetailPage({ params }: Props) {
               <dd className="font-semibold text-gray-900 mt-0.5 capitalize">{student.gender}</dd>
             </div>
             <div>
+              <dt className="text-gray-400 font-medium">Religion</dt>
+              <dd className="font-semibold text-gray-900 mt-0.5">{student.religion || "Islam"}</dd>
+            </div>
+            <div>
               <dt className="text-gray-400 font-medium">Date of Birth</dt>
               <dd className="font-semibold text-gray-900 mt-0.5">{student.date_of_birth || "—"}</dd>
             </div>

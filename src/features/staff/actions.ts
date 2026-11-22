@@ -91,6 +91,7 @@ export async function saveStaffProfileAction(
       phone: str("phone"),
       gender: str("gender") || "male",
       blood_group: str("blood_group") || "A+",
+      religion: opt("religion"),
       date_of_birth: normalizeOptionalDate(opt("date_of_birth")),
       nid: opt("nid"),
       present_address: opt("present_address"),

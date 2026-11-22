@@ -36,6 +36,7 @@ export interface StaffProfileRecord {
   phone: string;
   gender: "male" | "female" | "other";
   blood_group: string;
+  religion?: string | null;
   date_of_birth?: string;
   nid?: string;
   present_address?: string;

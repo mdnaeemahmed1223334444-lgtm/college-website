@@ -3,12 +3,16 @@
 
 -- Add missing columns to students table if not present
 alter table if exists students add column if not exists bangla_name text;
+alter table if exists students add column if not exists religion text;
 alter table if exists students add column if not exists permanent_address text;
 alter table if exists students add column if not exists father_phone text;
 alter table if exists students add column if not exists mother_phone text;
 alter table if exists students add column if not exists guardian_relation text;
 alter table if exists students add column if not exists photo_url text;
 alter table if exists students add column if not exists rfid_card_id text;
+
+-- Add religion to staff_profiles table if not present
+alter table if exists staff_profiles add column if not exists religion text;
 
 -- Create useful indexes
 create index if not exists idx_students_rfid on students(rfid_card_id);
@@ -19,6 +23,7 @@ grant usage on schema public to anon, authenticated, service_role;
 grant all on table public.batches to service_role, postgres;
 grant all on table public.students to service_role, postgres;
 grant all on table public.student_history to service_role, postgres;
+grant all on table public.staff_profiles to service_role, postgres;
 
 grant select on table public.batches to anon, authenticated;
 grant select on table public.students to authenticated;

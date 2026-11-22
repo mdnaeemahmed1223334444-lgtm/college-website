@@ -56,6 +56,7 @@ export async function saveStudentAction(
       section: opt("section"),
       status: str("status") || "active",
       gender: str("gender") || "male",
+      religion: opt("religion"),
       date_of_birth: normalizeOptionalDate(opt("date_of_birth")),
       blood_group: opt("blood_group"),
       phone: opt("phone"),

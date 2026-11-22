@@ -566,7 +566,10 @@ export async function getStaffList(filter?: StaffFilter): Promise<StaffProfileRe
       }
       const { data, error } = await query;
       if (!error && data && data.length > 0) {
-        let results = data as StaffProfileRecord[];
+        let results = (data as StaffProfileRecord[]).map((item) => ({
+          ...item,
+          religion: item.religion || "Islam",
+        }));
         if (filter?.search) {
           const s = filter.search.toLowerCase();
           results = results.filter(
@@ -586,7 +589,10 @@ export async function getStaffList(filter?: StaffFilter): Promise<StaffProfileRe
   }
 
   // Fallback seed filtering
-  let items = [...DEFAULT_STAFF_MEMBERS];
+  let items = DEFAULT_STAFF_MEMBERS.map((item) => ({
+    ...item,
+    religion: item.religion || "Islam",
+  }));
   if (filter?.role && filter.role !== "all") {
     items = items.filter((x) => x.role === filter.role);
   }
@@ -618,7 +624,10 @@ export async function getStaffProfileById(id: string): Promise<StaffProfileRecor
     if (privClient) {
       const { data, error } = await privClient.from("staff_profiles").select("*").eq("id", id).maybeSingle();
       if (!error && data) {
-        return data as StaffProfileRecord;
+        return {
+          ...data,
+          religion: data.religion || "Islam",
+        } as StaffProfileRecord;
       }
     }
   } catch (err) {
@@ -626,7 +635,7 @@ export async function getStaffProfileById(id: string): Promise<StaffProfileRecor
   }
 
   const found = DEFAULT_STAFF_MEMBERS.find((x) => x.id === id || x.employee_id === id);
-  return found || null;
+  return found ? { ...found, religion: found.religion || "Islam" } : null;
 }
 
 export async function getTeacherProfiles(): Promise<StaffProfileRecord[]> {

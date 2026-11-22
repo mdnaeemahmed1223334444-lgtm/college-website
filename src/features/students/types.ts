@@ -26,6 +26,7 @@ export interface StudentRecord {
   section?: string | null;
   status: StudentStatus;
   gender: GenderType;
+  religion?: string | null;
   date_of_birth?: string | null;
   blood_group?: string | null;
   phone?: string | null;

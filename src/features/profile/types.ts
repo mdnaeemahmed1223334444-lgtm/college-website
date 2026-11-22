@@ -46,6 +46,7 @@ export interface TeacherProfile {
   gender: "male" | "female" | "other";
   dateOfBirth?: string;
   bloodGroup: string;
+  religion?: string;
   joiningDate: string;
   qualification: string; // e.g. "M.Sc in Physics (DU), B.Sc (Hons)"
   specialization?: string; // e.g. "Quantum Mechanics, Electronics"

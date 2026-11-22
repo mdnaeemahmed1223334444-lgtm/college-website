@@ -44,6 +44,7 @@ interface StaffFormData {
   institution: string;
   gender: "male" | "female" | "other";
   blood_group: string;
+  religion: string;
   joining_date: string;
   experience_years: number;
   employment_type: "permanent" | "contractual" | "part_time" | "guest";
@@ -72,6 +73,7 @@ const DEFAULT_FORM: StaffFormData = {
   institution: "",
   gender: "male",
   blood_group: "A+",
+  religion: "Islam",
   joining_date: new Date().toISOString().split("T")[0],
   experience_years: 0,
   employment_type: "permanent",
@@ -137,6 +139,7 @@ export default function StaffListManager({
         institution: editingStaff.institution || "",
         gender: editingStaff.gender || "male",
         blood_group: editingStaff.blood_group || "A+",
+        religion: editingStaff.religion || "Islam",
         joining_date: editingStaff.joining_date || new Date().toISOString().split("T")[0],
         experience_years: editingStaff.experience_years || 0,
         employment_type: editingStaff.employment_type || "permanent",
@@ -668,7 +671,7 @@ export default function StaffListManager({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Gender</label>
                       <select
@@ -695,6 +698,21 @@ export default function StaffListManager({
                             {bg}
                           </option>
                         ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Religion</label>
+                      <select
+                        name="religion"
+                        value={formValues.religion}
+                        onChange={handleFieldChange}
+                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-teal-500 focus:outline-none"
+                      >
+                        <option value="Islam">Islam</option>
+                        <option value="Hinduism">Hinduism</option>
+                        <option value="Buddhism">Buddhism</option>
+                        <option value="Christianity">Christianity</option>
+                        <option value="Other">Other</option>
                       </select>
                     </div>
                     <div>

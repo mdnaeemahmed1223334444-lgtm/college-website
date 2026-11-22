@@ -20,6 +20,7 @@ export const staffProfileSchema = z.object({
   phone: str(6, "Valid phone number is required"),
   gender: strEnum(["male", "female", "other"] as const, "male"),
   blood_group: z.preprocess((v) => v || "A+", z.string().default("A+")),
+  religion: strOpt,
   date_of_birth: strOpt,
   nid: strOpt,
   present_address: strOpt,
