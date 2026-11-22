@@ -29,7 +29,7 @@ export const studentSchema = z.object({
     const n = Number(val);
     return isNaN(n) ? 1 : n;
   }, z.number().int().min(1, "Roll number must be a positive integer")),
-  section: safeString("A"),
+  section: optionalString,
   status: z.enum(["active", "suspended", "dropped", "passed_out"]).default("active"),
   gender: z.enum(["male", "female", "other"]).default("male"),
   date_of_birth: optionalString,

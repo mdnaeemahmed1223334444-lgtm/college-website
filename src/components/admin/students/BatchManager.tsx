@@ -2,8 +2,12 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import type { BatchRecord, StudentFeedback } from "@/features/students/types";
-import { saveBatchAction, deleteBatchAction } from "@/features/students/actions";
+import type { BatchRecord, StudentFeedback, StudentStatus } from "@/features/students/types";
+import {
+  saveBatchAction,
+  deleteBatchAction,
+  updateBatchStatusAndStudentsAction,
+} from "@/features/students/actions";
 import { SubmitButton } from "@/components/admin/website/FormControls";
 
 interface BatchManagerProps {
@@ -13,9 +17,15 @@ interface BatchManagerProps {
 export default function BatchManager({ initialBatches }: BatchManagerProps) {
   const [batches, setBatches] = useState<BatchRecord[]>(initialBatches);
   const [editingBatch, setEditingBatch] = useState<BatchRecord | null>(null);
+  const [statusBatch, setStatusBatch] = useState<BatchRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // State for bulk status change modal
+  const [bulkBatchStatus, setBulkBatchStatus] = useState<"running" | "passed">("running");
+  const [bulkStudentStatus, setBulkStudentStatus] = useState<StudentStatus>("active");
+  const [bulkYear, setBulkYear] = useState<"first_year" | "second_year">("second_year");
 
   const handleDelete = (id: string, name: string) => {
     if (!window.confirm(`Are you sure you want to delete ${name}?`)) return;
@@ -26,6 +36,42 @@ export default function BatchManager({ initialBatches }: BatchManagerProps) {
         setFeedback({ type: "success", text: res.message || "Batch deleted." });
       } else {
         setFeedback({ type: "error", text: res.error || "Failed to delete batch." });
+      }
+    });
+  };
+
+  const handleOpenBulkStatus = (batch: BatchRecord) => {
+    setStatusBatch(batch);
+    setBulkBatchStatus(batch.status);
+    setBulkStudentStatus(batch.status === "passed" ? "passed_out" : "active");
+    setBulkYear((batch.current_year as any) || "first_year");
+  };
+
+  const handleApplyBulkStatus = () => {
+    if (!statusBatch) return;
+    startTransition(async () => {
+      const res = await updateBatchStatusAndStudentsAction(
+        statusBatch.id,
+        bulkBatchStatus,
+        bulkStudentStatus,
+        bulkYear
+      );
+      if (res.success) {
+        setBatches((prev) =>
+          prev.map((b) =>
+            b.id === statusBatch.id
+              ? {
+                  ...b,
+                  status: bulkBatchStatus,
+                  current_year: bulkBatchStatus === "running" ? bulkYear : null,
+                }
+              : b
+          )
+        );
+        setStatusBatch(null);
+        setFeedback({ type: "success", text: res.message || "Batch and students updated." });
+      } else {
+        setFeedback({ type: "error", text: res.error || "Failed to update." });
       }
     });
   };
@@ -51,9 +97,9 @@ export default function BatchManager({ initialBatches }: BatchManagerProps) {
       {/* Header & Controls */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Academic Batches</h2>
+          <h2 className="text-lg font-bold text-gray-900">Academic Batches & Whole-Batch Status</h2>
           <p className="text-xs text-gray-500">
-            HSC batches (e.g. HSC Batch 26, HSC Batch 27) that group students by exam year.
+            Manage exam-year batches and update the status of an entire batch and its students in one click.
           </p>
         </div>
 
@@ -82,7 +128,7 @@ export default function BatchManager({ initialBatches }: BatchManagerProps) {
         {batches.map((batch) => (
           <div
             key={batch.id}
-            className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs flex flex-col justify-between hover:border-blue-300 transition-all"
+            className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs flex flex-col justify-between hover:border-blue-300 transition-all space-y-4"
           >
             <div>
               <div className="flex items-start justify-between">
@@ -91,34 +137,46 @@ export default function BatchManager({ initialBatches }: BatchManagerProps) {
                   <p className="text-xs text-gray-500">Exam Year: {batch.exam_year}</p>
                 </div>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
                     batch.status === "running"
                       ? "bg-emerald-100 text-emerald-800"
-                      : "bg-gray-100 text-gray-700"
+                      : "bg-indigo-100 text-indigo-800"
                   }`}
                 >
-                  {batch.status === "running" ? "● Running" : "● Passed"}
+                  {batch.status === "running" ? "● Running" : "● Alumni (Passed)"}
                 </span>
               </div>
 
-              <div className="mt-4 rounded-lg bg-gray-50 p-3 text-xs text-gray-700 space-y-1">
+              <div className="mt-4 rounded-lg bg-gray-50 p-3 text-xs text-gray-700 space-y-1 border border-gray-100">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Current Level:</span>
+                  <span className="text-gray-500">Academic Level:</span>
                   <span className="font-semibold text-gray-900">
-                    {batch.current_year === "second_year"
+                    {batch.status === "passed"
+                      ? "Completed / Alumni"
+                      : batch.current_year === "second_year"
                       ? "2nd Year (XII)"
-                      : batch.current_year === "first_year"
-                      ? "1st Year (XI)"
-                      : "Completed"}
+                      : "1st Year (XI)"}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-5 pt-3 border-t flex items-center justify-between">
+            {/* Quick Bulk Action Button */}
+            <div>
+              <button
+                type="button"
+                onClick={() => handleOpenBulkStatus(batch)}
+                className="w-full rounded-lg bg-blue-50 border border-blue-200 py-2 px-3 text-xs font-bold text-blue-700 hover:bg-blue-100 transition flex items-center justify-center gap-1.5"
+              >
+                <span>⚡</span>
+                <span>Change Status of Whole Batch</span>
+              </button>
+            </div>
+
+            <div className="pt-3 border-t flex items-center justify-between text-xs">
               <Link
                 href={`/admin/students/list`}
-                className="text-xs font-semibold text-blue-600 hover:underline"
+                className="font-semibold text-blue-600 hover:underline"
               >
                 View Students →
               </Link>
@@ -128,14 +186,14 @@ export default function BatchManager({ initialBatches }: BatchManagerProps) {
                     setEditingBatch(batch);
                     setIsModalOpen(true);
                   }}
-                  className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                  className="rounded-md border border-gray-200 bg-white px-2.5 py-1 font-semibold text-gray-700 hover:bg-gray-50"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(batch.id, batch.name)}
                   disabled={isPending}
-                  className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                  className="rounded-md border border-gray-200 bg-white px-2.5 py-1 font-semibold text-red-600 hover:bg-red-50"
                 >
                   Delete
                 </button>
@@ -145,7 +203,138 @@ export default function BatchManager({ initialBatches }: BatchManagerProps) {
         ))}
       </div>
 
-      {/* Modal Form */}
+      {/* Modal: Bulk Status Update for Entire Batch */}
+      {statusBatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-gray-100 overflow-hidden">
+            <div className="flex items-center justify-between border-b px-6 py-4 bg-gray-50">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">
+                  Update Whole Batch: {statusBatch.name}
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Change the operational status of this batch and all its enrolled students at once.
+                </p>
+              </div>
+              <button onClick={() => setStatusBatch(null)} className="text-gray-400 hover:text-gray-600">
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* One-Click Presets */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                  Quick Actions
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBulkBatchStatus("passed");
+                      setBulkStudentStatus("passed_out");
+                    }}
+                    className="rounded-lg border border-indigo-200 bg-indigo-50/70 p-2.5 text-left text-xs hover:bg-indigo-100 transition"
+                  >
+                    <div className="font-bold text-indigo-900">🎓 Graduate Whole Batch</div>
+                    <div className="text-[11px] text-indigo-700 mt-0.5">
+                      Sets batch as Passed & all students as Alumni
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBulkBatchStatus("running");
+                      setBulkYear("second_year");
+                      setBulkStudentStatus("active");
+                    }}
+                    className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-2.5 text-left text-xs hover:bg-emerald-100 transition"
+                  >
+                    <div className="font-bold text-emerald-900">🚀 Promote to 2nd Year</div>
+                    <div className="text-[11px] text-emerald-700 mt-0.5">
+                      Sets batch to 2nd Year & students to Active
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Detailed Settings */}
+              <div className="space-y-4 pt-2 border-t">
+                <div>
+                  <label className="block text-xs font-bold text-gray-800">
+                    Batch Operational Status
+                  </label>
+                  <select
+                    value={bulkBatchStatus}
+                    onChange={(e) => setBulkBatchStatus(e.target.value as any)}
+                    className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="running">Running (Active Academic Batch)</option>
+                    <option value="passed">Passed Out (Alumni / Graduated Batch)</option>
+                  </select>
+                </div>
+
+                {bulkBatchStatus === "running" && (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-800">
+                      Academic Year Level
+                    </label>
+                    <select
+                      value={bulkYear}
+                      onChange={(e) => setBulkYear(e.target.value as any)}
+                      className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+                    >
+                      <option value="first_year">1st Year (Class XI)</option>
+                      <option value="second_year">2nd Year (Class XII)</option>
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-800">
+                    Update All Enrolled Students in this Batch To:
+                  </label>
+                  <select
+                    value={bulkStudentStatus}
+                    onChange={(e) => setBulkStudentStatus(e.target.value as any)}
+                    className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="active">● Active (Regular Enrolled)</option>
+                    <option value="passed_out">● Passed Out (Alumni)</option>
+                    <option value="suspended">● Suspended</option>
+                    <option value="dropped">● Dropped</option>
+                  </select>
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    Every student record currently in {statusBatch.name} will have their status updated to this value.
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end pt-3 border-t gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStatusBatch(null)}
+                  className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyBulkStatus}
+                  disabled={isPending}
+                  className="rounded-md bg-blue-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-blue-700 shadow-xs disabled:opacity-50"
+                >
+                  {isPending ? "Updating Batch..." : "Apply to Whole Batch"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Create or Edit Batch Basic Data */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-gray-100 overflow-hidden">

@@ -53,7 +53,7 @@ export async function saveStudentAction(
       batch_id: str("batch_id"),
       study_group: str("study_group") || "science",
       roll: formData.get("roll") || 1,
-      section: str("section") || "A",
+      section: opt("section"),
       status: str("status") || "active",
       gender: str("gender") || "male",
       date_of_birth: normalizeOptionalDate(opt("date_of_birth")),
@@ -264,5 +264,53 @@ export async function deleteBatchAction(id: string): Promise<StudentFeedback> {
     return { success: true, message: "Batch deleted successfully." };
   } catch (err: unknown) {
     return { error: extractErrorMessage(err, "Failed to delete batch (check if students are attached)") };
+  }
+}
+
+export async function updateBatchStatusAndStudentsAction(
+  batchId: string,
+  newBatchStatus: "running" | "passed",
+  newStudentStatus: "active" | "passed_out" | "suspended" | "dropped",
+  currentYear?: "first_year" | "second_year" | null
+): Promise<StudentFeedback> {
+  try {
+    await requireRole(["admin"]);
+
+    const privClient = privateAdmin();
+    if (privClient) {
+      // 1. Update the batch table
+      const { error: batchErr } = await privClient
+        .from("batches")
+        .update({
+          status: newBatchStatus,
+          current_year: newBatchStatus === "running" ? currentYear || "second_year" : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", batchId);
+
+      if (batchErr) throw batchErr;
+
+      // 2. Bulk update all students belonging to this batch
+      const { error: stuErr } = await privClient
+        .from("students")
+        .update({
+          status: newStudentStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("batch_id", batchId);
+
+      if (stuErr) throw stuErr;
+    }
+
+    revalidatePath("/admin/students");
+    revalidatePath("/admin/students/batches");
+    revalidatePath("/admin/students/list");
+
+    return {
+      success: true,
+      message: `Batch status updated to '${newBatchStatus}' and all enrolled students set to '${newStudentStatus}'.`,
+    };
+  } catch (err: unknown) {
+    return { error: extractErrorMessage(err, "Failed to update batch status and students") };
   }
 }

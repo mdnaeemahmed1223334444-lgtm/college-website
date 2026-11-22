@@ -23,7 +23,7 @@ export interface StudentRecord {
   batch_name?: string;
   study_group: StudyGroup;
   roll: number;
-  section: string;
+  section?: string | null;
   status: StudentStatus;
   gender: GenderType;
   date_of_birth?: string | null;

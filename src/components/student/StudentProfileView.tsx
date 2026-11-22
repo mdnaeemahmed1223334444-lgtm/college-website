@@ -3,15 +3,11 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import type { StudentProfile, ProfileFeedback } from "@/features/profile/types";
-import {
-  updateStudentProfileAction,
-  changePasswordAction,
-} from "@/features/profile/actions";
+import { changePasswordAction } from "@/features/profile/actions";
 import { SubmitButton, FeedbackAlert } from "@/components/admin/website/FormControls";
 
 export default function StudentProfileView({ profile }: { profile: StudentProfile }) {
-  const [activeTab, setActiveTab] = useState<"overview" | "guardian" | "edit" | "security">("overview");
-  const [editState, editAction] = useActionState<ProfileFeedback, FormData>(updateStudentProfileAction, {});
+  const [activeTab, setActiveTab] = useState<"overview" | "guardian" | "security">("overview");
   const [pwState, pwAction] = useActionState<ProfileFeedback, FormData>(changePasswordAction, {});
 
   const groupLabel =
@@ -113,17 +109,6 @@ export default function StudentProfileView({ profile }: { profile: StudentProfil
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab("edit")}
-          className={`px-5 py-3 text-sm font-semibold transition border-b-2 whitespace-nowrap ${
-            activeTab === "edit"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          ✏️ Update Contact
-        </button>
-        <button
-          type="button"
           onClick={() => setActiveTab("security")}
           className={`px-5 py-3 text-sm font-semibold transition border-b-2 whitespace-nowrap ${
             activeTab === "security"
@@ -133,6 +118,14 @@ export default function StudentProfileView({ profile }: { profile: StudentProfil
         >
           🔒 Security & Password
         </button>
+      </div>
+
+      {/* Official Read-only Notice */}
+      <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-xs text-blue-900 flex items-start gap-3">
+        <span className="text-base">🔒</span>
+        <div>
+          <span className="font-bold">Official Student Record:</span> Your profile credentials and family details are officially maintained by the College Administration. If any corrections are needed, please contact the college administration office.
+        </div>
       </div>
 
       {/* Tab 1: Academic & Identity */}
@@ -168,11 +161,6 @@ export default function StudentProfileView({ profile }: { profile: StudentProfil
               <div>
                 <dt className="text-gray-400 font-medium">Study Group</dt>
                 <dd className="font-semibold text-blue-700 mt-0.5">{groupLabel}</dd>
-              </div>
-
-              <div>
-                <dt className="text-gray-400 font-medium">Section</dt>
-                <dd className="font-semibold text-gray-900 mt-0.5">Section {profile.section}</dd>
               </div>
 
               <div>
@@ -301,79 +289,7 @@ export default function StudentProfileView({ profile }: { profile: StudentProfil
         </div>
       )}
 
-      {/* Tab 3: Update Contact */}
-      {activeTab === "edit" && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-xs max-w-2xl space-y-5">
-          <div>
-            <h3 className="text-base font-bold text-gray-900">✏️ Update Contact Information</h3>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Keep your contact and emergency guardian numbers up-to-date so you never miss important college circulars.
-            </p>
-          </div>
-
-          <FeedbackAlert state={editState} />
-
-          <form action={editAction} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700">Mobile Phone Number *</label>
-                <input
-                  name="phone"
-                  defaultValue={profile.phone}
-                  required
-                  placeholder="+880 17..."
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700">Email Address *</label>
-                <input
-                  name="email"
-                  type="email"
-                  defaultValue={profile.email}
-                  required
-                  placeholder="name@student.college.edu"
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-700">Guardian Emergency Phone *</label>
-              <input
-                name="guardianPhone"
-                defaultValue={profile.guardianPhone}
-                required
-                placeholder="+880 18..."
-                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-700">Present Living Address *</label>
-              <textarea
-                name="address"
-                rows={3}
-                defaultValue={profile.address}
-                required
-                placeholder="House, Road, Area, Dhaka"
-                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-xs text-gray-500">
-              💡 <strong>Note:</strong> Academic credentials (Roll, Group, Batch) and Student Code are locked by the college registrar. If any academic details are incorrect, please contact your Batch Coordinator.
-            </div>
-
-            <div className="flex justify-end pt-2 border-t">
-              <SubmitButton label="💾 Save Contact Details" />
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Tab 4: Security & Password */}
+      {/* Tab 3: Security & Password */}
       {activeTab === "security" && (
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-xs max-w-xl space-y-5">
           <div>

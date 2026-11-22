@@ -227,7 +227,7 @@ export default function StudentListManager({
               <tr>
                 <th className="px-4 py-3.5">Student</th>
                 <th className="px-4 py-3.5">Batch & Group</th>
-                <th className="px-4 py-3.5">Roll & Section</th>
+                <th className="px-4 py-3.5">Roll No</th>
                 <th className="px-4 py-3.5">Contact / Guardian</th>
                 <th className="px-4 py-3.5">Hardware / RFID</th>
                 <th className="px-4 py-3.5">Status</th>
@@ -279,10 +279,9 @@ export default function StudentListManager({
                       <div className="mt-0.5">{groupBadge(s.study_group)}</div>
                     </td>
 
-                    {/* Roll & Section */}
+                    {/* Roll */}
                     <td className="px-4 py-3">
                       <div className="font-bold text-gray-900">Roll: #{s.roll}</div>
-                      <div className="text-[11px] text-gray-500">Section {s.section || "A"}</div>
                     </td>
 
                     {/* Contact & Guardian */}

@@ -31,6 +31,13 @@ export default function StudentForm({
     {}
   );
 
+  const [fatherUnavailable, setFatherUnavailable] = useState(
+    initialData ? !initialData.father_name && !!initialData.guardian_name : false
+  );
+  const [motherUnavailable, setMotherUnavailable] = useState(
+    initialData ? !initialData.mother_name && !!initialData.guardian_name : false
+  );
+
   const [formValues, setFormValues] = useState({
     id: initialData?.id || "",
     student_code: initialData?.student_code || "",
@@ -39,7 +46,6 @@ export default function StudentForm({
     batch_id: initialData?.batch_id || (batches[0]?.id ?? ""),
     study_group: initialData?.study_group || "science",
     roll: initialData?.roll ?? 1,
-    section: initialData?.section || "A",
     status: initialData?.status || "active",
     gender: initialData?.gender || "male",
     date_of_birth: initialData?.date_of_birth || "",
@@ -69,6 +75,24 @@ export default function StudentForm({
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
+  const copyFatherToGuardian = () => {
+    setFormValues((prev) => ({
+      ...prev,
+      guardian_name: prev.father_name,
+      guardian_phone: prev.father_phone || prev.phone,
+      guardian_relation: "Father",
+    }));
+  };
+
+  const copyMotherToGuardian = () => {
+    setFormValues((prev) => ({
+      ...prev,
+      guardian_name: prev.mother_name,
+      guardian_phone: prev.mother_phone || prev.phone,
+      guardian_relation: "Mother",
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     setClientError("");
     if (!formValues.full_name.trim() || formValues.full_name.trim().length < 2) {
@@ -84,6 +108,11 @@ export default function StudentForm({
     if (!formValues.roll || Number(formValues.roll) < 1) {
       e.preventDefault();
       setClientError("Please enter a valid roll number.");
+      return;
+    }
+    if (!formValues.guardian_name.trim()) {
+      e.preventDefault();
+      setClientError("Guardian name is required (especially if father or mother is absent).");
       return;
     }
   };
@@ -124,11 +153,11 @@ export default function StudentForm({
         <div className="border-b pb-2">
           <h3 className="text-base font-bold text-gray-900">1. Academic Enrollment</h3>
           <p className="text-xs text-gray-500">
-            Batch, study stream, roll, section, and current student status.
+            Batch, study group, roll number, and student enrollment status.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="block text-xs font-bold text-gray-800">
               HSC Batch <span className="text-red-500">*</span>
@@ -182,17 +211,6 @@ export default function StudentForm({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-800">Section</label>
-            <input
-              name="section"
-              value={formValues.section}
-              onChange={handleChange}
-              placeholder="e.g. A, B, or C"
-              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
             <label className="block text-xs font-bold text-gray-800">Student Status</label>
             <select
               name="status"
@@ -207,7 +225,7 @@ export default function StudentForm({
             </select>
           </div>
 
-          <div>
+          <div className="sm:col-span-2">
             <label className="block text-xs font-bold text-gray-800">
               Student ID / Code
             </label>
@@ -215,7 +233,7 @@ export default function StudentForm({
               name="student_code"
               value={formValues.student_code}
               onChange={handleChange}
-              placeholder="Auto-generated if left blank"
+              placeholder="Auto-generated if left blank (e.g. STU-2026-1042)"
               className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none font-mono text-xs"
             />
             <p className="text-[10px] text-gray-400 mt-0.5">Leave blank to auto-generate.</p>
@@ -370,91 +388,207 @@ export default function StudentForm({
       </div>
 
       {/* Section 4: Parents & Guardian Details */}
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div className="border-b pb-2">
           <h3 className="text-base font-bold text-gray-900">4. Parents & Guardian Information</h3>
-          <p className="text-xs text-gray-500">Emergency contact and family details.</p>
+          <p className="text-xs text-gray-500">
+            Family information. If a student has no father or mother, an alternative legal guardian can be designated.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="block text-xs font-bold text-gray-800">Father&apos;s Name</label>
-            <input
-              name="father_name"
-              value={formValues.father_name}
-              onChange={handleChange}
-              placeholder="Father's full name"
-              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
-            />
+        {/* Father Information */}
+        <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wide text-gray-700">Father&apos;s Information</span>
+            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={fatherUnavailable}
+                onChange={(e) => {
+                  setFatherUnavailable(e.target.checked);
+                  if (e.target.checked) {
+                    setFormValues((p) => ({ ...p, father_name: "", father_phone: "" }));
+                  }
+                }}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="font-medium text-amber-800">Father is deceased / not available</span>
+            </label>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-800">Father&apos;s Phone</label>
-            <input
-              type="tel"
-              name="father_phone"
-              value={formValues.father_phone}
-              onChange={handleChange}
-              placeholder="e.g. 01819223344"
-              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
-            />
+          {!fatherUnavailable ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-1">
+              <div>
+                <label className="block text-xs font-bold text-gray-800">Father&apos;s Full Name</label>
+                <input
+                  name="father_name"
+                  value={formValues.father_name}
+                  onChange={handleChange}
+                  placeholder="Father's full name"
+                  className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-800">Father&apos;s Contact Phone</label>
+                <input
+                  type="tel"
+                  name="father_phone"
+                  value={formValues.father_phone}
+                  onChange={handleChange}
+                  placeholder="e.g. 01819223344"
+                  className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800 flex items-center gap-2">
+              <span>⚠️</span>
+              <span>Father marked as deceased/unavailable. Please ensure a legal guardian is designated below.</span>
+            </div>
+          )}
+        </div>
+
+        {/* Mother Information */}
+        <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wide text-gray-700">Mother&apos;s Information</span>
+            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={motherUnavailable}
+                onChange={(e) => {
+                  setMotherUnavailable(e.target.checked);
+                  if (e.target.checked) {
+                    setFormValues((p) => ({ ...p, mother_name: "", mother_phone: "" }));
+                  }
+                }}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="font-medium text-amber-800">Mother is deceased / not available</span>
+            </label>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-800">Mother&apos;s Name</label>
-            <input
-              name="mother_name"
-              value={formValues.mother_name}
-              onChange={handleChange}
-              placeholder="Mother's full name"
-              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
-            />
+          {!motherUnavailable ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-1">
+              <div>
+                <label className="block text-xs font-bold text-gray-800">Mother&apos;s Full Name</label>
+                <input
+                  name="mother_name"
+                  value={formValues.mother_name}
+                  onChange={handleChange}
+                  placeholder="Mother's full name"
+                  className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-800">Mother&apos;s Contact Phone</label>
+                <input
+                  type="tel"
+                  name="mother_phone"
+                  value={formValues.mother_phone}
+                  onChange={handleChange}
+                  placeholder="e.g. 01911556677"
+                  className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800 flex items-center gap-2">
+              <span>⚠️</span>
+              <span>Mother marked as deceased/unavailable. Please ensure a legal guardian is designated below.</span>
+            </div>
+          )}
+        </div>
+
+        {/* Primary / Legal Guardian Card */}
+        <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wide text-blue-900">
+                👨‍👧 Primary / Legal Guardian (Required) <span className="text-red-500">*</span>
+              </span>
+              <p className="text-[11px] text-blue-700 mt-0.5">
+                The person responsible for institutional correspondence and emergency decisions.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {!fatherUnavailable && formValues.father_name && (
+                <button
+                  type="button"
+                  onClick={copyFatherToGuardian}
+                  className="rounded bg-white border border-blue-300 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 shadow-2xs"
+                >
+                  Use Father as Guardian
+                </button>
+              )}
+              {!motherUnavailable && formValues.mother_name && (
+                <button
+                  type="button"
+                  onClick={copyMotherToGuardian}
+                  className="rounded bg-white border border-blue-300 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 shadow-2xs"
+                >
+                  Use Mother as Guardian
+                </button>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-800">Mother&apos;s Phone</label>
-            <input
-              type="tel"
-              name="mother_phone"
-              value={formValues.mother_phone}
-              onChange={handleChange}
-              placeholder="e.g. 01911556677"
-              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <label className="block text-xs font-bold text-gray-800">
+                Guardian Full Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="guardian_name"
+                value={formValues.guardian_name}
+                onChange={handleChange}
+                required
+                placeholder="Full name of guardian"
+                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-800">Guardian Name</label>
-            <input
-              name="guardian_name"
-              value={formValues.guardian_name}
-              onChange={handleChange}
-              placeholder="Primary guardian for correspondence"
-              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-800">
+                Guardian Phone Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="tel"
+                name="guardian_phone"
+                value={formValues.guardian_phone}
+                onChange={handleChange}
+                required
+                placeholder="Emergency contact number"
+                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-800">Guardian Phone</label>
-            <input
-              type="tel"
-              name="guardian_phone"
-              value={formValues.guardian_phone}
-              onChange={handleChange}
-              placeholder="Emergency contact number"
-              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-800">Relationship to Student</label>
-            <input
-              name="guardian_relation"
-              value={formValues.guardian_relation}
-              onChange={handleChange}
-              placeholder="e.g. Father, Mother, Uncle"
-              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
-            />
+            <div>
+              <label className="block text-xs font-bold text-gray-800">
+                Relationship to Student <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="guardian_relation"
+                value={formValues.guardian_relation}
+                onChange={handleChange}
+                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="Father">Father</option>
+                <option value="Mother">Mother</option>
+                <option value="Grandfather">Grandfather (Dada / Nana)</option>
+                <option value="Grandmother">Grandmother (Dadi / Nani)</option>
+                <option value="Uncle">Uncle (Chacha / Mama)</option>
+                <option value="Aunt">Aunt (Fupu / Khala)</option>
+                <option value="Elder Brother">Elder Brother</option>
+                <option value="Elder Sister">Elder Sister</option>
+                <option value="Legal Guardian">Legal Guardian / Custodian</option>
+                <option value="Orphanage / Welfare">Orphanage / Welfare Organization</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
