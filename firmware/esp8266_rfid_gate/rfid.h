@@ -14,8 +14,14 @@ public:
     void haltCard();
     bool isDuplicateScan(const String& currentUID);
 
+    // RFID Write & Read Sector Data Functions (Mifare Classic 1K)
+    bool writeDataBlock(byte blockAddr, const String& text);
+    String readDataBlock(byte blockAddr);
+    void dumpCardMemory();
+
 private:
     MFRC522 mfrc522;
+    MFRC522::MIFARE_Key defaultKey;
     String lastScannedUID;
     unsigned long lastScanMillis;
 };

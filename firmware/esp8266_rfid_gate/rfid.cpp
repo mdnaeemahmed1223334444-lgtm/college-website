@@ -2,7 +2,12 @@
 #include "config.h"
 
 RFIDReader::RFIDReader(uint8_t ssPin, uint8_t rstPin)
-    : mfrc522(ssPin, rstPin), lastScannedUID(""), lastScanMillis(0) {}
+    : mfrc522(ssPin, rstPin), lastScannedUID(""), lastScanMillis(0) {
+    // Standard default factory key (FF FF FF FF FF FF)
+    for (byte i = 0; i < 6; i++) {
+        defaultKey.keyByte[i] = 0xFF;
+    }
+}
 
 bool RFIDReader::begin() {
     SPI.begin();
@@ -10,8 +15,6 @@ bool RFIDReader::begin() {
     delay(50);
 
     // Verify SPI communication with RC522.
-    // VersionReg returns 0x91/0x92 for genuine NXP RC522, 0x12 for counterfeit/clones.
-    // If it returns 0x00 or 0xFF, communication over SPI is broken (wiring or power issue).
     byte version = mfrc522.PCD_ReadRegister(mfrc522.VersionReg);
     if (version == 0x00 || version == 0xFF) {
         return false;
@@ -20,11 +23,9 @@ bool RFIDReader::begin() {
 }
 
 bool RFIDReader::isCardAvailable() {
-    // Detect new card present in RF field
     if (!mfrc522.PICC_IsNewCardPresent()) {
         return false;
     }
-    // Select and read serial from card
     if (!mfrc522.PICC_ReadCardSerial()) {
         return false;
     }
@@ -50,11 +51,91 @@ void RFIDReader::haltCard() {
 
 bool RFIDReader::isDuplicateScan(const String& currentUID) {
     unsigned long now = millis();
-    // If the exact same card was scanned less than CARD_DEBOUNCE_MS ago, ignore it
     if (currentUID == lastScannedUID && (now - lastScanMillis < CARD_DEBOUNCE_MS)) {
         return true;
     }
     lastScannedUID = currentUID;
     lastScanMillis = now;
     return false;
+}
+
+/**
+ * Write 16 bytes of custom ASCII text into a Mifare Classic block.
+ * Block 4 (Sector 1, Block 0) is recommended as Block 0-3 is Sector 0.
+ */
+bool RFIDReader::writeDataBlock(byte blockAddr, const String& text) {
+    // Determine trailer block for authentication (each sector has 4 blocks: 0-3, 4-7, 8-11...)
+    byte sector = blockAddr / 4;
+    byte trailerBlock = (sector * 4) + 3;
+
+    // Authenticate with Key A
+    MFRC522::StatusCode status = mfrc522.PCD_Authenticate(
+        MFRC522::PICC_CMD_MF_AUTH_KEY_A,
+        trailerBlock,
+        &defaultKey,
+        &(mfrc522.uid)
+    );
+
+    if (status != MFRC522::STATUS_OK) {
+        Serial.print("Auth failed: ");
+        Serial.println(mfrc522.GetStatusCodeName(status));
+        return false;
+    }
+
+    // Prepare 16-byte buffer padded with nulls/spaces
+    byte buffer[16];
+    memset(buffer, ' ', 16);
+    size_t len = text.length();
+    if (len > 16) len = 16;
+    memcpy(buffer, text.c_str(), len);
+
+    // Write buffer to block
+    status = mfrc522.MIFARE_Write(blockAddr, buffer, 16);
+    if (status != MFRC522::STATUS_OK) {
+        Serial.print("Write failed: ");
+        Serial.println(mfrc522.GetStatusCodeName(status));
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Read 16 bytes from a Mifare Classic block and return as ASCII String.
+ */
+String RFIDReader::readDataBlock(byte blockAddr) {
+    byte sector = blockAddr / 4;
+    byte trailerBlock = (sector * 4) + 3;
+
+    MFRC522::StatusCode status = mfrc522.PCD_Authenticate(
+        MFRC522::PICC_CMD_MF_AUTH_KEY_A,
+        trailerBlock,
+        &defaultKey,
+        &(mfrc522.uid)
+    );
+
+    if (status != MFRC522::STATUS_OK) {
+        return "";
+    }
+
+    byte buffer[18];
+    byte byteCount = sizeof(buffer);
+
+    status = mfrc522.MIFARE_Read(blockAddr, buffer, &byteCount);
+    if (status != MFRC522::STATUS_OK) {
+        return "";
+    }
+
+    String result = "";
+    for (byte i = 0; i < 16; i++) {
+        if (buffer[i] >= 32 && buffer[i] <= 126) {
+            result += (char)buffer[i];
+        }
+    }
+    result.trim();
+    return result;
+}
+
+void RFIDReader::dumpCardMemory() {
+    mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
 }
