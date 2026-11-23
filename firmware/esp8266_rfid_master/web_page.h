@@ -45,7 +45,19 @@ const char PAGE_INDEX[] PROGMEM = R"rawliteral(
     <p>RFID Gate Attendance & Card Programmer Portal</p>
   </header>
 
-  <!-- Section 1: Card Writer (Works Offline!) -->
+  <!-- Section 1: Submit Attendance via ESP API -->
+  <div class="card" style="border: 1px solid #93c5fd; background: #f0fdf4;">
+    <h2 style="color: #166534;">⚡ Submit Attendance via API</h2>
+    <p style="font-size: 12px; color: #475569; margin-bottom: 12px;">
+      Triggers the ESP to submit an attendance record directly to the college website.
+    </p>
+    <label>Student Code or Card Data to Submit</label>
+    <input type="text" id="apiStudentInput" placeholder="e.g. STU-2026-1003 or HRMDC-26-8503" value="STU-2026-1003">
+    <button class="btn" onclick="submitAttendanceApi()" style="background: #16a34a;">⚡ SUBMIT ATTENDANCE VIA API</button>
+    <div id="apiResultBox" style="margin-top: 12px; display: none; padding: 10px; border-radius: 8px; font-size: 12px;"></div>
+  </div>
+
+  <!-- Section 2: Card Writer (Works Offline!) -->
   <div class="card">
     <h2>✍️ Write Student ID to Card</h2>
     <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
@@ -60,7 +72,7 @@ const char PAGE_INDEX[] PROGMEM = R"rawliteral(
     </div>
   </div>
 
-  <!-- Section 2: Last Scanned Card Info -->
+  <!-- Section 3: Last Scanned Card Info -->
   <div class="card">
     <h2>🪪 Live RFID Reader Status</h2>
     <div class="info-grid">
@@ -83,7 +95,7 @@ const char PAGE_INDEX[] PROGMEM = R"rawliteral(
     </div>
   </div>
 
-  <!-- Section 3: Wi-Fi Setup -->
+  <!-- Section 4: Wi-Fi Setup -->
   <div class="card">
     <h2>📶 Wi-Fi Configuration</h2>
     <div id="wifiStatusBadge" class="status-badge badge-amber">DISCONNECTED</div>
@@ -104,7 +116,7 @@ const char PAGE_INDEX[] PROGMEM = R"rawliteral(
     <button class="btn" onclick="connectWifi()">Connect to Wi-Fi</button>
   </div>
 
-  <!-- Section 4: Backend Server URL Configuration -->
+  <!-- Section 5: Backend Server URL Configuration -->
   <div class="card">
     <h2>🌐 Attendance Backend URL</h2>
     <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
@@ -152,6 +164,38 @@ const char PAGE_INDEX[] PROGMEM = R"rawliteral(
             document.getElementById('writeMsg').innerText = 'UID: ' + data.last_written_uid + ' | Data: ' + data.last_written_data;
           }
         }).catch(function() {});
+    };
+
+    window.submitAttendanceApi = function() {
+      var code = document.getElementById('apiStudentInput').value.trim();
+      if (!code) { alert('Enter student code'); return; }
+      var box = document.getElementById('apiResultBox');
+      box.style.display = 'block';
+      box.style.background = '#fef3c7';
+      box.style.color = '#92400e';
+      box.innerText = 'Submitting attendance via ESP to website...';
+
+      fetch('/api/submit-attendance?data=' + encodeURIComponent(code))
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success) {
+            box.style.background = '#dcfce7';
+            box.style.color = '#166534';
+            box.innerHTML = '<strong>✅ STATUS: ' + data.status + '</strong><br>' +
+                            (data.student_name ? 'Student: ' + data.student_name + '<br>' : '') +
+                            data.message;
+          } else {
+            box.style.background = '#fee2e2';
+            box.style.color = '#991b1b';
+            box.innerHTML = '<strong>❌ STATUS: ' + (data.status || 'ERROR') + '</strong><br>' + data.message;
+          }
+          window.updateStatus();
+        })
+        .catch(function(err) {
+          box.style.background = '#fee2e2';
+          box.style.color = '#991b1b';
+          box.innerText = 'Error calling ESP API: ' + err.message;
+        });
     };
 
     window.scanWifi = function() {

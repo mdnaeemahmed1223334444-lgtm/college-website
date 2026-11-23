@@ -1,6 +1,23 @@
-import PlaceholderPage from "@/components/shared/PlaceholderPage";
+import { getAttendanceRecords, getAttendanceStats, getGateDevices } from "@/features/attendance/queries";
+import AttendanceDashboard from "@/features/attendance/AttendanceDashboard";
 
-// Attendance Management
-export default function Page() {
-  return <PlaceholderPage href="/admin/attendance" />;
+export const metadata = {
+  title: "Attendance Management | Dhaka Model College Admin",
+  description: "Real-time RFID gate attendance logs, present/late stats, and gate device monitor.",
+};
+
+export default async function AdminAttendancePage() {
+  const [initialRecords, initialStats, initialDevices] = await Promise.all([
+    getAttendanceRecords(),
+    getAttendanceStats(),
+    getGateDevices(),
+  ]);
+
+  return (
+    <AttendanceDashboard
+      initialRecords={initialRecords}
+      initialStats={initialStats}
+      initialDevices={initialDevices}
+    />
+  );
 }

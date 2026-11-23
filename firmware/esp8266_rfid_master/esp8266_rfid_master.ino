@@ -315,7 +315,7 @@ void handleArmWrite() {
 // ------------------------------------------------------------------------------
 // SEND ATTENDANCE SCAN EVENT TO WEBSITE API
 // ------------------------------------------------------------------------------
-void sendAttendanceScan(const String& uid, const String& writtenData) {
+String sendAttendanceScan(const String& uid, const String& writtenData) {
     Serial.println("------------------------------------");
     Serial.println("CARD SCANNED AT GATE");
     Serial.print("Hardware UID:  ");
@@ -332,7 +332,7 @@ void sendAttendanceScan(const String& uid, const String& writtenData) {
         lastScanStatus = "OFFLINE_READ";
         lastStudentName = writtenData;
         Serial.println("------------------------------------");
-        return;
+        return "{\"success\":false,\"status\":\"OFFLINE_SCAN\",\"message\":\"ESP is not connected to Wi-Fi\"}";
     }
 
     String url = String(settings.backendUrl);
@@ -344,6 +344,7 @@ void sendAttendanceScan(const String& uid, const String& writtenData) {
 
     // card_data is sent as the primary key!
     String requestJson = "{\"device_id\":\"" + String(DEVICE_ID) +
+                         "\",\"token\":\"" + String(DEVICE_TOKEN) +
                          "\",\"card_uid\":\"" + uid +
                          "\",\"card_data\":\"" + writtenData + "\"}";
 
@@ -354,13 +355,19 @@ void sendAttendanceScan(const String& uid, const String& writtenData) {
     if (isHttps) {
         secureClient.reset(new WiFiClientSecure());
         secureClient->setInsecure(); // Critical for Vercel SSL
-        secureClient->setTimeout(10000);
-        http.setTimeout(10000);
+        // CRITICAL FIX: Reduce BearSSL buffer from 32KB down to 1.5KB to prevent ESP8266 out-of-memory crash!
+        secureClient->setBufferSizes(1024, 512);
+        secureClient->setTimeout(8000);
+        http.setTimeout(8000);
+        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        http.setReuse(false);
         initOk = http.begin(*secureClient, url);
     } else {
         plainClient.reset(new WiFiClient());
-        plainClient->setTimeout(10000);
-        http.setTimeout(10000);
+        plainClient->setTimeout(8000);
+        http.setTimeout(8000);
+        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        http.setReuse(false);
         initOk = http.begin(*plainClient, url);
     }
 
@@ -369,7 +376,7 @@ void sendAttendanceScan(const String& uid, const String& writtenData) {
         Serial.println("MESSAGE: Could not reach attendance server");
         lastScanStatus = "NETWORK_ERROR";
         Serial.println("------------------------------------");
-        return;
+        return "{\"success\":false,\"status\":\"NETWORK_ERROR\",\"message\":\"Could not initialize connection\"}";
     }
 
     http.addHeader("Content-Type", "application/json");
@@ -380,17 +387,19 @@ void sendAttendanceScan(const String& uid, const String& writtenData) {
 
     if (httpCode <= 0 || httpCode >= 500) {
         Serial.print("HTTP Error code: ");
-        Serial.println(httpCode);
+        Serial.print(httpCode);
         if (httpCode < 0) {
-            Serial.print("Details: ");
-            Serial.println(http.errorToString(httpCode));
+            Serial.print(" (");
+            Serial.print(http.errorToString(httpCode));
+            Serial.print(")");
         }
+        Serial.println();
         http.end();
         Serial.println("STATUS: NETWORK_ERROR");
         Serial.println("MESSAGE: Server returned error or timeout");
         lastScanStatus = "NETWORK_ERROR";
         Serial.println("------------------------------------");
-        return;
+        return "{\"success\":false,\"status\":\"NETWORK_ERROR\",\"message\":\"Server returned error or timeout (code " + String(httpCode) + ")\"}";
     }
 
     String responseBody = http.getString();
@@ -426,6 +435,53 @@ void sendAttendanceScan(const String& uid, const String& writtenData) {
     }
 
     Serial.println("------------------------------------");
+    return responseBody;
+}
+
+// ------------------------------------------------------------------------------
+// HTTP API ENDPOINT: SUBMIT ATTENDANCE DIRECTLY THROUGH ESP
+// ------------------------------------------------------------------------------
+void handleApiSubmitAttendance() {
+    String cardData = "";
+    String uid = "6B452254";
+
+    if (server.hasArg("data")) {
+        cardData = server.arg("data");
+    } else if (server.hasArg("code")) {
+        cardData = server.arg("code");
+    } else if (server.hasArg("card_data")) {
+        cardData = server.arg("card_data");
+    } else if (server.hasArg("plain")) {
+        String body = server.arg("plain");
+#if defined(ARDUINOJSON_VERSION_MAJOR) && (ARDUINOJSON_VERSION_MAJOR >= 7)
+        JsonDocument reqDoc;
+#else
+        StaticJsonDocument<256> reqDoc;
+#endif
+        if (!deserializeJson(reqDoc, body)) {
+            cardData = reqDoc["card_data"] | reqDoc["data"] | reqDoc["student_code"] | "";
+            uid = reqDoc["card_uid"] | reqDoc["uid"] | uid;
+        }
+    }
+
+    cardData.trim();
+    if (cardData.length() == 0) {
+        server.send(400, "application/json", "{\"success\":false,\"message\":\"Missing student code or card data parameter\"}");
+        return;
+    }
+
+    // Blink onboard blue LED to confirm physical scan trigger
+    blinkBuiltinLed(150);
+
+    Serial.println();
+    Serial.println("====================================");
+    Serial.println(">>> ATTENDANCE SUBMITTED VIA ESP API <<<");
+    Serial.print("Target Code / Card: ");
+    Serial.println(cardData);
+    Serial.println("====================================");
+
+    String resultJson = sendAttendanceScan(uid, cardData);
+    server.send(200, "application/json", resultJson);
 }
 
 // ------------------------------------------------------------------------------
@@ -454,8 +510,11 @@ void pollWebsiteForCardWrite() {
     if (isHttps) {
         WiFiClientSecure clientSecure;
         clientSecure.setInsecure();
+        clientSecure.setBufferSizes(1024, 512);
         clientSecure.setTimeout(4000);
         http.setTimeout(4000);
+        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        http.setReuse(false);
         if (http.begin(clientSecure, pollUrl)) {
             httpCode = http.GET();
             if (httpCode == 200) payload = http.getString();
@@ -525,7 +584,11 @@ void notifyWebsiteWriteComplete(const String& uid, const String& writtenData) {
     if (isHttps) {
         WiFiClientSecure clientSecure;
         clientSecure.setInsecure();
+        clientSecure.setBufferSizes(1024, 512);
         clientSecure.setTimeout(5000);
+        http.setTimeout(5000);
+        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        http.setReuse(false);
         if (http.begin(clientSecure, notifyUrl)) {
             http.addHeader("Content-Type", "application/json");
             http.POST(reqBody);
@@ -577,6 +640,8 @@ void setup() {
     server.on("/connect", HTTP_POST, handleConnect);
     server.on("/set-backend", HTTP_POST, handleSetBackend);
     server.on("/arm-write", HTTP_POST, handleArmWrite);
+    server.on("/api/submit-attendance", HTTP_ANY, handleApiSubmitAttendance);
+    server.on("/scan", HTTP_ANY, handleApiSubmitAttendance);
     server.begin();
 
     // 5. Print Startup Banner
