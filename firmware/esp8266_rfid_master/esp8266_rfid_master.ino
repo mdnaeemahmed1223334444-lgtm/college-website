@@ -128,6 +128,13 @@ void loadSettings() {
         settings.backendUrl[sizeof(settings.backendUrl) - 1] = '\0';
         saveSettings();
     }
+
+    // Ensure backendUrl always points to the live Vercel production endpoint:
+    if (strcmp(settings.backendUrl, DEFAULT_BACKEND) != 0) {
+        strncpy(settings.backendUrl, DEFAULT_BACKEND, sizeof(settings.backendUrl) - 1);
+        settings.backendUrl[sizeof(settings.backendUrl) - 1] = '\0';
+        saveSettings();
+    }
 }
 
 // ------------------------------------------------------------------------------
