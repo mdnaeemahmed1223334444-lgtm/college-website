@@ -7,10 +7,12 @@
  *   - MFRC522 RC522 13.56 MHz RFID Reader
  *   - 13.56 MHz RFID Cards (Mifare Classic 1K)
  *   - USB Cable (Serial Monitor at 115200 baud)
+ *   - Onboard Blue LED: Blinks every time ANY card is scanned!
  *
  * Current Hardware Note:
  *   Operates strictly with ESP8266, RC522 and USB power.
- *   No LEDs, buzzers, or external displays are required or assumed.
+ *   No external LEDs, buzzers, or external displays are required.
+ *   Built-in LED on GPIO2 (LED_BUILTIN) is used for instant physical scan feedback.
  *
  * Wiring Connections:
  *   RC522 SDA / SS -> ESP8266 D2 (GPIO4)
@@ -24,14 +26,15 @@
  * KEY FEATURES:
  *   1. Access Point on every boot ("College-RFID-AP" at 192.168.4.1).
  *   2. Web portal at 192.168.4.1 to scan Wi-Fi, select SSID, and connect.
- *   3. Remembers Wi-Fi password in EEPROM (does not auto-connect on boot).
+ *   3. Remembers Wi-Fi password & Backend URL in Flash memory (EEPROM).
  *   4. Offline Card Writer: Write student codes to cards right from your phone
  *      at 192.168.4.1 even when the ESP has no external internet!
  *   5. Online Card Writer: When connected to Wi-Fi, writes cards commanded
  *      directly from the college website admin panel.
- *   6. Attendance by Written Data: The attendance counts what is written
+ *   6. Attendance Counts Written Data: The attendance counts what is written
  *      on the card (Sector 1, Block 4), NOT the fixed factory UID.
  *   7. Testing Mode: Unlimited scans allowed for live trial testing.
+ *   8. Built-in LED: Blinks every time ANY card is scanned near the reader.
  * ==============================================================================
  */
 
@@ -56,21 +59,21 @@ const byte TARGET_DATA_BLOCK = 4; // Sector 1, Block 0 (Block 4)
 // ------------------------------------------------------------------------------
 // EEPROM SETTINGS STORAGE
 // ------------------------------------------------------------------------------
-#define EEPROM_SIZE   256
-#define EEPROM_MAGIC  0x55
+#define EEPROM_SIZE   384
+#define EEPROM_MAGIC  0x56
 
 struct DeviceSettings {
     uint8_t magic;
     char ssid[33];
     char pass[65];
-    char backendUrl[128];
+    char backendUrl[160];
 };
 
 DeviceSettings settings;
 
 // Defaults
 const char* AP_SSID         = "College-RFID-AP";
-const char* DEFAULT_BACKEND = "http://192.168.0.105:3000/api/attendance/scan";
+const char* DEFAULT_BACKEND = "https://hrmdc.vercel.app/api/attendance/scan";
 const char* DEVICE_ID       = "GATE-01";
 const char* DEVICE_TOKEN    = "dmc_gate01_secret_key_2026";
 
@@ -94,25 +97,36 @@ unsigned long lastScanMillis = 0;
 unsigned long lastWebPollMillis = 0;
 
 // ------------------------------------------------------------------------------
-// EEPROM LOAD / SAVE
+// ONBOARD LED BLINK HELPER (Active LOW on ESP8266)
 // ------------------------------------------------------------------------------
-void loadSettings() {
-    EEPROM.begin(EEPROM_SIZE);
-    EEPROM.get(0, settings);
-    if (settings.magic != EEPROM_MAGIC) {
-        settings.magic = EEPROM_MAGIC;
-        memset(settings.ssid, 0, sizeof(settings.ssid));
-        memset(settings.pass, 0, sizeof(settings.pass));
-        strncpy(settings.backendUrl, DEFAULT_BACKEND, sizeof(settings.backendUrl));
-        EEPROM.put(0, settings);
-        EEPROM.commit();
-    }
+void blinkBuiltinLed(int durationMs = 150) {
+    digitalWrite(LED_BUILTIN, LOW);  // Turn ON onboard blue LED
+    delay(durationMs);
+    digitalWrite(LED_BUILTIN, HIGH); // Turn OFF onboard blue LED
 }
 
+// ------------------------------------------------------------------------------
+// EEPROM LOAD / SAVE
+// ------------------------------------------------------------------------------
 void saveSettings() {
     settings.magic = EEPROM_MAGIC;
     EEPROM.put(0, settings);
     EEPROM.commit();
+}
+
+void loadSettings() {
+    EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(0, settings);
+
+    // If magic doesn't match OR if the stored URL is an old local 192.168.x placeholder:
+    if (settings.magic != EEPROM_MAGIC || strstr(settings.backendUrl, "192.168.") != NULL || strlen(settings.backendUrl) == 0) {
+        settings.magic = EEPROM_MAGIC;
+        memset(settings.ssid, 0, sizeof(settings.ssid));
+        memset(settings.pass, 0, sizeof(settings.pass));
+        strncpy(settings.backendUrl, DEFAULT_BACKEND, sizeof(settings.backendUrl) - 1);
+        settings.backendUrl[sizeof(settings.backendUrl) - 1] = '\0';
+        saveSettings();
+    }
 }
 
 // ------------------------------------------------------------------------------
@@ -209,7 +223,7 @@ const char PAGE_INDEX[] PROGMEM = R"rawliteral(
     h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; color: #475569; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
     label { display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 6px; }
     input, select { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; margin-bottom: 12px; outline: none; }
-    input:focus, select:focus { border-color: var(--primary); ring: 2px solid #99f6e4; }
+    input:focus, select:focus { border-color: var(--primary); }
     .btn { display: inline-block; width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; }
     .btn:hover { background: var(--primary-hover); }
     .btn-secondary { background: #e2e8f0; color: #334155; margin-top: 8px; }
@@ -233,9 +247,9 @@ const char PAGE_INDEX[] PROGMEM = R"rawliteral(
   <div class="card">
     <h2>✍️ Write Student ID to Card</h2>
     <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
-      Burn a student code onto any 13.56 MHz RFID card. Works even when disconnected from Wi-Fi!
+      Burn a student code onto any 13.56 MHz RFID card. Works completely offline!
     </p>
-    <label>Student Code to Burn (e.g. DMC-2026-102)</label>
+    <label>Student Code to Burn (e.g. HRMDC-26-8503)</label>
     <input type="text" id="writeInput" placeholder="Enter student code (max 16 chars)" maxlength="16">
     <button class="btn" onclick="armWriter()">⚡ ARM CARD WRITER</button>
     <div id="writeStatusBox" style="margin-top: 12px; display: none;">
@@ -288,6 +302,17 @@ const char PAGE_INDEX[] PROGMEM = R"rawliteral(
     <button class="btn" onclick="connectWifi()">Connect to Wi-Fi</button>
   </div>
 
+  <!-- Section 4: Backend Server URL Configuration -->
+  <div class="card">
+    <h2>🌐 Attendance Backend URL</h2>
+    <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
+      Live server endpoint where gate attendance scans are sent.
+    </p>
+    <label>Backend Endpoint</label>
+    <input type="text" id="backendInput" placeholder="https://hrmdc.vercel.app/api/attendance/scan">
+    <button class="btn" onclick="saveBackend()">Save Backend URL</button>
+  </div>
+
   <script>
     function updateStatus() {
       fetch('/status')
@@ -298,6 +323,10 @@ const char PAGE_INDEX[] PROGMEM = R"rawliteral(
           document.getElementById('scanStatus').innerText = data.last_status || 'READY';
           document.getElementById('studentName').innerText = data.student_name || '--';
 
+          if (!document.getElementById('backendInput').value && data.backend_url) {
+            document.getElementById('backendInput').value = data.backend_url;
+          }
+
           const badge = document.getElementById('wifiStatusBadge');
           if (data.wifi_connected) {
             badge.className = 'status-badge badge-green';
@@ -306,7 +335,7 @@ const char PAGE_INDEX[] PROGMEM = R"rawliteral(
           } else {
             badge.className = 'status-badge badge-amber';
             badge.innerText = 'DISCONNECTED (AP Mode Only)';
-            document.getElementById('wifiIpInfo').innerText = 'Connect your phone to College-RFID-AP';
+            document.getElementById('wifiIpInfo').innerText = 'Connect to College-RFID-AP';
           }
 
           if (data.is_write_armed) {
@@ -350,6 +379,16 @@ const char PAGE_INDEX[] PROGMEM = R"rawliteral(
       }).then(res => res.text()).then(txt => alert(txt));
     }
 
+    function saveBackend() {
+      const url = document.getElementById('backendInput').value.trim();
+      if (!url) { alert('Please enter backend URL'); return; }
+      fetch('/set-backend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'url=' + encodeURIComponent(url)
+      }).then(res => res.text()).then(txt => alert(txt));
+    }
+
     function armWriter() {
       const val = document.getElementById('writeInput').value.trim();
       if (!val) { alert('Enter a student code to write!'); return; }
@@ -387,6 +426,7 @@ void handleStatus() {
     doc["wifi_connected"] = (WiFi.status() == WL_CONNECTED);
     doc["wifi_ssid"] = (WiFi.status() == WL_CONNECTED) ? WiFi.SSID() : "";
     doc["station_ip"] = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "";
+    doc["backend_url"] = String(settings.backendUrl);
     doc["is_write_armed"] = isWriteArmPending;
     doc["pending_write_data"] = pendingWriteData;
     doc["last_write_status"] = lastWriteStatus;
@@ -435,6 +475,18 @@ void handleConnect() {
         server.send(200, "text/plain", "Credentials saved! Connecting to " + newSsid + ". Check status in a few seconds.");
     } else {
         server.send(400, "text/plain", "Missing SSID parameter");
+    }
+}
+
+void handleSetBackend() {
+    if (server.hasArg("url")) {
+        String newUrl = server.arg("url");
+        newUrl.trim();
+        strncpy(settings.backendUrl, newUrl.c_str(), sizeof(settings.backendUrl) - 1);
+        saveSettings();
+        server.send(200, "text/plain", "Backend URL saved: " + newUrl);
+    } else {
+        server.send(400, "text/plain", "Missing URL parameter");
     }
 }
 
@@ -487,7 +539,10 @@ void sendAttendanceScan(const String& uid, const String& writtenData) {
     bool isHttps = url.startsWith("https://");
     HTTPClient http;
 
-    // Notice: card_data is sent as the primary key!
+    Serial.print("Connecting to backend: ");
+    Serial.println(url);
+
+    // card_data is sent as the primary key!
     String requestJson = "{\"device_id\":\"" + String(DEVICE_ID) +
                          "\",\"card_uid\":\"" + uid +
                          "\",\"card_data\":\"" + writtenData + "\"}";
@@ -498,14 +553,14 @@ void sendAttendanceScan(const String& uid, const String& writtenData) {
 
     if (isHttps) {
         secureClient.reset(new WiFiClientSecure());
-        secureClient->setInsecure();
-        secureClient->setTimeout(8000);
-        http.setTimeout(8000);
+        secureClient->setInsecure(); // Critical for Vercel SSL
+        secureClient->setTimeout(10000);
+        http.setTimeout(10000);
         initOk = http.begin(*secureClient, url);
     } else {
         plainClient.reset(new WiFiClient());
-        plainClient->setTimeout(8000);
-        http.setTimeout(8000);
+        plainClient->setTimeout(10000);
+        http.setTimeout(10000);
         initOk = http.begin(*plainClient, url);
     }
 
@@ -524,6 +579,12 @@ void sendAttendanceScan(const String& uid, const String& writtenData) {
     int httpCode = http.POST(requestJson);
 
     if (httpCode <= 0 || httpCode >= 500) {
+        Serial.print("HTTP Error code: ");
+        Serial.println(httpCode);
+        if (httpCode < 0) {
+            Serial.print("Details: ");
+            Serial.println(http.errorToString(httpCode));
+        }
         http.end();
         Serial.println("STATUS: NETWORK_ERROR");
         Serial.println("MESSAGE: Server returned error or timeout");
@@ -573,12 +634,10 @@ void sendAttendanceScan(const String& uid, const String& writtenData) {
 void pollWebsiteForCardWrite() {
     if (WiFi.status() != WL_CONNECTED || isWriteArmPending) return;
 
-    // Check once every 4 seconds
     unsigned long now = millis();
     if (now - lastWebPollMillis < 4000) return;
     lastWebPollMillis = now;
 
-    // Derives write polling URL from backendUrl: e.g. /api/attendance/write?device_id=GATE-01
     String pollUrl = String(settings.backendUrl);
     int scanPos = pollUrl.indexOf("/scan");
     if (scanPos > 0) {
@@ -595,8 +654,8 @@ void pollWebsiteForCardWrite() {
     if (isHttps) {
         WiFiClientSecure clientSecure;
         clientSecure.setInsecure();
-        clientSecure.setTimeout(3000);
-        http.setTimeout(3000);
+        clientSecure.setTimeout(4000);
+        http.setTimeout(4000);
         if (http.begin(clientSecure, pollUrl)) {
             httpCode = http.GET();
             if (httpCode == 200) payload = http.getString();
@@ -604,8 +663,8 @@ void pollWebsiteForCardWrite() {
         }
     } else {
         WiFiClient client;
-        client.setTimeout(3000);
-        http.setTimeout(3000);
+        client.setTimeout(4000);
+        http.setTimeout(4000);
         if (http.begin(client, pollUrl)) {
             httpCode = http.GET();
             if (httpCode == 200) payload = http.getString();
@@ -690,9 +749,13 @@ void setup() {
     Serial.begin(115200);
     delay(500);
 
+    // Initialize Onboard Blue LED (GPIO2 / LED_BUILTIN)
+    pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, HIGH); // Built-in LED on ESP8266 is active LOW (HIGH = OFF)
+
     for (byte i = 0; i < 6; i++) defaultKey.keyByte[i] = 0xFF;
 
-    // 1. Load Stored Wi-Fi Settings
+    // 1. Load Stored Wi-Fi & Backend URL Settings
     loadSettings();
 
     // 2. SPI & RC522 Initialization
@@ -707,13 +770,12 @@ void setup() {
     WiFi.mode(WIFI_AP_STA);
     WiFi.softAP(AP_SSID); // Open network at 192.168.4.1
 
-    // Do NOT auto-connect on boot, but settings are remembered!
-
     // 4. Register HTTP Web Server Endpoints
     server.on("/", HTTP_GET, handleRoot);
     server.on("/status", HTTP_GET, handleStatus);
     server.on("/scan-wifi", HTTP_GET, handleScanWifi);
     server.on("/connect", HTTP_POST, handleConnect);
+    server.on("/set-backend", HTTP_POST, handleSetBackend);
     server.on("/arm-write", HTTP_POST, handleArmWrite);
     server.begin();
 
@@ -729,10 +791,13 @@ void setup() {
     Serial.print("Access Point: ");
     Serial.println(AP_SSID);
     Serial.println("Web Portal: http://192.168.4.1");
+    Serial.print("Backend Server: ");
+    Serial.println(settings.backendUrl);
     if (strlen(settings.ssid) > 0) {
         Serial.print("Saved Wi-Fi: ");
         Serial.println(settings.ssid);
     }
+    Serial.println("Onboard LED: ENABLED (Blinks on every scan)");
     Serial.println("System Status: READY");
     Serial.println("====================================");
     Serial.println();
@@ -757,6 +822,9 @@ void loop() {
         delay(20);
         return;
     }
+
+    // 4. BLINK ONBOARD BLUE LED EVERY TIME ANY CARD IS SCANNED!
+    blinkBuiltinLed(150);
 
     String currentUID = getNormalizedUID(&(rfid.uid));
 
@@ -784,7 +852,6 @@ void loop() {
             Serial.println(verifiedData);
             Serial.println("------------------------------------");
 
-            // Notify main website if connected
             notifyWebsiteWriteComplete(currentUID, verifiedData);
         } else {
             lastWriteStatus = "FAILED";
@@ -799,10 +866,8 @@ void loop() {
     // BRANCH B: ATTENDANCE SCAN MODE (Reads Block 4 Data as Main Identifier)
     // --------------------------------------------------------------------------
     else {
-        // Read Sector 1, Block 4 (The written student identifier)
         String writtenData = readBlock(TARGET_DATA_BLOCK);
 
-        // Debounce: ignore same card if held on reader within 2 seconds
         unsigned long now = millis();
         if (currentUID == lastScannedUID && (now - lastScanMillis < 2000)) {
             rfid.PICC_HaltA();
@@ -813,11 +878,9 @@ void loop() {
 
         lastScanMillis = now;
 
-        // Send attendance scan using the written data!
         sendAttendanceScan(currentUID, writtenData);
     }
 
-    // Halt card and release crypto
     rfid.PICC_HaltA();
     rfid.PCD_StopCrypto1();
 

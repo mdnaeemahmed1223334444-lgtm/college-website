@@ -52,7 +52,7 @@ const char* DEVICE_TOKEN  = "dmc_gate01_secret_key_2026"; // Device Secret Key
 // Option A: Your deployed college website (e.g. "https://yourcollege.edu.bd/api/attendance/scan")
 // Option B: Local development IP (e.g. "http://192.168.0.105:3000/api/attendance/scan")
 // Option C: Supabase Edge Function (e.g. "https://<ref>.supabase.co/functions/v1/rfid-attendance")
-const char* BACKEND_URL   = "http://192.168.0.105:3000/api/attendance/scan";
+const char* BACKEND_URL   = "https://hrmdc.vercel.app/api/attendance/scan";
 
 // ------------------------------------------------------------------------------
 // HARDWARE PIN DEFINITIONS
@@ -411,6 +411,10 @@ void setup() {
     Serial.begin(115200);
     delay(500);
 
+    // Initialize Onboard Blue LED (GPIO2 / LED_BUILTIN)
+    pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, HIGH); // Built-in LED on ESP8266 is active LOW (HIGH = OFF)
+
     // Initialize Default Factory Key (FF FF FF FF FF FF)
     for (byte i = 0; i < 6; i++) {
         defaultKey.keyByte[i] = 0xFF;
@@ -471,6 +475,11 @@ void loop() {
         delay(20);
         return;
     }
+
+    // Blink onboard blue LED on EVERY card scan!
+    digitalWrite(LED_BUILTIN, LOW);  // Turn ON
+    delay(120);
+    digitalWrite(LED_BUILTIN, HIGH); // Turn OFF
 
     String currentUID = getNormalizedUID(&(rfid.uid));
 

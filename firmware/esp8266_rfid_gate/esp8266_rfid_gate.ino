@@ -37,6 +37,10 @@ void setup() {
     Serial.begin(SERIAL_BAUD_RATE);
     delay(500);
 
+    // Initialize Onboard Blue LED (GPIO2 / LED_BUILTIN)
+    pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, HIGH); // Built-in LED on ESP8266 is active LOW (HIGH = OFF)
+
     // 2. Initialize RFID Reader
     bool rfidOk = reader.begin();
 
@@ -62,6 +66,11 @@ void loop() {
         delay(20);
         return;
     }
+
+    // Blink onboard blue LED on EVERY card scan!
+    digitalWrite(LED_BUILTIN, LOW);  // Turn ON
+    delay(120);
+    digitalWrite(LED_BUILTIN, HIGH); // Turn OFF
 
     // 3. Read and normalize UID
     String uid = reader.readCardUID();

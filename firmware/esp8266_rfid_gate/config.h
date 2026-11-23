@@ -32,7 +32,7 @@
 //   e.g. "http://192.168.0.105:3000/api/attendance/scan" (Local testing)
 // Option 2: Supabase Edge Function
 //   e.g. "https://<project-ref>.supabase.co/functions/v1/rfid-attendance"
-#define BACKEND_URL         "http://192.168.0.105:3000/api/attendance/scan"
+#define BACKEND_URL         "https://hrmdc.vercel.app/api/attendance/scan"
 
 // ==============================================================================
 // 3. SYSTEM TIMINGS & SERIAL SETTINGS
