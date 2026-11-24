@@ -5,31 +5,33 @@ export default async function NoticeTicker() {
   const homepage = await getHomepageSettings();
   const notices = homepage.noticeTickerText
     ? homepage.noticeTickerText.split("|").map((n) => n.trim()).filter(Boolean)
-    : ["Pre-board examination schedule has been published."];
+    : ["Pre-board examination schedule has been published.", "Admission for HSC 2026-27 is now open.", "Sports meet registration deadline: Dec 1."];
+
+  // Build a long string for smooth scrolling
+  const tickerText = notices.map((n) => `📢 ${n}`).join("   ·   ");
 
   return (
-    <section className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50/70 p-3 shadow-xs">
-      <div className="flex items-center gap-1.5 rounded bg-blue-600 px-2.5 py-1 text-xs font-bold text-white uppercase shrink-0">
-        <span>📢</span>
-        <span>Notice</span>
+    <section className="animate-fadeIn flex items-center gap-0 overflow-hidden rounded-xl border border-blue-200/70 bg-gradient-to-r from-blue-700 to-indigo-700 shadow-md text-white h-11">
+      {/* Label */}
+      <div className="flex shrink-0 items-center gap-1.5 h-full px-3 sm:px-4 bg-blue-900/60 font-bold text-xs sm:text-sm uppercase tracking-wider border-r border-white/20">
+        <span className="text-yellow-300">📢</span>
+        <span className="hidden sm:inline">Notice</span>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        <div className="flex items-center gap-8 text-xs font-medium text-blue-900 truncate">
-          {notices.map((notice, i) => (
-            <span key={i} className="inline-flex items-center gap-2">
-              <span>&bull;</span>
-              <span>{notice}</span>
-            </span>
-          ))}
+      {/* Scrolling ticker */}
+      <div className="flex-1 overflow-hidden relative">
+        <div className="animate-ticker whitespace-nowrap text-xs sm:text-sm font-medium text-blue-50 py-1 px-4 inline-block">
+          {tickerText}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{tickerText}
         </div>
       </div>
 
+      {/* View all link */}
       <Link
         href="/notices"
-        className="text-xs font-semibold text-blue-700 hover:text-blue-900 hover:underline shrink-0"
+        className="shrink-0 flex items-center gap-1 h-full px-3 sm:px-4 text-[11px] sm:text-xs font-bold text-yellow-200 hover:text-white border-l border-white/20 hover:bg-white/10 transition"
       >
-        View all notices &rarr;
+        <span className="hidden sm:inline">View All</span>
+        <span>→</span>
       </Link>
     </section>
   );

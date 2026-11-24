@@ -416,6 +416,62 @@ export async function getGalleryItems(albumId: string): Promise<GalleryItemRecor
   return [];
 }
 
+/**
+ * Fetch a random selection of gallery photos across all albums for the home page.
+ * Falls back to cover images from albums when no items exist.
+ */
+export async function getRandomGalleryPhotos(limit: number = 12): Promise<
+  { id: string; url: string; title: string | null; album_title?: string }[]
+> {
+  const supabase = mainPublic();
+  if (supabase) {
+    try {
+      // Try fetching from gallery_items (individual photos)
+      const { data: items, error } = await supabase
+        .from("gallery_items")
+        .select("id, media_url, thumbnail_url, title, album_id")
+        .eq("media_type", "photo")
+        .limit(limit * 3); // fetch more, then shuffle server-side
+
+      if (!error && items && items.length > 0) {
+        // Server-side shuffle using sort by random-ish criteria
+        const shuffled = [...items].sort(() => Math.random() - 0.5).slice(0, limit);
+        return shuffled.map((item) => ({
+          id: item.id,
+          url: item.thumbnail_url || item.media_url,
+          title: item.title,
+        }));
+      }
+
+      // Fallback: use album cover images
+      const { data: albums } = await supabase
+        .from("gallery_albums")
+        .select("id, title, cover_image_url")
+        .eq("status", "published")
+        .limit(limit);
+
+      if (albums && albums.length > 0) {
+        return albums.map((a) => ({
+          id: a.id,
+          url: a.cover_image_url,
+          title: a.title,
+          album_title: a.title,
+        }));
+      }
+    } catch {
+      // fallback to defaults below
+    }
+  }
+
+  // Final fallback: default album covers
+  return defaultAlbums.slice(0, limit).map((a) => ({
+    id: a.id,
+    url: a.cover_image_url,
+    title: a.title,
+    album_title: a.title,
+  }));
+}
+
 /** Fetch documents */
 export async function getDocuments(options?: {
   category?: string;

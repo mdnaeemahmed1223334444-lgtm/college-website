@@ -43,3 +43,135 @@
     color: #9ca3af !important;
   }
 }
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+
+/* Fade in up */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Fade in */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Slide in from left */
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Notice ticker scroll */
+@keyframes ticker {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Soft float for hero deco elements */
+@keyframes floatY {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-14px); }
+}
+
+/* Shimmer / skeleton loading */
+@keyframes shimmer {
+  0%   { background-position: -800px 0; }
+  100% { background-position: 800px 0; }
+}
+
+/* Scale in for gallery cards */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.90); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Pulse ring */
+@keyframes pulseRing {
+  0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5); }
+  70%  { transform: scale(1);    box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+}
+
+/* Hero background pan */
+@keyframes bgPan {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ---- Utility classes ---- */
+.animate-fadeInUp          { animation: fadeInUp 0.65s ease both; }
+.animate-fadeIn            { animation: fadeIn 0.5s ease both; }
+.animate-slideInLeft       { animation: slideInLeft 0.6s ease both; }
+.animate-slideInRight      { animation: slideInRight 0.6s ease both; }
+.animate-floatY            { animation: floatY 5s ease-in-out infinite; }
+.animate-scaleIn           { animation: scaleIn 0.5s ease both; }
+.animate-ticker            { animation: ticker 28s linear infinite; }
+.animate-bgPan             { animation: bgPan 12s ease infinite; }
+
+/* Delay helpers */
+.delay-100  { animation-delay: 100ms; }
+.delay-200  { animation-delay: 200ms; }
+.delay-300  { animation-delay: 300ms; }
+.delay-400  { animation-delay: 400ms; }
+.delay-500  { animation-delay: 500ms; }
+.delay-600  { animation-delay: 600ms; }
+.delay-700  { animation-delay: 700ms; }
+.delay-800  { animation-delay: 800ms; }
+
+/* ============================================================
+   GLASS EFFECT COMPONENTS
+   ============================================================ */
+
+.glass {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.glass-dark {
+  background: rgba(10, 20, 40, 0.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.glass-blue {
+  background: rgba(37, 99, 235, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(99, 155, 255, 0.25);
+}
+
+/* ============================================================
+   GALLERY MASONRY GRID  (mobile-first)
+   ============================================================ */
+.photo-masonry {
+  columns: 2;
+  column-gap: 10px;
+}
+@media (min-width: 640px) {
+  .photo-masonry { columns: 3; column-gap: 12px; }
+}
+@media (min-width: 1024px) {
+  .photo-masonry { columns: 4; column-gap: 16px; }
+}
+
+.photo-masonry-item {
+  break-inside: avoid;
+  margin-bottom: 10px;
+}
+@media (min-width: 640px) { .photo-masonry-item { margin-bottom: 12px; } }
+@media (min-width: 1024px) { .photo-masonry-item { margin-bottom: 16px; } }
