@@ -1,36 +1,38 @@
 import HeroSection from "@/components/home/HeroSection";
-import NoticeTicker from "@/components/home/NoticeTicker";
-import QuickLinks from "@/components/home/QuickLinks";
+import IntroStrip from "@/components/home/IntroStrip";
+import AboutSection from "@/components/home/AboutSection";
+import AcademicPrograms from "@/components/home/AcademicPrograms";
+import StatsCounter from "@/components/home/StatsCounter";
 import HomeNotices from "@/components/home/HomeNotices";
-import LatestNews from "@/components/home/LatestNews";
-import GalleryPreview from "@/components/home/GalleryPreview";
+import CampusGallery from "@/components/home/CampusGallery";
+import AdmissionCTA from "@/components/home/AdmissionCTA";
 
 export default function HomePage() {
   return (
-    <div className="space-y-6 sm:space-y-8">
-      {/* 1. Scrolling notice ticker */}
-      <NoticeTicker />
-
-      {/* 2. Hero section */}
+    <div>
+      {/* 1. Hero Section with Zooming Background & Action Buttons */}
       <HeroSection />
 
-      {/* 3. Quick access shortcuts */}
-      <QuickLinks />
+      {/* 2. Intro Strip with Values */}
+      <IntroStrip />
 
-      {/* 4. Main content: notices (wide) + news sidebar */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Notices: takes 2 columns on large screens */}
-        <div className="lg:col-span-2">
-          <HomeNotices />
-        </div>
-        {/* Latest News: sidebar */}
-        <div>
-          <LatestNews />
-        </div>
-      </div>
+      {/* 3. About Section with Overlapping Photos & Floating Badge */}
+      <AboutSection />
 
-      {/* 5. Photo gallery mosaic */}
-      <GalleryPreview />
+      {/* 4. Academic Programs in Deep Navy with Shimmer & Icon Animations */}
+      <AcademicPrograms />
+
+      {/* 5. Statistics Counter with Eased Count-Up on Scroll */}
+      <StatsCounter />
+
+      {/* 6. Notices & Announcements with Rotating Date Blocks */}
+      <HomeNotices />
+
+      {/* 7. Campus Photo Gallery with Randomized Photos & Hover Animations */}
+      <CampusGallery />
+
+      {/* 8. Call To Action for Admission */}
+      <AdmissionCTA />
     </div>
   );
 }

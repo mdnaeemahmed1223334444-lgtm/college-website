@@ -25,7 +25,7 @@ export default async function DynamicContentPage({
   const sublinks = parentNode?.children || [];
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-7xl px-4 py-10">
       {/* Breadcrumb */}
       <nav className="mb-6 flex items-center gap-2 text-xs text-gray-500">
         <Link href="/" className="hover:text-blue-600">Home</Link>

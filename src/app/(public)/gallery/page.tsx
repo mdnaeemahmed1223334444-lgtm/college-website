@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-// ─── Types ──────────────────────────────────────────────────────────────────
 interface GalleryAlbum {
   id: string;
   title: string;
@@ -15,7 +14,6 @@ interface GalleryAlbum {
   status: string;
 }
 
-// ─── Default albums shown when DB is empty ───────────────────────────────────
 const DEFAULT_ALBUMS: GalleryAlbum[] = [
   {
     id: "alb-1",
@@ -47,11 +45,40 @@ const DEFAULT_ALBUMS: GalleryAlbum[] = [
     media_type: "photo",
     status: "published",
   },
+  {
+    id: "alb-4",
+    title: "Cultural Festivals & International Mother Language Day",
+    slug: "cultural-festivals-celebration",
+    description: "Vibrant performances, music, drama, and art exhibitions celebrating national pride.",
+    cover_image_url: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80",
+    category: "Cultural",
+    media_type: "photo",
+    status: "published",
+  },
+  {
+    id: "alb-5",
+    title: "Robotics Club & Computing Lab",
+    slug: "robotics-computing-lab",
+    description: "Hands-on coding, hardware prototyping, and digital literacy workshops.",
+    cover_image_url: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80",
+    category: "Academic",
+    media_type: "photo",
+    status: "published",
+  },
+  {
+    id: "alb-6",
+    title: "Annual Prize Giving & Graduation Ceremony",
+    slug: "prize-giving-graduation",
+    description: "Honoring academic excellence, leadership awards, and meritorious students.",
+    cover_image_url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80",
+    category: "Events",
+    media_type: "photo",
+    status: "published",
+  },
 ];
 
 const CATEGORIES = ["All", "Academic", "Sports", "Facilities", "Events", "Cultural"];
 
-// ─── Lightbox ────────────────────────────────────────────────────────────────
 function Lightbox({
   images,
   startIndex,
@@ -75,11 +102,10 @@ function Lightbox({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md animate-fadeIn"
       onClick={onClose}
     >
       <div className="relative max-w-5xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
-        {/* Close */}
         <button
           onClick={onClose}
           className="absolute -top-10 right-0 text-white/70 hover:text-white text-3xl font-light transition z-10"
@@ -87,34 +113,32 @@ function Lightbox({
           ✕
         </button>
 
-        {/* Image */}
-        <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-gray-900">
+        <div className="relative rounded-none overflow-hidden shadow-2xl bg-black border border-[#c5a46d]/30">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={images[current].url}
             alt={images[current].title}
-            className="w-full max-h-[80vh] object-contain animate-fadeIn"
+            className="w-full max-h-[82vh] object-contain animate-fadeIn"
           />
           {images[current].title && (
-            <div className="absolute bottom-0 left-0 right-0 glass-dark px-5 py-3">
-              <p className="text-white text-sm font-medium">{images[current].title}</p>
-              <p className="text-white/50 text-xs mt-0.5">{current + 1} / {images.length}</p>
+            <div className="absolute bottom-0 left-0 right-0 bg-[#101f32]/90 backdrop-blur-sm px-6 py-4 border-t border-[#c5a46d]/30">
+              <p className="text-white text-sm font-medium font-serif">{images[current].title}</p>
+              <p className="text-[#dfc89f] text-xs mt-0.5">{current + 1} of {images.length}</p>
             </div>
           )}
         </div>
 
-        {/* Prev / Next */}
         {images.length > 1 && (
           <>
             <button
               onClick={() => setCurrent((c) => (c - 1 + images.length) % images.length)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 glass rounded-full w-10 h-10 flex items-center justify-center text-white hover:bg-white/30 transition text-lg"
+              className="absolute left-3 top-1/2 -translate-y-1/2 bg-[#101f32]/80 border border-[#c5a46d] text-[#c5a46d] hover:bg-[#c5a46d] hover:text-[#101f32] w-11 h-11 flex items-center justify-center transition text-xl"
             >
               ‹
             </button>
             <button
               onClick={() => setCurrent((c) => (c + 1) % images.length)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 glass rounded-full w-10 h-10 flex items-center justify-center text-white hover:bg-white/30 transition text-lg"
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-[#101f32]/80 border border-[#c5a46d] text-[#c5a46d] hover:bg-[#c5a46d] hover:text-[#101f32] w-11 h-11 flex items-center justify-center transition text-xl"
             >
               ›
             </button>
@@ -125,7 +149,6 @@ function Lightbox({
   );
 }
 
-// ─── Main Gallery Page ────────────────────────────────────────────────────────
 export default function PublicGalleryPage() {
   const [albums] = useState<GalleryAlbum[]>(DEFAULT_ALBUMS);
   const [activeCategory, setActiveCategory] = useState("All");
@@ -136,108 +159,93 @@ export default function PublicGalleryPage() {
       ? albums
       : albums.filter((a) => a.category === activeCategory);
 
-  // Build flat image list for lightbox
   const lightboxImages = filtered.map((a) => ({ url: a.cover_image_url, title: a.title }));
 
   return (
-    <div className="space-y-8">
-      {/* Page header with gradient */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 px-6 py-10 sm:px-10 sm:py-14 text-white shadow-xl animate-fadeInUp">
-        {/* Deco orbs */}
-        <div className="absolute -top-10 -right-10 w-52 h-52 rounded-full opacity-20 animate-floatY"
-          style={{ background: "radial-gradient(circle, #f0abfc, transparent 70%)" }} />
-        <div className="absolute -bottom-8 left-10 w-36 h-36 rounded-full opacity-15 animate-floatY delay-300"
-          style={{ background: "radial-gradient(circle, #818cf8, transparent 70%)", animationDuration: "6s" }} />
+    <div className="max-w-7xl mx-auto px-4 py-10 space-y-10">
+      {/* Page Header */}
+      <div className="bg-[#101f32] p-8 sm:p-12 text-white relative overflow-hidden border border-[#c5a46d]/30 shadow-xl reveal">
+        <div className="relative z-10">
+          <nav className="flex items-center gap-2 text-xs text-gray-400 mb-4">
+            <Link href="/" className="hover:text-white transition">Home</Link>
+            <span>/</span>
+            <span className="text-[#dfc89f] font-semibold">Campus Gallery</span>
+          </nav>
 
-        {/* Breadcrumb */}
-        <nav className="relative flex items-center gap-2 text-xs text-white/60 mb-5">
-          <Link href="/" className="hover:text-white transition">Home</Link>
-          <span>/</span>
-          <span className="text-white font-semibold">Gallery</span>
-        </nav>
-
-        <div className="relative">
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Photo Gallery</h1>
-          <p className="mt-2 text-sm sm:text-base text-white/80 leading-relaxed max-w-xl">
-            Glimpses of campus life — science fairs, sports tournaments, laboratories, and annual celebrations.
+          <span className="eyebrow text-[#dfc89f]">Visual Archive</span>
+          <h1 className="font-serif text-3xl sm:text-5xl font-normal leading-tight text-white mb-3">
+            Campus Photo &amp; Media Gallery
+          </h1>
+          <p className="text-[#aeb8c4] text-sm sm:text-base max-w-2xl leading-relaxed">
+            Capturing the spirit of Dhaka Model College — science exhibitions, athletic tournaments,
+            smart classrooms, cultural events, and milestone celebrations.
           </p>
+          <div className="gold-line" />
         </div>
       </div>
 
-      {/* Category filter chips */}
-      <div className="flex flex-wrap gap-2 animate-fadeInUp delay-100">
+      {/* Category filter tabs */}
+      <div className="flex flex-wrap gap-2 reveal">
         {CATEGORIES.map((cat) => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
-            className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all duration-200 hover:scale-105 active:scale-100
-              ${activeCategory === cat
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
-                : "bg-white border border-gray-200 text-gray-700 hover:border-indigo-400 hover:text-indigo-600"
-              }`}
+            className={`px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+              activeCategory === cat
+                ? "bg-[#c5a46d] text-[#101f32] shadow-md"
+                : "bg-white border border-[#e9e5dc] text-[#283444] hover:border-[#c5a46d] hover:text-[#c5a46d]"
+            }`}
           >
             {cat}
           </button>
         ))}
       </div>
 
-      {/* Album masonry grid */}
-      {filtered.length === 0 ? (
-        <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white p-16 text-center space-y-3 animate-fadeIn">
-          <div className="text-5xl">🏫</div>
-          <p className="text-sm font-semibold text-gray-700">No albums in this category yet</p>
-          <p className="text-xs text-gray-400">Photos will appear here once added from the admin panel.</p>
-        </div>
-      ) : (
-        <div className="photo-masonry animate-fadeInUp delay-200">
-          {filtered.map((album, i) => (
-            <div
-              key={album.id}
-              className="photo-masonry-item relative group cursor-pointer overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-scaleIn bg-gray-100"
-              style={{ animationDelay: `${i * 70}ms` }}
-              onClick={() => setLightbox({ open: true, idx: i })}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={album.cover_image_url}
-                alt={album.title}
-                className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
-                loading="lazy"
-              />
-
-              {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                <span className="rounded-full bg-white/20 backdrop-blur-sm border border-white/20 px-2 py-0.5 text-[10px] font-bold text-white uppercase w-fit mb-1.5">
-                  {album.category}
-                </span>
-                <h3 className="text-sm font-bold text-white leading-snug line-clamp-2">{album.title}</h3>
-                {album.description && (
-                  <p className="text-[11px] text-white/75 line-clamp-1 mt-0.5">{album.description}</p>
-                )}
-                <div className="mt-2 flex items-center gap-1 text-[10px] text-white/70">
-                  <span>🔍 Click to enlarge</span>
-                </div>
-              </div>
+      {/* Photo Gallery Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filtered.map((album, i) => (
+          <div
+            key={album.id}
+            onClick={() => setLightbox({ open: true, idx: i })}
+            className={`gallery-item reveal cursor-pointer group bg-black shadow-md hover:shadow-2xl transition-all duration-300 ${
+              i % 3 === 1 ? "reveal-delay-1" : i % 3 === 2 ? "reveal-delay-2" : ""
+            }`}
+            style={{ minHeight: "260px" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={album.cover_image_url}
+              alt={album.title}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108"
+              loading="lazy"
+            />
+            <div className="absolute top-3 left-3 z-10">
+              <span className="bg-[#101f32]/85 text-[#dfc89f] border border-[#c5a46d]/40 text-[9px] font-bold px-2.5 py-1 uppercase tracking-wider">
+                {album.category}
+              </span>
             </div>
-          ))}
-        </div>
-      )}
+            <h3>{album.title}</h3>
+          </div>
+        ))}
+      </div>
 
-      {/* Add photos call-to-action for admins */}
-      <div className="rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 p-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fadeInUp delay-400">
+      {/* Admin Notice */}
+      <div className="bg-white border border-[#e9e5dc] p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-5 reveal">
         <div>
-          <h3 className="font-bold text-gray-800 text-sm">Want to add more photos?</h3>
-          <p className="text-xs text-gray-500 mt-1">Admins can upload and manage photo albums from the admin panel.</p>
+          <h3 className="font-serif text-lg font-semibold text-[#101f32]">
+            Want to add photos to this gallery?
+          </h3>
+          <p className="text-xs text-[#7b8490] mt-1">
+            College administrators can upload new albums, photos, and event highlights directly from
+            the admin portal.
+          </p>
         </div>
-        <Link
-          href="/admin/content/gallery"
-          className="shrink-0 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 transition hover:scale-105 shadow"
-        >
-          Manage Gallery →
+        <Link href="/admin/content/gallery" className="btn btn-primary flex-shrink-0">
+          MANAGE GALLERY ↗
         </Link>
       </div>
 
-      {/* Lightbox */}
+      {/* Lightbox Modal */}
       {lightbox.open && lightboxImages.length > 0 && (
         <Lightbox
           images={lightboxImages}

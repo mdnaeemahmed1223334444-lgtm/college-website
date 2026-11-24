@@ -21,7 +21,7 @@ export default function PlaceholderPage({ href, title, sections, backHref, backL
   const shownSections = sections ?? node?.sections;
 
   return (
-    <div className="space-y-4">
+    <div className="max-w-7xl mx-auto px-4 py-10 space-y-6">
       {back && (
         <Link href={back.href} className="text-sm text-blue-700 hover:underline">
           &larr; {back.title}

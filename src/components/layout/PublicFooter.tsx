@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { publicNav } from "@/config/navigation/public";
-import { siteConfig } from "@/config/site";
 import { getFooterSettings, getSocialLinksSettings, getBrandingSettings } from "@/features/website/queries";
 
 export default async function PublicFooter() {
@@ -10,99 +8,119 @@ export default async function PublicFooter() {
     getBrandingSettings(),
   ]);
 
-  const collegeName = branding.collegeName || siteConfig.name;
+  const collegeName = branding.collegeName || "Dhaka Model College";
 
   return (
-    <footer className="mt-16 border-t bg-gray-900 text-gray-300">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Col 1: About & Campus info */}
-        <div className="space-y-3">
-          <p className="text-lg font-bold text-white">{collegeName}</p>
-          <p className="text-xs text-gray-400 leading-relaxed">
-            {footer.aboutText || siteConfig.description}
-          </p>
-          {footer.address && (
-            <p className="text-xs text-gray-400">
-              <strong className="text-gray-300">Campus:</strong> {footer.address}
+    <footer className="site-footer" id="contact">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="footer-grid">
+          {/* Col 1: About & Logo */}
+          <div className="footer-about">
+            <Link href="/" className="logo flex items-center gap-3 text-white group mb-3">
+              <div className="logo-symbol">
+                <span>D</span>
+              </div>
+              <div className="logo-text">
+                <strong className="font-serif text-xl font-medium tracking-tight block text-white">
+                  {collegeName}
+                </strong>
+                <small className="text-[#dfc89f] text-[9px] tracking-[2px] uppercase block font-semibold">
+                  College &amp; Institution
+                </small>
+              </div>
+            </Link>
+
+            <p>
+              {footer.aboutText ||
+                "Dedicated to academic excellence, moral integrity, and technological competence for higher secondary education in Bangladesh."}
             </p>
-          )}
-          {footer.phone && (
-            <p className="text-xs text-gray-400">
-              <strong className="text-gray-300">Tel:</strong> {footer.phone}
-            </p>
-          )}
-          {footer.emergencyHelpline && (
-            <p className="text-xs text-amber-400">
-              <strong>Emergency Helpline:</strong> {footer.emergencyHelpline}
-            </p>
-          )}
-        </div>
 
-        {/* Col 2: About Nav */}
-        <div>
-          <p className="text-sm font-semibold text-white uppercase tracking-wider">About Us</p>
-          <ul className="mt-3 space-y-2 text-xs">
-            <li><Link href="/about/overview" className="hover:text-white transition">Overview</Link></li>
-            <li><Link href="/about/principals-message" className="hover:text-white transition">Principal&apos;s Message</Link></li>
-            <li><Link href="/about/mission-vision" className="hover:text-white transition">Mission & Vision</Link></li>
-            <li><Link href="/about/history" className="hover:text-white transition">College History</Link></li>
-            <li><Link href="/about/management-committee" className="hover:text-white transition">Management Committee</Link></li>
-          </ul>
-        </div>
-
-        {/* Col 3: Academic Nav */}
-        <div>
-          <p className="text-sm font-semibold text-white uppercase tracking-wider">Academic</p>
-          <ul className="mt-3 space-y-2 text-xs">
-            <li><Link href="/academic/courses" className="hover:text-white transition">Academic Programs</Link></li>
-            <li><Link href="/academic/departments-subjects" className="hover:text-white transition">Departments & Subjects</Link></li>
-            <li><Link href="/academic/class-routine" className="hover:text-white transition">Class Routine</Link></li>
-            <li><Link href="/academic/regulations" className="hover:text-white transition">Rules & Regulations</Link></li>
-            <li><Link href="/academic/dress-code" className="hover:text-white transition">Uniform & Dress Code</Link></li>
-          </ul>
-        </div>
-
-        {/* Col 4: Quick Portals & Social Media */}
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm font-semibold text-white uppercase tracking-wider">Online Portals</p>
-            <ul className="mt-3 space-y-2 text-xs">
-              <li><Link href="/login" className="hover:text-white transition">Portal Login (Student / Teacher / Admin)</Link></li>
-              <li><Link href="/admission/apply" className="text-blue-400 hover:text-blue-300 transition">Online Admission Application</Link></li>
-              <li><Link href="/notices" className="hover:text-white transition">Notices</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Connect With Us</p>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+            {/* Social links */}
+            <div className="flex flex-wrap gap-2 mt-5">
               {social.facebook && (
-                <a href={social.facebook} target="_blank" rel="noopener noreferrer" className="rounded bg-gray-800 px-2.5 py-1 text-gray-300 hover:bg-blue-600 hover:text-white transition">
+                <a
+                  href={social.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 text-[11px] bg-white/5 border border-white/10 hover:border-[#c5a46d] hover:text-[#dfc89f] transition-colors"
+                >
                   Facebook
                 </a>
               )}
               {social.youtube && (
-                <a href={social.youtube} target="_blank" rel="noopener noreferrer" className="rounded bg-gray-800 px-2.5 py-1 text-gray-300 hover:bg-red-600 hover:text-white transition">
+                <a
+                  href={social.youtube}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 text-[11px] bg-white/5 border border-white/10 hover:border-[#c5a46d] hover:text-[#dfc89f] transition-colors"
+                >
                   YouTube
                 </a>
               )}
               {social.linkedin && (
-                <a href={social.linkedin} target="_blank" rel="noopener noreferrer" className="rounded bg-gray-800 px-2.5 py-1 text-gray-300 hover:bg-blue-700 hover:text-white transition">
+                <a
+                  href={social.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 text-[11px] bg-white/5 border border-white/10 hover:border-[#c5a46d] hover:text-[#dfc89f] transition-colors"
+                >
                   LinkedIn
-                </a>
-              )}
-              {social.whatsapp && (
-                <a href={`https://wa.me/${social.whatsapp.replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className="rounded bg-gray-800 px-2.5 py-1 text-gray-300 hover:bg-green-600 hover:text-white transition">
-                  WhatsApp
                 </a>
               )}
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="border-t border-gray-800 py-4 text-center text-xs text-gray-500">
-        {footer.copyrightText || `© ${new Date().getFullYear()} ${collegeName}. All rights reserved.`}
+          {/* Col 2: Quick Links */}
+          <div className="footer-col">
+            <h4>Quick Links</h4>
+            <Link href="/">Home</Link>
+            <Link href="/about/overview">About Us</Link>
+            <Link href="/academic/courses">Academic Programs</Link>
+            <Link href="/academic/class-routine">Class Routine</Link>
+            <Link href="/gallery">Campus Photo Gallery</Link>
+          </div>
+
+          {/* Col 3: Information & Portals */}
+          <div className="footer-col">
+            <h4>Information</h4>
+            <Link href="/notices">Latest Notices &amp; Circulars</Link>
+            <Link href="/admission/apply">Online Admission Application</Link>
+            <Link href="/academic/academic-calendar">Academic Calendar</Link>
+            <Link href="/information/holidays">Holidays List</Link>
+            <Link href="/login">Portal Login (Student / Teacher)</Link>
+          </div>
+
+          {/* Col 4: Contact Us */}
+          <div className="footer-col">
+            <h4>Contact Campus</h4>
+            <span className="block text-[#a7b0bc] text-xs mb-3 leading-relaxed">
+              {footer.address || "Mirpur-12, Dhaka-1216, Bangladesh"}
+            </span>
+            {footer.phone && (
+              <a href={`tel:${footer.phone}`} className="!mb-2">
+                📞 {footer.phone}
+              </a>
+            )}
+            {footer.email && (
+              <a href={`mailto:${footer.email}`} className="!mb-2">
+                ✉️ {footer.email}
+              </a>
+            )}
+            {footer.emergencyHelpline && (
+              <span className="block text-[#dfc89f] text-xs mt-3 font-semibold">
+                🚨 Helpline: {footer.emergencyHelpline}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Footer Bottom */}
+        <div className="footer-bottom">
+          <span>
+            {footer.copyrightText || `© ${new Date().getFullYear()} ${collegeName}. All Rights Reserved.`}
+          </span>
+          <span className="text-[#a7b0bc]">Designed with Academic Excellence.</span>
+        </div>
       </div>
     </footer>
   );
