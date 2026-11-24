@@ -7,12 +7,10 @@
  *   - MFRC522 RC522 13.56 MHz RFID Reader
  *   - 13.56 MHz RFID Cards (Mifare Classic 1K)
  *   - USB Cable (Serial Monitor at 115200 baud)
- *   - Onboard Blue LED: Blinks every time ANY card is scanned!
- *
- * Current Hardware Note:
- *   Operates strictly with ESP8266, RC522 and USB power.
- *   No external LEDs, buzzers, or external displays are required.
- *   Built-in LED on GPIO2 (LED_BUILTIN) is used for instant physical scan feedback.
+ *   - Status LEDs:
+ *       * Green LED on D0 (GPIO16): Active HIGH - Attendance Accepted
+ *       * Blue LED on D3 (GPIO0):  Active LOW  - RC522 Communication OK
+ *       * Red LED on D4 (GPIO2):   Active LOW  - Attendance Failure / Error (Blinks 3x)
  *
  * Wiring Connections:
  *   RC522 SDA / SS -> ESP8266 D2 (GPIO4)
@@ -22,6 +20,11 @@
  *   RC522 RST      -> ESP8266 D1 (GPIO5)
  *   RC522 3.3V     -> ESP8266 3V3 (3.3V ONLY! Never connect to 5V or VIN!)
  *   RC522 GND      -> ESP8266 GND
+ *
+ * Status LEDs Wiring:
+ *   Green LED: D0 -> 220Ω resistor -> LED Anode (+) -> LED Cathode (-) -> GND (Active HIGH)
+ *   Blue LED:  3V3 -> 220Ω resistor -> LED Anode (+) -> LED Cathode (-) -> D3  (Active LOW)
+ *   Red LED:   3V3 -> 220Ω resistor -> LED Anode (+) -> LED Cathode (-) -> D4  (Active LOW)
  *
  * KEY FEATURES:
  *   1. Access Point on every boot ("College-RFID-AP" at 192.168.4.1).
@@ -34,7 +37,10 @@
  *   6. Attendance Counts Written Data: The attendance counts what is written
  *      on the card (Sector 1, Block 4), NOT the fixed factory UID.
  *   7. Testing Mode: Unlimited scans allowed for live trial testing.
- *   8. Built-in LED: Blinks every time ANY card is scanned near the reader.
+ *   8. Tri-Color Status LEDs:
+ *        - BLUE: Steady ON when RC522 is communicating, OFF if disconnected.
+ *        - GREEN: Lights for ~700ms ONLY when backend confirms attendance.
+ *        - RED: Blinks 3 times on unregistered card, rejection, or network error.
  * ==============================================================================
  */
 
@@ -53,9 +59,22 @@
 // ------------------------------------------------------------------------------
 // HARDWARE PIN DEFINITIONS
 // ------------------------------------------------------------------------------
-#define SS_PIN  D2   // GPIO4 - RC522 SDA/SS
-#define RST_PIN D1   // GPIO5 - RC522 RST
+#define SS_PIN    D2   // GPIO4  - RC522 SDA/SS
+#define RST_PIN   D1   // GPIO5  - RC522 RST
 const byte TARGET_DATA_BLOCK = 4; // Sector 1, Block 0 (Block 4)
+
+// Three External Status LEDs
+#define LED_GREEN D0   // GPIO16 - Active HIGH (Attendance Success)
+#define LED_BLUE  D3   // GPIO0  - Active LOW  (RFID Reader Communication Status)
+#define LED_RED   D4   // GPIO2  - Active LOW  (Attendance Failure / Server Error)
+
+// Logic Levels for Active HIGH / Active LOW wiring
+#define LED_GREEN_ON   HIGH
+#define LED_GREEN_OFF  LOW
+#define LED_BLUE_ON    LOW
+#define LED_BLUE_OFF   HIGH
+#define LED_RED_ON     LOW
+#define LED_RED_OFF    HIGH
 
 // ------------------------------------------------------------------------------
 // EEPROM SETTINGS STORAGE
@@ -97,13 +116,140 @@ String lastStudentName = "";
 unsigned long lastScanMillis = 0;
 unsigned long lastWebPollMillis = 0;
 
+// Non-blocking Status LED State Variables
+bool isGreenLedActive = false;
+unsigned long greenLedStartTime = 0;
+
+int redBlinksRemaining = 0;
+bool redLedState = false;
+unsigned long lastRedToggleMillis = 0;
+
+unsigned long lastRFIDCheckMillis = 0;
+
 // ------------------------------------------------------------------------------
-// ONBOARD LED BLINK HELPER (Active LOW on ESP8266)
+// STATUS LED HELPER FUNCTIONS
 // ------------------------------------------------------------------------------
+
+/**
+ * Checks whether the MFRC522 RFID reader is communicating properly over SPI.
+ * Returns true if VersionReg returns a valid chip identifier (not 0x00 or 0xFF).
+ */
+bool isRFIDCommunicating() {
+    byte v = rfid.PCD_ReadRegister(rfid.VersionReg);
+    return (v != 0x00 && v != 0xFF);
+}
+
+/**
+ * Updates the Blue LED (D3) to reflect actual RC522 communication status.
+ * Active LOW: LOW = ON (Communicating), HIGH = OFF (Disconnected/Error).
+ */
+void setRFIDConnectionStatus(bool connected) {
+    digitalWrite(LED_BLUE, connected ? LED_BLUE_ON : LED_BLUE_OFF);
+}
+
+/**
+ * Turns all three status LEDs OFF safely and resets LED state variables.
+ */
+void allStatusLEDsOff() {
+    digitalWrite(LED_GREEN, LED_GREEN_OFF);
+    digitalWrite(LED_BLUE, LED_BLUE_OFF);
+    digitalWrite(LED_RED, LED_RED_OFF);
+    isGreenLedActive = false;
+    redBlinksRemaining = 0;
+    redLedState = false;
+}
+
+/**
+ * Initializes all three LED pins safely with their inactive levels.
+ * Ensures external LEDs do not interfere with ESP8266 boot configuration.
+ */
+void initStatusLEDs() {
+    // Write safe inactive levels BEFORE setting pinMode to avoid startup glitches
+    digitalWrite(LED_GREEN, LED_GREEN_OFF);
+    digitalWrite(LED_BLUE, LED_BLUE_OFF);
+    digitalWrite(LED_RED, LED_RED_OFF);
+
+    pinMode(LED_GREEN, OUTPUT);
+    pinMode(LED_BLUE, OUTPUT);
+    pinMode(LED_RED, OUTPUT);
+
+    isGreenLedActive = false;
+    redBlinksRemaining = 0;
+    redLedState = false;
+}
+
+/**
+ * Activates the Green LED for ~700 milliseconds upon confirmed attendance.
+ * Non-blocking: Uses millis() timing in updateStatusLEDs().
+ */
+void showAttendanceSuccess() {
+    // Immediately stop any red error blinking
+    redBlinksRemaining = 0;
+    redLedState = false;
+    digitalWrite(LED_RED, LED_RED_OFF);
+
+    // Turn ON Green LED
+    digitalWrite(LED_GREEN, LED_GREEN_ON);
+    isGreenLedActive = true;
+    greenLedStartTime = millis();
+}
+
+/**
+ * Triggers a 3-blink sequence on the Red LED to indicate attendance failure.
+ * Non-blocking: Uses millis() timing in updateStatusLEDs() (150ms ON / 150ms OFF x 3).
+ */
+void showAttendanceError() {
+    // Immediately turn OFF Green LED
+    isGreenLedActive = false;
+    digitalWrite(LED_GREEN, LED_GREEN_OFF);
+
+    // Start 3-blink sequence (1st ON phase active immediately, 5 transitions left)
+    digitalWrite(LED_RED, LED_RED_ON);
+    redLedState = true;
+    redBlinksRemaining = 5;
+    lastRedToggleMillis = millis();
+}
+
+/**
+ * Non-blocking status LED management called repeatedly inside loop().
+ * Handles Green LED auto-turn-off, Red LED blink intervals, and periodic RFID check.
+ */
+void updateStatusLEDs() {
+    unsigned long now = millis();
+
+    // 1. Manage Green LED duration (~700ms)
+    if (isGreenLedActive) {
+        if (now - greenLedStartTime >= 700) {
+            digitalWrite(LED_GREEN, LED_GREEN_OFF);
+            isGreenLedActive = false;
+        }
+    }
+
+    // 2. Manage Red LED 3-blink sequence (150ms intervals)
+    if (redBlinksRemaining > 0) {
+        if (now - lastRedToggleMillis >= 150) {
+            lastRedToggleMillis = now;
+            redLedState = !redLedState;
+            digitalWrite(LED_RED, redLedState ? LED_RED_ON : LED_RED_OFF);
+            redBlinksRemaining--;
+            if (redBlinksRemaining == 0) {
+                digitalWrite(LED_RED, LED_RED_OFF);
+                redLedState = false;
+            }
+        }
+    }
+
+    // 3. Periodic RFID reader communication check (every 1000ms)
+    if (now - lastRFIDCheckMillis >= 1000) {
+        lastRFIDCheckMillis = now;
+        bool connected = isRFIDCommunicating();
+        setRFIDConnectionStatus(connected);
+    }
+}
+
+// Backward compatibility helper
 void blinkBuiltinLed(int durationMs = 150) {
-    digitalWrite(LED_BUILTIN, LOW);  // Turn ON onboard blue LED
-    delay(durationMs);
-    digitalWrite(LED_BUILTIN, HIGH); // Turn OFF onboard blue LED
+    // Kept for legacy compatibility
 }
 
 // ------------------------------------------------------------------------------
@@ -211,12 +357,6 @@ String readBlock(byte blockAddr) {
 }
 
 // ------------------------------------------------------------------------------
-// EMBEDDED WEB INTERFACE (HTML / CSS / JS)
-// Note: PAGE_INDEX HTML is declared in web_page.h to prevent Arduino IDE 1.8.x
-// preprocessor prototype generation errors with JavaScript function syntax.
-// ------------------------------------------------------------------------------
-
-// ------------------------------------------------------------------------------
 // HTTP SERVER ROUTE HANDLERS
 // ------------------------------------------------------------------------------
 void handleRoot() {
@@ -243,6 +383,7 @@ void handleStatus() {
     doc["last_data"] = lastScannedData;
     doc["last_status"] = lastScanStatus;
     doc["student_name"] = lastStudentName;
+    doc["rfid_communicating"] = isRFIDCommunicating();
 
     String jsonStr;
     serializeJson(doc, jsonStr);
@@ -333,12 +474,16 @@ String sendAttendanceScan(const String& uid, const String& writtenData) {
     lastScannedUID = uid;
     lastScannedData = writtenData;
 
+    // Check Wi-Fi connectivity
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("STATUS: OFFLINE_SCAN");
         Serial.println("MESSAGE: Read successfully. (Connect to Wi-Fi to submit to website)");
         lastScanStatus = "OFFLINE_READ";
         lastStudentName = writtenData;
         Serial.println("------------------------------------");
+
+        // Wi-Fi offline: cannot submit attendance to server
+        showAttendanceError();
         return "{\"success\":false,\"status\":\"OFFLINE_SCAN\",\"message\":\"ESP is not connected to Wi-Fi\"}";
     }
 
@@ -361,8 +506,8 @@ String sendAttendanceScan(const String& uid, const String& writtenData) {
 
     if (isHttps) {
         secureClient.reset(new WiFiClientSecure());
-        secureClient->setInsecure(); // Critical for Vercel SSL
-        // CRITICAL FIX: Reduce BearSSL buffer from 32KB down to 1.5KB to prevent ESP8266 out-of-memory crash!
+        secureClient->setInsecure(); // Bypass cert checks for dynamic backend URLs
+        // Reduce BearSSL buffer from 32KB down to 1.5KB to prevent ESP8266 out-of-memory crash!
         secureClient->setBufferSizes(1024, 512);
         secureClient->setTimeout(8000);
         http.setTimeout(8000);
@@ -383,6 +528,9 @@ String sendAttendanceScan(const String& uid, const String& writtenData) {
         Serial.println("MESSAGE: Could not reach attendance server");
         lastScanStatus = "NETWORK_ERROR";
         Serial.println("------------------------------------");
+
+        // Connection initialization failed
+        showAttendanceError();
         return "{\"success\":false,\"status\":\"NETWORK_ERROR\",\"message\":\"Could not initialize connection\"}";
     }
 
@@ -406,6 +554,9 @@ String sendAttendanceScan(const String& uid, const String& writtenData) {
         Serial.println("MESSAGE: Server returned error or timeout");
         lastScanStatus = "NETWORK_ERROR";
         Serial.println("------------------------------------");
+
+        // HTTP error, timeout, or server 5xx crash
+        showAttendanceError();
         return "{\"success\":false,\"status\":\"NETWORK_ERROR\",\"message\":\"Server returned error or timeout (code " + String(httpCode) + ")\"}";
     }
 
@@ -437,8 +588,22 @@ String sendAttendanceScan(const String& uid, const String& writtenData) {
             Serial.print("MESSAGE: ");
             Serial.println(msg);
         }
+
+        // Attendance Accepted conditions:
+        // doc["success"] == true OR status is "PRESENT" / "LATE"
+        bool isSuccess = (doc["success"] == true) || (strcmp(status, "PRESENT") == 0) || (strcmp(status, "LATE") == 0);
+
+        if (isSuccess) {
+            // GREEN LED: Attendance accepted and confirmed by backend!
+            showAttendanceSuccess();
+        } else {
+            // RED LED: Backend rejected (UNREGISTERED_CARD, INACTIVE_CARD, DEVICE_DISABLED, etc.)
+            showAttendanceError();
+        }
     } else {
         Serial.println("STATUS: UNKNOWN_RESPONSE");
+        // Invalid or corrupt server response
+        showAttendanceError();
     }
 
     Serial.println("------------------------------------");
@@ -476,9 +641,6 @@ void handleApiSubmitAttendance() {
         server.send(400, "application/json", "{\"success\":false,\"message\":\"Missing student code or card data parameter\"}");
         return;
     }
-
-    // Blink onboard blue LED to confirm physical scan trigger
-    blinkBuiltinLed(150);
 
     Serial.println();
     Serial.println("====================================");
@@ -619,28 +781,29 @@ void setup() {
     Serial.begin(115200);
     delay(500);
 
-    // Initialize Onboard Blue LED (GPIO2 / LED_BUILTIN)
-    pinMode(LED_BUILTIN, OUTPUT);
-    digitalWrite(LED_BUILTIN, HIGH); // Built-in LED on ESP8266 is active LOW (HIGH = OFF)
+    // 1. Initialize Status LEDs safely (Green=OFF, Blue=OFF, Red=OFF)
+    initStatusLEDs();
 
     for (byte i = 0; i < 6; i++) defaultKey.keyByte[i] = 0xFF;
 
-    // 1. Load Stored Wi-Fi & Backend URL Settings
+    // 2. Load Stored Wi-Fi & Backend URL Settings
     loadSettings();
 
-    // 2. SPI & RC522 Initialization
+    // 3. SPI & RC522 Initialization
     SPI.begin();
     rfid.PCD_Init();
     delay(50);
 
-    byte version = rfid.PCD_ReadRegister(rfid.VersionReg);
-    bool rfidOk = (version != 0x00 && version != 0xFF);
+    // Check actual RC522 communication over SPI
+    bool rfidOk = isRFIDCommunicating();
+    // Blue LED indicates actual RFID reader communication
+    setRFIDConnectionStatus(rfidOk);
 
-    // 3. Start Access Point (AP Mode) Every Restart
+    // 4. Start Access Point (AP Mode) Every Restart
     WiFi.mode(WIFI_AP_STA);
     WiFi.softAP(AP_SSID); // Open network at 192.168.4.1
 
-    // 4. Register HTTP Web Server Endpoints
+    // 5. Register HTTP Web Server Endpoints
     server.on("/", HTTP_GET, handleRoot);
     server.on("/status", HTTP_GET, handleStatus);
     server.on("/scan-wifi", HTTP_GET, handleScanWifi);
@@ -651,7 +814,7 @@ void setup() {
     server.on("/scan", HTTP_ANY, handleApiSubmitAttendance);
     server.begin();
 
-    // 5. Print Startup Banner
+    // 6. Print Startup Banner
     Serial.println();
     Serial.println("====================================");
     Serial.println("COLLEGE RFID ATTENDANCE & WEB WRITER");
@@ -659,7 +822,7 @@ void setup() {
     Serial.print("Device ID: ");
     Serial.println(DEVICE_ID);
     Serial.print("RFID Reader: ");
-    Serial.println(rfidOk ? "INITIALIZED" : "FAILED (Check wiring)");
+    Serial.println(rfidOk ? "INITIALIZED (BLUE LED ON)" : "FAILED (BLUE LED OFF - Check wiring)");
     Serial.print("Access Point: ");
     Serial.println(AP_SSID);
     Serial.println("Web Portal: http://192.168.4.1");
@@ -669,7 +832,7 @@ void setup() {
         Serial.print("Saved Wi-Fi: ");
         Serial.println(settings.ssid);
     }
-    Serial.println("Onboard LED: ENABLED (Blinks on every scan)");
+    Serial.println("LED Status: GREEN(D0)=Success, BLUE(D3)=Reader, RED(D4)=Error");
     Serial.println("System Status: READY");
     Serial.println("====================================");
     Serial.println();
@@ -679,13 +842,16 @@ void setup() {
 // MAIN LOOP
 // ------------------------------------------------------------------------------
 void loop() {
-    // 1. Handle Web Portal Requests (192.168.4.1)
+    // 1. Non-blocking update of Status LEDs (handles timers, blinks, and periodic RFID checks)
+    updateStatusLEDs();
+
+    // 2. Handle Web Portal Requests (192.168.4.1)
     server.handleClient();
 
-    // 2. When connected to Wi-Fi, check for remote card-write commands from website
+    // 3. When connected to Wi-Fi, check for remote card-write commands from website
     pollWebsiteForCardWrite();
 
-    // 3. Check for RFID Card Present
+    // 4. Check for RFID Card Present
     if (!rfid.PICC_IsNewCardPresent()) {
         delay(20);
         return;
@@ -694,9 +860,6 @@ void loop() {
         delay(20);
         return;
     }
-
-    // 4. BLINK ONBOARD BLUE LED EVERY TIME ANY CARD IS SCANNED!
-    blinkBuiltinLed(150);
 
     String currentUID = getNormalizedUID(&(rfid.uid));
 
@@ -725,10 +888,12 @@ void loop() {
             Serial.println("------------------------------------");
 
             notifyWebsiteWriteComplete(currentUID, verifiedData);
+            showAttendanceSuccess();
         } else {
             lastWriteStatus = "FAILED";
             Serial.println("STATUS: [WRITE_FAILED] Failed to burn data into block.");
             Serial.println("------------------------------------");
+            showAttendanceError();
         }
 
         isWriteArmPending = false;
