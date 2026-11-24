@@ -177,7 +177,7 @@ export default function PublicGalleryPage() {
             Campus Photo &amp; Media Gallery
           </h1>
           <p className="text-[#aeb8c4] text-sm sm:text-base max-w-2xl leading-relaxed">
-            Capturing the spirit of Dhaka Model College — science exhibitions, athletic tournaments,
+            Capturing the vibrant spirit of our campus community — science exhibitions, athletic tournaments,
             smart classrooms, cultural events, and milestone celebrations.
           </p>
           <div className="gold-line" />

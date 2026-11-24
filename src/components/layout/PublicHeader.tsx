@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { publicNav } from "@/config/navigation/public";
+import type { BrandingSettings } from "@/features/website/types";
 
 interface NavNode {
   title: string;
@@ -12,12 +13,22 @@ interface NavNode {
   children?: NavNode[];
 }
 
-export default function PublicHeader() {
+export default function PublicHeader({
+  branding,
+}: {
+  branding?: Partial<BrandingSettings>;
+}) {
   const pathname = usePathname();
   const isHome = pathname === "/";
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
+
+  const collegeName = branding?.collegeName || "Dhaka Model College";
+  const shortName = branding?.shortName || "DMC";
+  const logoUrl = branding?.logoUrl;
+  const motto = branding?.motto || "Excellence in Education, Character, and Innovation";
+  const initialLetter = (shortName || collegeName || "D").charAt(0).toUpperCase();
 
   const nav = (publicNav as NavNode[]).filter((n) => !n.hidden);
 
@@ -26,9 +37,11 @@ export default function PublicHeader() {
       {/* ─── TOP BAR ─── */}
       <div className="topbar">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-          <span className="font-medium text-xs">Welcome to Dhaka Model College</span>
-          <span className="text-[#c5a46d] font-semibold tracking-wide text-xs">
-            Excellence • Integrity • Innovation
+          <span className="font-medium text-xs truncate max-w-[60%] sm:max-w-none">
+            Welcome to {collegeName}
+          </span>
+          <span className="text-[#c5a46d] font-semibold tracking-wide text-xs hidden sm:inline truncate max-w-[40%]">
+            {motto}
           </span>
         </div>
       </div>
@@ -39,18 +52,30 @@ export default function PublicHeader() {
           !isHome ? "!sticky !top-0 !bg-[#101f32] shadow-lg border-b border-[#c5a46d]/20" : ""
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          {/* Logo with rotating gold symbol */}
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex items-center justify-between">
+          {/* Logo with uploaded image or rotating gold symbol */}
           <Link href="/" className="logo flex items-center gap-3 text-white group">
-            <div className="logo-symbol">
-              <span>D</span>
-            </div>
+            {logoUrl ? (
+              <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-lg overflow-hidden bg-white/10 border border-[#c5a46d]/40 flex items-center justify-center p-1 shrink-0 backdrop-blur-xs transition-all duration-300 group-hover:scale-105 group-hover:border-[#c5a46d] shadow-xs">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={logoUrl}
+                  alt={collegeName}
+                  className="h-full w-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="logo-symbol shrink-0">
+                <span>{initialLetter}</span>
+              </div>
+            )}
             <div className="logo-text">
-              <strong className="font-serif text-xl sm:text-2xl font-medium tracking-tight block text-white">
-                Dhaka Model
+              <strong className="font-serif text-lg sm:text-2xl font-medium tracking-tight block text-white leading-tight">
+                {collegeName}
               </strong>
-              <small className="text-[#dfc89f] text-[9px] tracking-[2px] uppercase block font-semibold">
-                College &amp; Institution
+              <small className="text-[#dfc89f] text-[9px] tracking-[2px] uppercase block font-semibold truncate max-w-[200px] sm:max-w-[320px]">
+                {shortName && shortName !== collegeName ? `${shortName} • ` : ""}
+                {motto}
               </small>
             </div>
           </Link>
@@ -109,6 +134,24 @@ export default function PublicHeader() {
         {/* Mobile Dropdown Menu */}
         {mobileOpen && (
           <div className="lg:hidden bg-[#101f32] border-t border-[#c5a46d]/20 px-4 py-5 shadow-2xl animate-fadeIn">
+            {/* Mobile Header Brand Banner */}
+            <div className="flex items-center gap-3 pb-3 mb-3 border-b border-white/10">
+              {logoUrl ? (
+                <div className="h-10 w-10 rounded-lg overflow-hidden bg-white/10 border border-[#c5a46d]/40 flex items-center justify-center p-1 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={logoUrl} alt={collegeName} className="h-full w-full object-contain" />
+                </div>
+              ) : (
+                <div className="logo-symbol shrink-0 !w-8 !h-8 !text-sm">
+                  <span>{initialLetter}</span>
+                </div>
+              )}
+              <div className="min-w-0">
+                <strong className="text-white text-sm font-serif block truncate">{collegeName}</strong>
+                <small className="text-[#dfc89f] text-[9px] tracking-wider uppercase block truncate">{shortName}</small>
+              </div>
+            </div>
+
             <div className="flex flex-col space-y-1">
               {nav.map((item) => (
                 <div key={item.href} className="border-b border-white/5 pb-1">

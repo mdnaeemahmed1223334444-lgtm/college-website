@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { getBrandingSettings } from "@/features/website/queries";
 
-export default function AdmissionCTA() {
+export default async function AdmissionCTA() {
+  const branding = await getBrandingSettings();
+  const collegeName = branding.collegeName || "Dhaka Model College";
+
   return (
     <section
       className="cta relative text-white"
@@ -19,7 +23,7 @@ export default function AdmissionCTA() {
 
         <p>
           Every great journey begins with a single step. Discover the academic excellence,
-          nurturing environment, and endless opportunities waiting for you at Dhaka Model College.
+          nurturing environment, and endless opportunities waiting for you at {collegeName}.
         </p>
 
         <div className="flex flex-wrap justify-center gap-4">

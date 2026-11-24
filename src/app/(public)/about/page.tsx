@@ -4,7 +4,7 @@ export default function AboutPage() {
   return (
     <DynamicContentPage
       slug="about/overview"
-      fallbackTitle="About Dhaka Model College"
+      fallbackTitle="About Our College"
       category="about"
     />
   );

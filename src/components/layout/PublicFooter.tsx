@@ -1,14 +1,33 @@
 import Link from "next/link";
 import { getFooterSettings, getSocialLinksSettings, getBrandingSettings } from "@/features/website/queries";
+import type { BrandingSettings } from "@/features/website/types";
 
-export default async function PublicFooter() {
-  const [footer, social, branding] = await Promise.all([
+export default async function PublicFooter({
+  branding: propBranding,
+}: {
+  branding?: BrandingSettings;
+} = {}) {
+  const [footer, social, fetchedBranding] = await Promise.all([
     getFooterSettings(),
     getSocialLinksSettings(),
-    getBrandingSettings(),
+    propBranding ? Promise.resolve(propBranding) : getBrandingSettings(),
   ]);
 
+  const branding = propBranding || fetchedBranding;
   const collegeName = branding.collegeName || "Dhaka Model College";
+  const shortName = branding.shortName || "DMC";
+  const logoUrl = branding.logoUrl;
+  const motto = branding.motto || "Excellence in Education, Character, and Innovation";
+  const initialLetter = (shortName || collegeName || "D").charAt(0).toUpperCase();
+
+  // If the stored footer text still mentions the default placeholder name, replace it seamlessly
+  const aboutText = footer.aboutText
+    ? footer.aboutText.replace(/Dhaka Model College/g, collegeName)
+    : `Dedicated to academic excellence, moral integrity, and technological competence for higher secondary education at ${collegeName}.`;
+
+  const copyrightText = footer.copyrightText
+    ? footer.copyrightText.replace(/Dhaka Model College/g, collegeName)
+    : `© ${new Date().getFullYear()} ${collegeName}. All rights reserved.`;
 
   return (
     <footer className="site-footer" id="contact">
@@ -17,23 +36,32 @@ export default async function PublicFooter() {
           {/* Col 1: About & Logo */}
           <div className="footer-about">
             <Link href="/" className="logo flex items-center gap-3 text-white group mb-3">
-              <div className="logo-symbol">
-                <span>D</span>
-              </div>
+              {logoUrl ? (
+                <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-lg overflow-hidden bg-white/10 border border-[#c5a46d]/40 flex items-center justify-center p-1 shrink-0 backdrop-blur-xs transition-all duration-300 group-hover:scale-105 group-hover:border-[#c5a46d] shadow-xs">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={logoUrl}
+                    alt={collegeName}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="logo-symbol shrink-0">
+                  <span>{initialLetter}</span>
+                </div>
+              )}
               <div className="logo-text">
-                <strong className="font-serif text-xl font-medium tracking-tight block text-white">
+                <strong className="font-serif text-xl font-medium tracking-tight block text-white leading-tight">
                   {collegeName}
                 </strong>
-                <small className="text-[#dfc89f] text-[9px] tracking-[2px] uppercase block font-semibold">
-                  College &amp; Institution
+                <small className="text-[#dfc89f] text-[9px] tracking-[2px] uppercase block font-semibold truncate max-w-[280px]">
+                  {shortName && shortName !== collegeName ? `${shortName} • ` : ""}
+                  {motto}
                 </small>
               </div>
             </Link>
 
-            <p>
-              {footer.aboutText ||
-                "Dedicated to academic excellence, moral integrity, and technological competence for higher secondary education in Bangladesh."}
-            </p>
+            <p>{aboutText}</p>
 
             {/* Social links */}
             <div className="flex flex-wrap gap-2 mt-5">
@@ -116,9 +144,7 @@ export default async function PublicFooter() {
 
         {/* Footer Bottom */}
         <div className="footer-bottom">
-          <span>
-            {footer.copyrightText || `© ${new Date().getFullYear()} ${collegeName}. All Rights Reserved.`}
-          </span>
+          <span>{copyrightText}</span>
           <span className="text-[#a7b0bc]">Designed with Academic Excellence.</span>
         </div>
       </div>

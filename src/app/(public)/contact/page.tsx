@@ -1,13 +1,18 @@
 import Link from "next/link";
-import { getFooterSettings } from "@/features/website/queries";
+import { getFooterSettings, getBrandingSettings } from "@/features/website/queries";
 
 export const metadata = {
-  title: "Contact Us - Dhaka Model College",
-  description: "Get in touch with Dhaka Model College. Campus location, telephone, email, and admissions office.",
+  title: "Contact Us",
+  description: "Get in touch with college campus location, telephone, email, and admissions office.",
 };
 
 export default async function ContactPage() {
-  const footer = await getFooterSettings();
+  const [footer, branding] = await Promise.all([
+    getFooterSettings(),
+    getBrandingSettings(),
+  ]);
+
+  const collegeName = branding.collegeName || "Dhaka Model College";
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10 space-y-10">
@@ -22,7 +27,7 @@ export default async function ContactPage() {
 
           <span className="eyebrow text-[#dfc89f]">Get In Touch</span>
           <h1 className="font-serif text-3xl sm:text-5xl font-normal leading-tight text-white mb-3">
-            Contact Dhaka Model College
+            Contact {collegeName}
           </h1>
           <p className="text-[#aeb8c4] text-sm sm:text-base max-w-2xl leading-relaxed">
             Our administration and admissions team are ready to answer your inquiries, schedule a

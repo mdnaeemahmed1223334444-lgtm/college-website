@@ -1,6 +1,16 @@
 import Link from "next/link";
+import { getBrandingSettings } from "@/features/website/queries";
 
-export default function AboutSection() {
+export default async function AboutSection() {
+  const branding = await getBrandingSettings();
+  const collegeName = branding.collegeName || "Dhaka Model College";
+  const estYear = parseInt(branding.establishedYear, 10);
+  const currentYear = new Date().getFullYear();
+  const legacyYears =
+    !isNaN(estYear) && estYear > 1900 && estYear <= currentYear
+      ? currentYear - estYear
+      : 28;
+
   const points = [
     "Dedicated Faculty",
     "Modern Laboratories",
@@ -17,7 +27,7 @@ export default function AboutSection() {
           <img
             className="about-main-img"
             src="https://images.unsplash.com/photo-1564981797816-1043664bf78d?auto=format&fit=crop&w=1000&q=85"
-            alt="Dhaka Model College Campus"
+            alt={`${collegeName} Campus`}
           />
 
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -28,7 +38,7 @@ export default function AboutSection() {
           />
 
           <div className="about-badge">
-            <strong>28+</strong>
+            <strong>{legacyYears}+</strong>
             <small>Years of Legacy</small>
           </div>
         </div>
@@ -42,7 +52,7 @@ export default function AboutSection() {
           </div>
 
           <p className="text-[#7b8490] text-sm leading-[1.9] mb-5">
-            At Dhaka Model College, we believe every student has the potential to achieve
+            At {collegeName}, we believe every student has the potential to achieve
             something extraordinary. Our institution provides an environment where curiosity is
             encouraged, discipline is cultivated, and knowledge is valued above all.
           </p>

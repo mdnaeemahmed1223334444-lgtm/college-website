@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getNotices } from "@/features/content/queries";
 
 export const metadata = {
-  title: "Notices - Dhaka Model College",
+  title: "Notices & Circulars",
   description: "Official notices, circulars, exam schedules, and academic announcements.",
 };
 

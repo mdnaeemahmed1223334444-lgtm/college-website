@@ -30,9 +30,16 @@ export default function BrandingForm({ initialData }: { initialData: BrandingSet
           Preview of Header Identity
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-700 text-sm font-bold text-white shadow-xs">
-            {shortName || "COL"}
-          </div>
+          {initialData.logoUrl ? (
+            <div className="h-12 w-12 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center p-1 shadow-xs overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={initialData.logoUrl} alt="Logo Preview" className="h-full w-full object-contain" />
+            </div>
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-700 text-sm font-bold text-white shadow-xs">
+              {shortName || "COL"}
+            </div>
+          )}
           <div>
             <div className="text-lg font-bold text-gray-900">{name || "College Full Name"}</div>
             <div className="text-xs text-gray-500">{motto || "Excellence in Education and Character"}</div>

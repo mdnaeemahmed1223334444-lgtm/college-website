@@ -1,8 +1,13 @@
 import Link from "next/link";
-import { getHomepageSettings } from "@/features/website/queries";
+import { getHomepageSettings, getBrandingSettings } from "@/features/website/queries";
 
 export default async function HeroSection() {
-  const homepage = await getHomepageSettings();
+  const [homepage, branding] = await Promise.all([
+    getHomepageSettings(),
+    getBrandingSettings(),
+  ]);
+
+  const collegeName = branding.collegeName || "Dhaka Model College";
 
   const backgroundUrl =
     homepage.bannerImageUrl ||
@@ -23,7 +28,7 @@ export default async function HeroSection() {
       <div className="max-w-7xl mx-auto px-4 w-full">
         <div className="hero-content">
           <div className="eyebrow text-[#dfc89f] tracking-[4px] font-bold text-[11px] mb-6">
-            WELCOME TO DHAKA MODEL COLLEGE
+            WELCOME TO {collegeName.toUpperCase()}
           </div>
 
           <h1 className="font-serif text-[clamp(42px,6.5vw,78px)] font-normal leading-[1.08] mb-6 text-white">

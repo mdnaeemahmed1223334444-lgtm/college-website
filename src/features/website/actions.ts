@@ -47,6 +47,8 @@ async function saveSettingRecord(key: string, value: Record<string, any>): Promi
   }
 
   revalidatePath("/", "layout");
+  revalidatePath("/", "page");
+  revalidatePath("/admin/website", "layout");
   return { success: true, message: "Settings updated successfully." };
 }
 

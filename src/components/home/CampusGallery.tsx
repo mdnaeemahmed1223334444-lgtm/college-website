@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { getRandomGalleryPhotos } from "@/features/content/queries";
+import { getBrandingSettings } from "@/features/website/queries";
 
 export default async function CampusGallery() {
-  const photos = await getRandomGalleryPhotos(6);
+  const [photos, branding] = await Promise.all([
+    getRandomGalleryPhotos(6),
+    getBrandingSettings(),
+  ]);
+
+  const collegeName = branding.collegeName || "Dhaka Model College";
 
   const fallbackPhotos = [
     {
@@ -35,7 +41,7 @@ export default async function CampusGallery() {
         {/* Section Heading with Explore Button */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
           <div className="section-heading reveal mb-0">
-            <span className="eyebrow">Life at Dhaka Model College</span>
+            <span className="eyebrow">Life at {collegeName}</span>
             <h2 className="section-title">More Than Just a Classroom</h2>
             <p className="section-description">
               A place where friendships grow, ideas flourish, and unforgettable memories are created
