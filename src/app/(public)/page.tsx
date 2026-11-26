@@ -1,4 +1,4 @@
-import HeroSection from "@/components/home/HeroSection";
+import ScrollExpandHero from "@/components/home/ScrollExpandHero";
 import IntroStrip from "@/components/home/IntroStrip";
 import AboutSection from "@/components/home/AboutSection";
 import AcademicPrograms from "@/components/home/AcademicPrograms";
@@ -13,8 +13,8 @@ export const revalidate = 0;
 export default function HomePage() {
   return (
     <div>
-      {/* 1. Hero Section with Zooming Background & Action Buttons */}
-      <HeroSection />
+      {/* 1. ScrollExpand Opening Hero Experience */}
+      <ScrollExpandHero />
 
       {/* 2. Intro Strip with Values */}
       <IntroStrip />

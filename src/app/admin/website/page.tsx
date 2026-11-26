@@ -16,6 +16,14 @@ export default async function WebsiteManagementOverviewPage() {
 
   const frequentModules = [
     {
+      title: "ScrollExpand Opening Hero",
+      href: "/admin/website/scroll-expand-hero",
+      desc: "Configure the cinematic scroll-expand hero animation, photograph, title, and smooth expansion parameters.",
+      icon: "✨",
+      tag: "Hero Experience",
+      tagColor: "bg-indigo-100 text-indigo-800",
+    },
+    {
       title: "Front Page Photos & Announcements",
       href: "/admin/website/homepage",
       desc: "Upload all front page photos (hero banner, campus building photos, admission backdrop), welcome headlines, and news ticker.",

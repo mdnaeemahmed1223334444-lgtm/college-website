@@ -125,3 +125,24 @@ export const pageSchema = z.object({
   seo_title: z.string().nullable().optional(),
   seo_description: z.string().nullable().optional(),
 });
+
+export const scrollExpandHeroSchema = z.object({
+  enabled: z.preprocess((val) => val === true || val === "true" || val === "on" || val === 1 || val === "1", z.boolean()).default(true),
+  heroImage: safeString(""),
+  heroTitle: safeString("Where Minds Meet Possibilities"),
+  heroSubtitle: safeString("Building knowledge, character, and a brighter future through academic excellence and modern innovation."),
+  scrollHint: safeString("Scroll to explore"),
+  ctaText: safeString("Discover Admission ↗"),
+  ctaLink: safeString("/admission/apply"),
+  secondaryCtaText: safeString("Explore Academics"),
+  secondaryCtaLink: safeString("/academic/courses"),
+  startWidth: z.preprocess((val) => (val !== "" && val !== null && val !== undefined ? Number(val) : 42), z.number().min(10).max(100)).default(42),
+  startHeight: z.preprocess((val) => (val !== "" && val !== null && val !== undefined ? Number(val) : 58), z.number().min(10).max(100)).default(58),
+  startRadius: z.preprocess((val) => (val !== "" && val !== null && val !== undefined ? Number(val) : 24), z.number().min(0).max(100)).default(24),
+  endRadius: z.preprocess((val) => (val !== "" && val !== null && val !== undefined ? Number(val) : 0), z.number().min(0).max(100)).default(0),
+  mediaZoom: z.preprocess((val) => (val !== "" && val !== null && val !== undefined ? Number(val) : 1.35), z.number().min(1.0).max(3.0)).default(1.35),
+  scrollDistance: z.preprocess((val) => (val !== "" && val !== null && val !== undefined ? Number(val) : 1.2), z.number().min(0.2).max(5.0)).default(1.2),
+  holdDistance: z.preprocess((val) => (val !== "" && val !== null && val !== undefined ? Number(val) : 0.35), z.number().min(0.0).max(2.0)).default(0.35),
+  smoothing: z.preprocess((val) => (val !== "" && val !== null && val !== undefined ? Number(val) : 0.1), z.number().min(0.0).max(1.0)).default(0.1),
+  overlayScrim: z.preprocess((val) => (val !== "" && val !== null && val !== undefined ? Number(val) : 0.45), z.number().min(0.0).max(1.0)).default(0.45),
+});

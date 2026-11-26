@@ -21,6 +21,10 @@ export const adminNav: NavNode[] = [
     "href": "/admin/website",
     "children": [
       {
+        "title": "ScrollExpand Opening Hero",
+        "href": "/admin/website/scroll-expand-hero"
+      },
+      {
         "title": "Front Page Banner & Ticker",
         "href": "/admin/website/homepage"
       },

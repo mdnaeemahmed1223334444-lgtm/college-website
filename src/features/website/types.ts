@@ -107,6 +107,27 @@ export interface PageRecord {
   updated_at?: string;
 }
 
+export interface ScrollExpandHeroSettings {
+  enabled: boolean;
+  heroImage: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  scrollHint: string;
+  ctaText: string;
+  ctaLink: string;
+  secondaryCtaText: string;
+  secondaryCtaLink: string;
+  startWidth: number;
+  startHeight: number;
+  startRadius: number;
+  endRadius: number;
+  mediaZoom: number;
+  scrollDistance: number;
+  holdDistance: number;
+  smoothing: number;
+  overlayScrim: number;
+}
+
 export type ActionFeedback = {
   success?: boolean;
   error?: string;

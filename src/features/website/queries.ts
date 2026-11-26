@@ -12,6 +12,7 @@ import type {
   FeatureSettings,
   NavigationItemRecord,
   PageRecord,
+  ScrollExpandHeroSettings,
 } from "./types";
 
 export const defaultBranding: BrandingSettings = {
@@ -98,6 +99,27 @@ export const defaultFeatures: FeatureSettings = {
   noticeBoard: true,
   gallery: true,
   onlinePayment: false,
+};
+
+export const defaultScrollExpandHero: ScrollExpandHeroSettings = {
+  enabled: true,
+  heroImage: "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=2000&q=90",
+  heroTitle: "Where Minds Meet Possibilities",
+  heroSubtitle: "Building knowledge, character, and a brighter future through academic excellence and modern innovation.",
+  scrollHint: "Scroll to explore",
+  ctaText: "Discover Admission ↗",
+  ctaLink: "/admission/apply",
+  secondaryCtaText: "Explore Academics",
+  secondaryCtaLink: "/academic/courses",
+  startWidth: 42,
+  startHeight: 58,
+  startRadius: 24,
+  endRadius: 0,
+  mediaZoom: 1.35,
+  scrollDistance: 1.2,
+  holdDistance: 0.35,
+  smoothing: 0.1,
+  overlayScrim: 0.45,
 };
 
 export const defaultPages: Record<string, PageRecord> = {
@@ -311,6 +333,10 @@ export async function getSocialLinksSettings(): Promise<SocialLinksSettings> {
 
 export async function getFeatureSettings(): Promise<FeatureSettings> {
   return getSetting<FeatureSettings>("features", defaultFeatures);
+}
+
+export async function getScrollExpandHeroSettings(): Promise<ScrollExpandHeroSettings> {
+  return getSetting<ScrollExpandHeroSettings>("scroll_expand_hero", defaultScrollExpandHero);
 }
 
 /** Fetch all navigation items (with fallback to publicNav) */

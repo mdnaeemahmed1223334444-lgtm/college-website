@@ -9,6 +9,7 @@ import {
   getAppearanceSettings,
   getHomepageSettings,
   getSeoSettings,
+  getScrollExpandHeroSettings,
 } from "./queries";
 import {
   brandingSchema,
@@ -21,6 +22,7 @@ import {
   featuresSchema,
   navigationItemSchema,
   pageSchema,
+  scrollExpandHeroSchema,
 } from "./schema";
 import type { ActionFeedback, BrandingSettings } from "./types";
 
@@ -386,4 +388,58 @@ export async function deletePageAction(id: string): Promise<ActionFeedback> {
 
   revalidatePath("/admin/website/pages");
   return { success: true, message: "Page deleted successfully." };
+}
+
+export async function updateScrollExpandHeroAction(
+  _prev: ActionFeedback,
+  formData: FormData
+): Promise<ActionFeedback> {
+  const existing = await getScrollExpandHeroSettings();
+  const str = (key: string): string => ((formData.get(key) as string) ?? "").trim();
+  const num = (key: string, defVal: number): number => {
+    const raw = formData.get(key);
+    if (raw === null || raw === undefined || raw === "") return defVal;
+    const n = Number(raw);
+    return isNaN(n) ? defVal : n;
+  };
+
+  const parsed = scrollExpandHeroSchema.safeParse({
+    enabled: formData.has("enabled")
+      ? formData.get("enabled") === "on" || formData.get("enabled") === "true" || formData.get("enabled") === "1"
+      : false,
+    heroImage: str("heroImage") || existing.heroImage,
+    heroTitle: str("heroTitle") || existing.heroTitle,
+    heroSubtitle: str("heroSubtitle"),
+    scrollHint: str("scrollHint") || "Scroll to explore",
+    ctaText: str("ctaText"),
+    ctaLink: str("ctaLink"),
+    secondaryCtaText: str("secondaryCtaText"),
+    secondaryCtaLink: str("secondaryCtaLink"),
+    startWidth: num("startWidth", existing.startWidth),
+    startHeight: num("startHeight", existing.startHeight),
+    startRadius: num("startRadius", existing.startRadius),
+    endRadius: num("endRadius", existing.endRadius),
+    mediaZoom: num("mediaZoom", existing.mediaZoom),
+    scrollDistance: num("scrollDistance", existing.scrollDistance),
+    holdDistance: num("holdDistance", existing.holdDistance),
+    smoothing: num("smoothing", existing.smoothing),
+    overlayScrim: num("overlayScrim", existing.overlayScrim),
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "Invalid hero settings." };
+  }
+
+  // Automatic cleanup of old replaced hero image from storage
+  if (existing.heroImage && existing.heroImage !== parsed.data.heroImage) {
+    await deleteUploadedFile(existing.heroImage);
+  }
+
+  const result = await saveSettingRecord("scroll_expand_hero", parsed.data);
+  if (result.success) {
+    revalidatePath("/");
+    revalidatePath("/admin/website");
+    revalidatePath("/admin/website/scroll-expand-hero");
+  }
+  return result;
 }
