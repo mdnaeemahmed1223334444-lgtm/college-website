@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { getGalleryAlbums } from "@/features/content/queries";
+import { getGalleryAlbums, getAllGalleryItems } from "@/features/content/queries";
 import GalleryManager from "@/components/admin/content/GalleryManager";
 
 export default async function GalleryManagementPage() {
-  const albums = await getGalleryAlbums();
+  const [albums, photos] = await Promise.all([
+    getGalleryAlbums(),
+    getAllGalleryItems(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -14,13 +17,13 @@ export default async function GalleryManagementPage() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Photo & Media Gallery Management</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Photo &amp; Media Gallery Management</h1>
         <p className="text-sm text-gray-500">
-          Create albums, organize event photographs, and manage campus media showcases.
+          Upload individual photos for the home page showcase, create albums, and organize campus media.
         </p>
       </div>
 
-      <GalleryManager albums={albums} />
+      <GalleryManager albums={albums} initialPhotos={photos} />
     </div>
   );
 }

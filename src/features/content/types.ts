@@ -60,13 +60,30 @@ export interface GalleryAlbumRecord {
 
 export interface GalleryItemRecord {
   id: string;
-  album_id: string;
+  album_id: string | null;
   title: string | null;
   media_url: string;
   thumbnail_url: string | null;
   media_type: "photo" | "video";
   position: number;
   created_at?: string;
+}
+
+/**
+ * Checks if a photo caption or title is a real, meaningful human title
+ * and NOT an auto-generated camera filename (like "IMG 8101.JPG", "IMG_8101", "DSC_0045"),
+ * file extension, temp ID, or empty string.
+ */
+export function isMeaningfulTitle(title?: string | null): boolean {
+  if (!title) return false;
+  const t = title.trim();
+  if (!t) return false;
+  if (/^(img|dsc|photo|pic|image|file|scan|screenshot|whatsapp)[-_ ]?\d+/i.test(t)) return false;
+  if (/\.(jpg|jpeg|png|webp|gif|bmp|tiff|svg|pdf)$/i.test(t)) return false;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i.test(t)) return false;
+  if (/^temp-\d+/i.test(t)) return false;
+  if (/^(campus photo|campus highlight|photo|image|untitled)$/i.test(t)) return false;
+  return true;
 }
 
 export interface DocumentRecord {

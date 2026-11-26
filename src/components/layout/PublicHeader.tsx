@@ -56,12 +56,12 @@ export default function PublicHeader({
           {/* Logo with uploaded image or rotating gold symbol */}
           <Link href="/" className="logo flex items-center gap-3 text-white group">
             {logoUrl ? (
-              <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-lg overflow-hidden bg-white/10 border border-[#c5a46d]/40 flex items-center justify-center p-1 shrink-0 backdrop-blur-xs transition-all duration-300 group-hover:scale-105 group-hover:border-[#c5a46d] shadow-xs">
+              <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-full overflow-hidden bg-white/5 border-2 border-[#c5a46d]/70 flex items-center justify-center p-0.5 shrink-0 backdrop-blur-xs transition-all duration-300 group-hover:scale-105 group-hover:border-[#dfc89f] shadow-md">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={logoUrl}
                   alt={collegeName}
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-cover rounded-full"
                 />
               </div>
             ) : (
@@ -137,9 +137,9 @@ export default function PublicHeader({
             {/* Mobile Header Brand Banner */}
             <div className="flex items-center gap-3 pb-3 mb-3 border-b border-white/10">
               {logoUrl ? (
-                <div className="h-10 w-10 rounded-lg overflow-hidden bg-white/10 border border-[#c5a46d]/40 flex items-center justify-center p-1 shrink-0">
+                <div className="h-10 w-10 rounded-full overflow-hidden bg-white/5 border-2 border-[#c5a46d]/70 flex items-center justify-center p-0.5 shrink-0 shadow-sm">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={logoUrl} alt={collegeName} className="h-full w-full object-contain" />
+                  <img src={logoUrl} alt={collegeName} className="h-full w-full object-cover rounded-full" />
                 </div>
               ) : (
                 <div className="logo-symbol shrink-0 !w-8 !h-8 !text-sm">

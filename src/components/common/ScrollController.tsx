@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 export default function ScrollController() {
+  const pathname = usePathname();
+
   useEffect(() => {
     // 1. Scroll Progress & Sticky Header
     const progressBar = document.getElementById("scrollProgress");
@@ -36,21 +39,34 @@ export default function ScrollController() {
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
 
-    // 2. Scroll Reveal IntersectionObserver
-    const revealElements = document.querySelectorAll(".reveal, .reveal-left, .reveal-right");
-    const revealObserver = new IntersectionObserver(
-      (entries, observer) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("show");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
+    // 2. Scroll Reveal: Re-scan and observe on every route change
+    let revealObserver: IntersectionObserver | null = null;
 
-    revealElements.forEach((el) => revealObserver.observe(el));
+    const timer = setTimeout(() => {
+      const revealElements = document.querySelectorAll(".reveal, .reveal-left, .reveal-right");
+
+      revealObserver = new IntersectionObserver(
+        (entries, observer) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("show");
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.05, rootMargin: "0px 0px -20px 0px" }
+      );
+
+      revealElements.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        // If element is already in or above viewport, reveal immediately
+        if (rect.top <= window.innerHeight * 1.1) {
+          el.classList.add("show");
+        } else {
+          revealObserver?.observe(el);
+        }
+      });
+    }, 60);
 
     // 3. Touch Ripple for Buttons
     function handlePointerDown(event: MouseEvent | TouchEvent) {
@@ -75,11 +91,14 @@ export default function ScrollController() {
     document.addEventListener("pointerdown", handlePointerDown);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("scroll", onScroll);
-      revealObserver.disconnect();
+      if (revealObserver) {
+        revealObserver.disconnect();
+      }
       document.removeEventListener("pointerdown", handlePointerDown);
     };
-  }, []);
+  }, [pathname]);
 
   return <div className="scroll-progress" id="scrollProgress" aria-hidden="true" />;
 }

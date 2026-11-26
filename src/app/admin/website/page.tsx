@@ -16,10 +16,10 @@ export default async function WebsiteManagementOverviewPage() {
 
   const frequentModules = [
     {
-      title: "Front Page Welcome & Announcements",
+      title: "Front Page Photos & Announcements",
       href: "/admin/website/homepage",
-      desc: "Change the big welcome headline, button links, banner photo, and the top scrolling news ticker.",
-      icon: "📢",
+      desc: "Upload all front page photos (hero banner, campus building photos, admission backdrop), welcome headlines, and news ticker.",
+      icon: "📸",
       tag: "Frequent",
       tagColor: "bg-blue-100 text-blue-800",
     },

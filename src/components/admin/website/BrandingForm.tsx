@@ -31,12 +31,12 @@ export default function BrandingForm({ initialData }: { initialData: BrandingSet
         </div>
         <div className="flex items-center gap-3">
           {initialData.logoUrl ? (
-            <div className="h-12 w-12 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center p-1 shadow-xs overflow-hidden">
+            <div className="h-12 w-12 rounded-full bg-gray-50 border-2 border-amber-500/60 flex items-center justify-center p-0.5 shadow-xs overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={initialData.logoUrl} alt="Logo Preview" className="h-full w-full object-contain" />
+              <img src={initialData.logoUrl} alt="Logo Preview" className="h-full w-full object-cover rounded-full" />
             </div>
           ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-700 text-sm font-bold text-white shadow-xs">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-700 text-sm font-bold text-white shadow-xs">
               {shortName || "COL"}
             </div>
           )}

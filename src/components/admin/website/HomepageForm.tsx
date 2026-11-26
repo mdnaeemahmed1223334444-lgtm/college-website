@@ -94,15 +94,67 @@ export default function HomepageForm({ initialData }: { initialData: HomepageSet
         <div>
           <ImageUploadInput
             name="bannerImageUrl"
-            label="Banner Background Image (optional)"
+            label="Hero Banner Background Photo"
             defaultValue={initialData.bannerImageUrl || ""}
             folder="homepage"
-            helperText="Upload a photo for the main welcome banner background. If left blank, a blue gradient is shown instead. (JPG, PNG, WebP up to 10MB — wide/landscape photos work best)"
+            helperText="The large welcome background photo at the very top of your front page. (Wide landscape photo recommended, up to 10MB)"
           />
         </div>
       </div>
 
-      {/* ── Section 2: Announcement Ticker ── */}
+      {/* ── Section 2: About Our Institution Photos ── */}
+      <div className="rounded-lg border border-emerald-100 bg-emerald-50/70 p-4 space-y-4">
+        <div>
+          <h3 className="text-base font-bold text-emerald-900">🏛️ About Section Campus Photos</h3>
+          <p className="text-xs text-emerald-700 mt-0.5">
+            These are the two prominent overlapping photos displayed in the &quot;About Our Institution&quot; section on the front page.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <ImageUploadInput
+              name="aboutMainImageUrl"
+              label="Main College Campus Photo"
+              defaultValue={initialData.aboutMainImageUrl || ""}
+              folder="homepage"
+              helperText="The primary large photo of your college campus or main academic building (displayed on the left side of the About section)."
+            />
+          </div>
+
+          <div>
+            <ImageUploadInput
+              name="aboutSecondaryImageUrl"
+              label="Secondary Student / Activity Photo"
+              defaultValue={initialData.aboutSecondaryImageUrl || ""}
+              folder="homepage"
+              helperText="The smaller overlapping photo showing student life, laboratory work, or campus activities."
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Section 3: Admission Call to Action Photo ── */}
+      <div className="rounded-lg border border-indigo-100 bg-indigo-50/70 p-4 space-y-4">
+        <div>
+          <h3 className="text-base font-bold text-indigo-900">🎓 Admission CTA Background Photo</h3>
+          <p className="text-xs text-indigo-700 mt-0.5">
+            The full-width background photo behind the &quot;Take the First Step Towards Your Future&quot; admission banner near the bottom of the front page.
+          </p>
+        </div>
+
+        <div>
+          <ImageUploadInput
+            name="admissionCtaImageUrl"
+            label="Admission Banner Background Image"
+            defaultValue={initialData.admissionCtaImageUrl || ""}
+            folder="homepage"
+            helperText="Background photo for the admission invitation banner. (Wide landscape photo, up to 10MB)"
+          />
+        </div>
+      </div>
+
+      {/* ── Section 4: Announcement Ticker ── */}
       <div className="rounded-lg border border-amber-100 bg-amber-50 p-4 space-y-4">
         <div>
           <h3 className="text-base font-bold text-amber-900">📢 Scrolling Announcement Strip</h3>

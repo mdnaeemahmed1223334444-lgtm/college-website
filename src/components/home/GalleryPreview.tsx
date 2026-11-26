@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getRandomGalleryPhotos } from "@/features/content/queries";
+import { isMeaningfulTitle } from "@/features/content/types";
 
 export default async function GalleryPreview() {
   const photos = await getRandomGalleryPhotos(8);
@@ -29,30 +30,33 @@ export default async function GalleryPreview() {
       {/* Masonry-style grid */}
       {photos.length > 0 ? (
         <div className="photo-masonry">
-          {photos.map((photo, i) => (
-            <Link
-              key={photo.id}
-              href="/gallery"
-              className="photo-masonry-item relative group block overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-scaleIn bg-gray-100"
-              style={{ animationDelay: `${i * 60}ms` }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={photo.url}
-                alt={photo.title || "Gallery photo"}
-                className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
-                loading="lazy"
-              />
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 rounded-xl">
-                {photo.title && (
-                  <span className="text-[11px] font-semibold text-white leading-tight line-clamp-2">
-                    {photo.title}
-                  </span>
+          {photos.map((photo, i) => {
+            const hasTitle = isMeaningfulTitle(photo.title);
+            return (
+              <Link
+                key={photo.id}
+                href="/gallery"
+                className="photo-masonry-item relative group block overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-scaleIn bg-gray-100"
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={photo.url}
+                  alt={hasTitle ? (photo.title as string) : "Gallery photo"}
+                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
+                  loading="lazy"
+                />
+                {/* Hover overlay only if meaningful title exists */}
+                {hasTitle && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 rounded-xl">
+                    <span className="text-[11px] font-semibold text-white leading-tight line-clamp-2">
+                      {photo.title}
+                    </span>
+                  </div>
                 )}
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       ) : (
         /* No photos yet — show a nice call-to-action */

@@ -1,8 +1,12 @@
 import Link from "next/link";
-import { getBrandingSettings } from "@/features/website/queries";
+import { getBrandingSettings, getHomepageSettings } from "@/features/website/queries";
 
 export default async function AboutSection() {
-  const branding = await getBrandingSettings();
+  const [branding, homepage] = await Promise.all([
+    getBrandingSettings(),
+    getHomepageSettings(),
+  ]);
+
   const collegeName = branding.collegeName || "Dhaka Model College";
   const estYear = parseInt(branding.establishedYear, 10);
   const currentYear = new Date().getFullYear();
@@ -10,6 +14,14 @@ export default async function AboutSection() {
     !isNaN(estYear) && estYear > 1900 && estYear <= currentYear
       ? currentYear - estYear
       : 28;
+
+  const mainPhoto =
+    homepage.aboutMainImageUrl ||
+    "https://images.unsplash.com/photo-1564981797816-1043664bf78d?auto=format&fit=crop&w=1000&q=85";
+
+  const secondaryPhoto =
+    homepage.aboutSecondaryImageUrl ||
+    "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=600&q=85";
 
   const points = [
     "Dedicated Faculty",
@@ -26,14 +38,14 @@ export default async function AboutSection() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             className="about-main-img"
-            src="https://images.unsplash.com/photo-1564981797816-1043664bf78d?auto=format&fit=crop&w=1000&q=85"
+            src={mainPhoto}
             alt={`${collegeName} Campus`}
           />
 
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             className="about-small-img"
-            src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=600&q=85"
+            src={secondaryPhoto}
             alt="Students collaborating"
           />
 

@@ -28,6 +28,9 @@ export interface HomepageSettings {
   heroSecondaryText: string;
   heroSecondaryLink: string;
   bannerImageUrl: string;
+  aboutMainImageUrl?: string;
+  aboutSecondaryImageUrl?: string;
+  admissionCtaImageUrl?: string;
   noticeTickerSpeed: number;
   noticeTickerText: string;
 }

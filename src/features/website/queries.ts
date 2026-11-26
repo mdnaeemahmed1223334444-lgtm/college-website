@@ -43,6 +43,9 @@ export const defaultHomepage: HomepageSettings = {
   heroSecondaryText: "Explore Programs",
   heroSecondaryLink: "/academic/courses",
   bannerImageUrl: "",
+  aboutMainImageUrl: "",
+  aboutSecondaryImageUrl: "",
+  admissionCtaImageUrl: "",
   noticeTickerSpeed: 25,
   noticeTickerText:
     "Admissions for HSC Academic Session 2026-2027 are now open! | Pre-board exam schedule published. | Annual sports meet begins next Monday.",

@@ -1,13 +1,14 @@
 import "server-only";
 import { mainPublic, mainAdmin } from "@/lib/supabase/main-server";
-import type {
-  NoticeRecord,
-  NewsEventRecord,
-  GalleryAlbumRecord,
-  GalleryItemRecord,
-  DocumentRecord,
-  HolidayRecord,
-  CareerCircularRecord,
+import {
+  type NoticeRecord,
+  type NewsEventRecord,
+  type GalleryAlbumRecord,
+  type GalleryItemRecord,
+  type DocumentRecord,
+  type HolidayRecord,
+  type CareerCircularRecord,
+  isMeaningfulTitle,
 } from "./types";
 
 export const defaultNotices: NoticeRecord[] = [
@@ -123,44 +124,7 @@ export const defaultNewsEvents: NewsEventRecord[] = [
   },
 ];
 
-export const defaultAlbums: GalleryAlbumRecord[] = [
-  {
-    id: "alb-1",
-    title: "Campus Infrastructure & Facilities",
-    slug: "campus-infrastructure-facilities",
-    description:
-      "A visual tour of our multimedia classrooms, science labs, central library, and green campus grounds.",
-    cover_image_url:
-      "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80",
-    category: "Facilities",
-    media_type: "photo",
-    status: "published",
-  },
-  {
-    id: "alb-2",
-    title: "Annual Athletics & Sports Competition",
-    slug: "annual-athletics-sports-competition",
-    description:
-      "High-energy highlights from sprint races, high jump, cricket tournament, and prize giving ceremony.",
-    cover_image_url:
-      "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80",
-    category: "Sports",
-    media_type: "photo",
-    status: "published",
-  },
-  {
-    id: "alb-3",
-    title: "Science Fair & Innovation Showcase",
-    slug: "science-fair-innovation-showcase",
-    description:
-      "Creative working models, environmental solutions, and robotics projects presented by young innovators.",
-    cover_image_url:
-      "https://images.unsplash.com/photo-1564981797816-1043664bf78d?auto=format&fit=crop&w=800&q=80",
-    category: "Academic",
-    media_type: "photo",
-    status: "published",
-  },
-];
+export const defaultAlbums: GalleryAlbumRecord[] = [];
 
 export const defaultDocuments: DocumentRecord[] = [
   {
@@ -378,12 +342,12 @@ export async function getGalleryAlbums(status?: string): Promise<GalleryAlbumRec
       else query = query.eq("status", "published");
 
       const { data, error } = await query;
-      if (!error && data && data.length > 0) return data as GalleryAlbumRecord[];
+      if (!error && data) return data as GalleryAlbumRecord[];
     } catch {
       // fallback
     }
   }
-  return defaultAlbums;
+  return [];
 }
 
 export async function getGalleryAlbumBySlug(slug: string): Promise<GalleryAlbumRecord | null> {
@@ -396,7 +360,7 @@ export async function getGalleryAlbumBySlug(slug: string): Promise<GalleryAlbumR
       // fallback
     }
   }
-  return defaultAlbums.find((a) => a.slug === slug) ?? null;
+  return null;
 }
 
 export async function getGalleryItems(albumId: string): Promise<GalleryItemRecord[]> {
@@ -408,7 +372,23 @@ export async function getGalleryItems(albumId: string): Promise<GalleryItemRecor
         .select("*")
         .eq("album_id", albumId)
         .order("position", { ascending: true });
-      if (!error && data && data.length > 0) return data as GalleryItemRecord[];
+      if (!error && data) return data as GalleryItemRecord[];
+    } catch {
+      // fallback
+    }
+  }
+  return [];
+}
+
+export async function getAllGalleryItems(): Promise<GalleryItemRecord[]> {
+  const supabase = mainPublic();
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from("gallery_items")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) return data as GalleryItemRecord[];
     } catch {
       // fallback
     }
@@ -418,58 +398,101 @@ export async function getGalleryItems(albumId: string): Promise<GalleryItemRecor
 
 /**
  * Fetch a random selection of gallery photos across all albums for the home page.
- * Falls back to cover images from albums when no items exist.
+ * Combines photos from gallery_items and album cover images, randomly shuffled.
+ */
+/**
+ * Fisher-Yates shuffle algorithm for truly unbiased random distribution.
+ */
+function fisherYatesShuffle<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Fetch a truly randomized selection of real gallery photos across all uploads for the home page.
+ * Never defaults to camera file names (IMG_8101.JPG), and shuffles on every request.
  */
 export async function getRandomGalleryPhotos(limit: number = 12): Promise<
-  { id: string; url: string; title: string | null; album_title?: string }[]
+  { id: string; url: string; title: string | null; album_title?: string; description?: string }[]
 > {
   const supabase = mainPublic();
   if (supabase) {
     try {
-      // Try fetching from gallery_items (individual photos)
-      const { data: items, error } = await supabase
-        .from("gallery_items")
-        .select("id, media_url, thumbnail_url, title, album_id")
-        .eq("media_type", "photo")
-        .limit(limit * 3); // fetch more, then shuffle server-side
+      const [itemsRes, albumsRes] = await Promise.all([
+        supabase
+          .from("gallery_items")
+          .select("id, media_url, thumbnail_url, title, album_id")
+          .eq("media_type", "photo")
+          .limit(100),
+        supabase
+          .from("gallery_albums")
+          .select("id, title, description, cover_image_url")
+          .eq("status", "published")
+          .limit(20),
+      ]);
 
-      if (!error && items && items.length > 0) {
-        // Server-side shuffle using sort by random-ish criteria
-        const shuffled = [...items].sort(() => Math.random() - 0.5).slice(0, limit);
-        return shuffled.map((item) => ({
-          id: item.id,
-          url: item.thumbnail_url || item.media_url,
-          title: item.title,
-        }));
+      const pool: { id: string; url: string; title: string | null; album_title?: string; description?: string }[] = [];
+
+      if (!itemsRes.error && itemsRes.data) {
+        itemsRes.data.forEach((item) => {
+          const url = item.thumbnail_url || item.media_url;
+          if (url) {
+            pool.push({
+              id: item.id,
+              url,
+              title: isMeaningfulTitle(item.title) ? item.title : null,
+            });
+          }
+        });
       }
 
-      // Fallback: use album cover images
-      const { data: albums } = await supabase
-        .from("gallery_albums")
-        .select("id, title, cover_image_url")
-        .eq("status", "published")
-        .limit(limit);
+      if (!albumsRes.error && albumsRes.data) {
+        albumsRes.data.forEach((alb) => {
+          if (alb.cover_image_url) {
+            pool.push({
+              id: alb.id,
+              url: alb.cover_image_url,
+              title: isMeaningfulTitle(alb.title) ? alb.title : null,
+              album_title: isMeaningfulTitle(alb.title) ? alb.title : undefined,
+              description: alb.description || undefined,
+            });
+          }
+        });
+      }
 
-      if (albums && albums.length > 0) {
-        return albums.map((a) => ({
-          id: a.id,
-          url: a.cover_image_url,
-          title: a.title,
-          album_title: a.title,
-        }));
+      if (pool.length > 0) {
+        const shuffled = fisherYatesShuffle(pool);
+        return shuffled.slice(0, limit);
       }
     } catch {
       // fallback to defaults below
     }
   }
 
-  // Final fallback: default album covers
-  return defaultAlbums.slice(0, limit).map((a) => ({
-    id: a.id,
-    url: a.cover_image_url,
-    title: a.title,
-    album_title: a.title,
-  }));
+  // Fallback: default showcase photos with clean titles
+  const defaultList = [
+    {
+      id: "f1",
+      url: "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1200&q=85",
+      title: null,
+    },
+    {
+      id: "f2",
+      url: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=85",
+      title: null,
+    },
+    {
+      id: "f3",
+      url: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=900&q=85",
+      title: null,
+    },
+  ];
+
+  return fisherYatesShuffle(defaultList).slice(0, limit);
 }
 
 /** Fetch documents */

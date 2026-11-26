@@ -1019,8 +1019,11 @@ footer.site-footer {
 }
 
 .reveal.show,
+.reveal.active,
 .reveal-left.show,
-.reveal-right.show {
+.reveal-left.active,
+.reveal-right.show,
+.reveal-right.active {
   opacity: 1;
   transform: translate(0, 0);
 }
@@ -1210,4 +1213,18 @@ footer.site-footer {
     opacity: 1;
     transform: none;
   }
+}
+
+/* ─── OPTIONAL BACKGROUND ANIMATION ─── */
+@keyframes moveBackground {
+  0% {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 -1000%;
+  }
+}
+
+.animate-moveBackground {
+  animation: moveBackground 80s linear infinite;
 }

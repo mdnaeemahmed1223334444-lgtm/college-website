@@ -1,17 +1,23 @@
 import Link from "next/link";
-import { getBrandingSettings } from "@/features/website/queries";
+import { getBrandingSettings, getHomepageSettings } from "@/features/website/queries";
 
 export default async function AdmissionCTA() {
-  const branding = await getBrandingSettings();
+  const [branding, homepage] = await Promise.all([
+    getBrandingSettings(),
+    getHomepageSettings(),
+  ]);
+
   const collegeName = branding.collegeName || "Dhaka Model College";
+  const ctaBg =
+    homepage.admissionCtaImageUrl ||
+    "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1600&q=80";
 
   return (
     <section
       className="cta relative text-white"
       id="admission"
       style={{
-        backgroundImage:
-          "url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1600&q=80')",
+        backgroundImage: `url('${ctaBg}')`,
       }}
     >
       <div className="cta-overlay" />

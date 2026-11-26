@@ -24,9 +24,9 @@ export default async function ContentManagementOverviewPage() {
       icon: "🖼️",
     },
     {
-      title: "Photo & Video Uploads",
+      title: "Media Uploads & File Center",
       href: "/admin/content/uploads",
-      desc: "Upload media to Cloudflare R2 and copy public image URLs.",
+      desc: "Batch upload photos, manage media assets, copy public URLs, and delete files.",
       icon: "☁️",
     },
     {

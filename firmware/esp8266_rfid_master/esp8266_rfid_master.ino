@@ -54,6 +54,7 @@
 #include <WiFiClient.h>
 #include <ArduinoJson.h>
 #include <EEPROM.h>
+#include <Ticker.h>
 #include "web_page.h"
 
 // ------------------------------------------------------------------------------
@@ -117,12 +118,16 @@ unsigned long lastScanMillis = 0;
 unsigned long lastWebPollMillis = 0;
 
 // Non-blocking Status LED State Variables
-bool isGreenLedActive = false;
-unsigned long greenLedStartTime = 0;
+// volatile: these are also touched by ledTicker, which runs even while
+// the main loop is blocked inside a slow HTTPS request.
+volatile bool isGreenLedActive = false;
+volatile unsigned long greenLedStartTime = 0;
 
-int redBlinksRemaining = 0;
-bool redLedState = false;
-unsigned long lastRedToggleMillis = 0;
+volatile int redBlinksRemaining = 0;
+volatile bool redLedState = false;
+volatile unsigned long lastRedToggleMillis = 0;
+
+Ticker ledTicker;   // drives green/red LED timing independently of loop()
 
 unsigned long lastRFIDCheckMillis = 0;
 
@@ -204,10 +209,11 @@ void showAttendanceError() {
     digitalWrite(LED_GREEN, LED_GREEN_OFF);
 
     // Start 3-blink sequence (1st ON phase active immediately, 5 transitions left)
+    // redBlinksRemaining is set LAST so the ticker never sees a half-set state.
     digitalWrite(LED_RED, LED_RED_ON);
     redLedState = true;
-    redBlinksRemaining = 5;
     lastRedToggleMillis = millis();
+    redBlinksRemaining = 5;
 }
 
 /**
@@ -239,11 +245,17 @@ void updateStatusLEDs() {
         }
     }
 
-    // 3. Periodic RFID reader communication check (every 1000ms)
+}
+
+/**
+ * Periodic RFID reader communication check (every 1000ms) for the Blue LED.
+ * Runs from loop() only (NOT from the ticker) because it uses SPI.
+ */
+void checkRFIDStatus() {
+    unsigned long now = millis();
     if (now - lastRFIDCheckMillis >= 1000) {
         lastRFIDCheckMillis = now;
-        bool connected = isRFIDCommunicating();
-        setRFIDConnectionStatus(connected);
+        setRFIDConnectionStatus(isRFIDCommunicating());
     }
 }
 
@@ -659,6 +671,9 @@ void handleApiSubmitAttendance() {
 void pollWebsiteForCardWrite() {
     if (WiFi.status() != WL_CONNECTED || isWriteArmPending) return;
 
+    // Never start a slow HTTPS poll while a status LED sequence is playing
+    if (redBlinksRemaining > 0 || isGreenLedActive) return;
+
     unsigned long now = millis();
     if (now - lastWebPollMillis < 4000) return;
     lastWebPollMillis = now;
@@ -832,6 +847,9 @@ void setup() {
         Serial.print("Saved Wi-Fi: ");
         Serial.println(settings.ssid);
     }
+    // Update green/red LED timing every 10ms, even during blocking HTTP calls
+    ledTicker.attach_ms(10, updateStatusLEDs);
+
     Serial.println("LED Status: GREEN(D0)=Success, BLUE(D3)=Reader, RED(D4)=Error");
     Serial.println("System Status: READY");
     Serial.println("====================================");
@@ -842,8 +860,8 @@ void setup() {
 // MAIN LOOP
 // ------------------------------------------------------------------------------
 void loop() {
-    // 1. Non-blocking update of Status LEDs (handles timers, blinks, and periodic RFID checks)
-    updateStatusLEDs();
+    // 1. Green/Red LEDs are handled by ledTicker; only the Blue (RFID) check runs here
+    checkRFIDStatus();
 
     // 2. Handle Web Portal Requests (192.168.4.1)
     server.handleClient();
@@ -916,6 +934,9 @@ void loop() {
         lastScanMillis = now;
 
         sendAttendanceScan(currentUID, writtenData);
+
+        // Give the LED blink time to finish before the next background poll
+        lastWebPollMillis = millis();
     }
 
     rfid.PICC_HaltA();

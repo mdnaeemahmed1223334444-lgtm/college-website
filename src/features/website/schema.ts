@@ -39,6 +39,9 @@ export const homepageSchema = z.object({
   heroSecondaryText: safeString(""),
   heroSecondaryLink: safeString(""),
   bannerImageUrl: safeString(""),
+  aboutMainImageUrl: safeString(""),
+  aboutSecondaryImageUrl: safeString(""),
+  admissionCtaImageUrl: safeString(""),
   noticeTickerSpeed: z.preprocess((val) => (val ? Number(val) : 25), z.number()).default(25),
   noticeTickerText: safeString(""),
 });

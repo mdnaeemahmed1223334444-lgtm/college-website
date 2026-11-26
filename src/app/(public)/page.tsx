@@ -7,6 +7,9 @@ import HomeNotices from "@/components/home/HomeNotices";
 import CampusGallery from "@/components/home/CampusGallery";
 import AdmissionCTA from "@/components/home/AdmissionCTA";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default function HomePage() {
   return (
     <div>

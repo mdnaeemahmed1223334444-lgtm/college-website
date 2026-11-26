@@ -124,6 +124,9 @@ export async function updateHomepageAction(_prev: ActionFeedback, formData: Form
     heroSecondaryText: str("heroSecondaryText"),
     heroSecondaryLink: str("heroSecondaryLink"),
     bannerImageUrl: str("bannerImageUrl"),
+    aboutMainImageUrl: str("aboutMainImageUrl"),
+    aboutSecondaryImageUrl: str("aboutSecondaryImageUrl"),
+    admissionCtaImageUrl: str("admissionCtaImageUrl"),
     noticeTickerSpeed: formData.get("noticeTickerSpeed"),
     noticeTickerText: str("noticeTickerText"),
   });
@@ -132,9 +135,18 @@ export async function updateHomepageAction(_prev: ActionFeedback, formData: Form
     return { success: false, error: parsed.error.issues[0]?.message || "Invalid homepage data." };
   }
 
-  // Automatic cleanup of replaced banner image
+  // Automatic cleanup of replaced images
   if (existing.bannerImageUrl && existing.bannerImageUrl !== parsed.data.bannerImageUrl) {
     await deleteUploadedFile(existing.bannerImageUrl);
+  }
+  if (existing.aboutMainImageUrl && existing.aboutMainImageUrl !== parsed.data.aboutMainImageUrl) {
+    await deleteUploadedFile(existing.aboutMainImageUrl);
+  }
+  if (existing.aboutSecondaryImageUrl && existing.aboutSecondaryImageUrl !== parsed.data.aboutSecondaryImageUrl) {
+    await deleteUploadedFile(existing.aboutSecondaryImageUrl);
+  }
+  if (existing.admissionCtaImageUrl && existing.admissionCtaImageUrl !== parsed.data.admissionCtaImageUrl) {
+    await deleteUploadedFile(existing.admissionCtaImageUrl);
   }
 
   return saveSettingRecord("homepage", parsed.data);

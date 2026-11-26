@@ -37,12 +37,12 @@ export default async function PublicFooter({
           <div className="footer-about">
             <Link href="/" className="logo flex items-center gap-3 text-white group mb-3">
               {logoUrl ? (
-                <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-lg overflow-hidden bg-white/10 border border-[#c5a46d]/40 flex items-center justify-center p-1 shrink-0 backdrop-blur-xs transition-all duration-300 group-hover:scale-105 group-hover:border-[#c5a46d] shadow-xs">
+                <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-full overflow-hidden bg-white/5 border-2 border-[#c5a46d]/70 flex items-center justify-center p-0.5 shrink-0 backdrop-blur-xs transition-all duration-300 group-hover:scale-105 group-hover:border-[#dfc89f] shadow-md">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={logoUrl}
                     alt={collegeName}
-                    className="h-full w-full object-contain"
+                    className="h-full w-full object-cover rounded-full"
                   />
                 </div>
               ) : (
