@@ -8,13 +8,18 @@ export default function PortalShell({
   title,
   nav,
   userName,
+  logoutAction: customLogoutAction,
   children,
 }: {
   title: string;
   nav: NavNode[];
   userName?: string;
+  /** Optional custom logout action. Defaults to the Supabase admin logout. */
+  logoutAction?: () => Promise<void>;
   children: React.ReactNode;
 }) {
+  const handleLogout = customLogoutAction ?? logoutAction;
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="flex items-center justify-between border-b bg-white px-4 py-3">
@@ -22,7 +27,7 @@ export default function PortalShell({
         <div className="flex items-center gap-4 text-sm">
           {userName && <span className="text-gray-600">{userName}</span>}
           <Link href="/" className="text-blue-700 hover:underline">View website</Link>
-          <form action={logoutAction}>
+          <form action={handleLogout}>
             <button type="submit" className="rounded border px-3 py-1 hover:bg-gray-100">Logout</button>
           </form>
         </div>

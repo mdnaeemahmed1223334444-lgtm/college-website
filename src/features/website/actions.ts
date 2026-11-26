@@ -151,6 +151,17 @@ export async function updateHomepageAction(_prev: ActionFeedback, formData: Form
     await deleteUploadedFile(existing.admissionCtaImageUrl);
   }
 
+  // Update ScrollExpand enable/disable state if included in form submission
+  if (formData.has("scrollExpandEnabled")) {
+    const isScrollExpandEnabled = formData.get("scrollExpandEnabled") === "true";
+    const currentHero = await getScrollExpandHeroSettings();
+    await saveSettingRecord("scroll_expand_hero", {
+      ...currentHero,
+      enabled: isScrollExpandEnabled,
+    });
+    revalidatePath("/admin/website/scroll-expand-hero");
+  }
+
   return saveSettingRecord("homepage", parsed.data);
 }
 

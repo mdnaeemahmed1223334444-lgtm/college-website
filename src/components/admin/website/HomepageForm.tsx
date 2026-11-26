@@ -1,17 +1,104 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import Link from "next/link";
 import { updateHomepageAction } from "@/features/website/actions";
 import type { HomepageSettings, ActionFeedback } from "@/features/website/types";
 import { SubmitButton, FeedbackAlert } from "./FormControls";
 import ImageUploadInput from "@/components/shared/ImageUploadInput";
 
-export default function HomepageForm({ initialData }: { initialData: HomepageSettings }) {
+export default function HomepageForm({
+  initialData,
+  scrollExpandEnabled = true,
+}: {
+  initialData: HomepageSettings;
+  scrollExpandEnabled?: boolean;
+}) {
   const [state, formAction] = useActionState<ActionFeedback, FormData>(updateHomepageAction, {});
+  const [scrollExpandState, setScrollExpandState] = useState<boolean>(scrollExpandEnabled);
 
   return (
     <form action={formAction} className="max-w-3xl space-y-6 rounded-lg border bg-white p-6 shadow-sm">
       <FeedbackAlert state={state} />
+
+      {/* ── ScrollExpand Opening Animation Control ── */}
+      <div className="rounded-lg border border-indigo-200 bg-indigo-50/70 p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">✨</span>
+            <h3 className="text-sm font-bold text-indigo-950">
+              ScrollExpand Animation Setting
+            </h3>
+          </div>
+          <Link
+            href="/admin/website/scroll-expand-hero"
+            className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 underline"
+          >
+            Fine-tune animation parameters &rarr;
+          </Link>
+        </div>
+        <p className="text-xs text-indigo-700">
+          Control whether the interactive full-screen cinematic scroll-expand animation runs on the homepage.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <label
+            className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+              scrollExpandState
+                ? "border-indigo-600 bg-white ring-2 ring-indigo-500/20 shadow-xs"
+                : "border-gray-200 bg-white/60 hover:bg-white"
+            }`}
+          >
+            <input
+              type="radio"
+              name="scrollExpandEnabled"
+              value="true"
+              checked={scrollExpandState}
+              onChange={() => setScrollExpandState(true)}
+              className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
+            />
+            <div>
+              <div className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                <span>Enabled</span>
+                <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                  Active
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                Displays the smooth scroll-driven expanding photograph animation when the homepage loads.
+              </p>
+            </div>
+          </label>
+
+          <label
+            className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+              !scrollExpandState
+                ? "border-indigo-600 bg-white ring-2 ring-indigo-500/20 shadow-xs"
+                : "border-gray-200 bg-white/60 hover:bg-white"
+            }`}
+          >
+            <input
+              type="radio"
+              name="scrollExpandEnabled"
+              value="false"
+              checked={!scrollExpandState}
+              onChange={() => setScrollExpandState(false)}
+              className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
+            />
+            <div>
+              <div className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                <span>Disabled</span>
+                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-700">
+                  Standard Hero
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                Animation does not initialize or take up scroll space. Direct standard homepage hero is displayed.
+              </p>
+            </div>
+          </label>
+        </div>
+      </div>
 
       {/* ── Section 1: Main Banner ── */}
       <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 space-y-4">

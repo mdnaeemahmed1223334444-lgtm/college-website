@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import type { StudentAttendanceRecord, AttendanceStats, GateDeviceRecord } from "./types";
 
 interface Props {
@@ -17,7 +17,10 @@ export default function AttendanceDashboard({
   const [records, setRecords] = useState<StudentAttendanceRecord[]>(initialRecords);
   const [stats, setStats] = useState<AttendanceStats>(initialStats);
   const [devices, setDevices] = useState<GateDeviceRecord[]>(initialDevices);
-  const [selectedDate, setSelectedDate] = useState<string>(initialStats.date);
+
+  // Filter modes: "all" (all historical dates), "today", "yesterday", "custom"
+  const [dateFilterMode, setDateFilterMode] = useState<"all" | "today" | "yesterday" | "custom">("all");
+  const [customDate, setCustomDate] = useState<string>(initialStats.date);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -31,13 +34,32 @@ export default function AttendanceDashboard({
     message: string;
     student_name?: string;
     time?: string;
+    date?: string;
   } | null>(null);
 
-  // Refresh attendance data
-  async function refreshData(date = selectedDate) {
+  // Refresh attendance data based on current active filters
+  async function refreshData(mode = dateFilterMode, cDate = customDate) {
     setLoading(true);
     try {
-      const res = await fetch(`/api/attendance/records?date=${encodeURIComponent(date)}`);
+      const params = new URLSearchParams();
+      if (mode === "today") {
+        params.set("date", "today");
+      } else if (mode === "yesterday") {
+        params.set("date", "yesterday");
+      } else if (mode === "custom" && cDate) {
+        params.set("date", cDate);
+      } else {
+        params.set("date", "all");
+      }
+
+      if (statusFilter !== "all") {
+        params.set("status", statusFilter);
+      }
+      if (searchQuery.trim()) {
+        params.set("search", searchQuery.trim());
+      }
+
+      const res = await fetch(`/api/attendance/records?${params.toString()}`);
       if (res.ok) {
         const json = await res.json();
         if (json.success) {
@@ -53,10 +75,45 @@ export default function AttendanceDashboard({
     }
   }
 
-  // Handle Date Change
-  function handleDateChange(newDate: string) {
-    setSelectedDate(newDate);
-    refreshData(newDate);
+  // Handle Preset Mode Change
+  function handleModeChange(mode: "all" | "today" | "yesterday" | "custom") {
+    setDateFilterMode(mode);
+    refreshData(mode, customDate);
+  }
+
+  // Handle Custom Date Picker Change
+  function handleCustomDateChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value;
+    setCustomDate(val);
+    setDateFilterMode("custom");
+    refreshData("custom", val);
+  }
+
+  // Export filtered records to CSV
+  function handleExportCsv() {
+    if (filteredRecords.length === 0) return;
+
+    const headers = ["Date (DD-MM-YYYY)", "Day", "Student ID", "Student Name", "Class / Batch", "In Time", "Status", "Gate Device", "Remarks"];
+    const rows = filteredRecords.map((r) => [
+      `"${r.formatted_date || r.date}"`,
+      `"${r.day_of_week || ""}"`,
+      `"${r.student_code}"`,
+      `"${r.student_name.replace(/"/g, '""')}"`,
+      `"${(r.batch_name || "General").replace(/"/g, '""')}"`,
+      `"${r.formatted_time || r.in_time}"`,
+      `"${r.status.toUpperCase()}"`,
+      `"${r.device_id || "GATE-01"}"`,
+      `"${(r.remarks || "").replace(/"/g, '""')}"`,
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `college_attendance_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   // Submit scan via API directly from browser
@@ -86,11 +143,12 @@ export default function AttendanceDashboard({
         message: json.message || "Processed",
         student_name: json.student_name,
         time: json.time,
+        date: json.date,
       });
 
       if (json.success) {
         // Refresh records to show newly recorded row
-        await refreshData(selectedDate);
+        await refreshData(dateFilterMode, customDate);
       }
     } catch (err: any) {
       setTestResult({
@@ -103,7 +161,7 @@ export default function AttendanceDashboard({
     }
   }
 
-  // Filter records
+  // Filter records based on UI search and status
   const filteredRecords = records.filter((r) => {
     if (statusFilter !== "all" && r.status !== statusFilter) return false;
     if (searchQuery.trim()) {
@@ -111,160 +169,125 @@ export default function AttendanceDashboard({
       const matchName = r.student_name.toLowerCase().includes(q);
       const matchCode = r.student_code.toLowerCase().includes(q);
       const matchCard = r.rfid_card_id.toLowerCase().includes(q);
-      if (!matchName && !matchCode && !matchCard) return false;
+      const matchBatch = (r.batch_name || "").toLowerCase().includes(q);
+      const matchDate = (r.formatted_date || r.date).includes(q);
+      if (!matchName && !matchCode && !matchCard && !matchBatch && !matchDate) return false;
     }
     return true;
   });
 
   return (
     <div className="space-y-6">
-      {/* ── Top Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Attendance Management</h1>
-            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-              ● Live RFID Connected
+      {/* ── System Status & Gate Devices Bar ── */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3.5 w-3.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
             </span>
-          </div>
-          <p className="text-sm text-gray-500 mt-1">
-            Real-time gate scans, RFID student identity verification, and daily attendance logs.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => handleDateChange(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-xs focus:border-blue-500 focus:outline-none"
-          />
-          <button
-            onClick={() => refreshData()}
-            disabled={loading}
-            className="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-xs flex items-center gap-1.5 transition-colors disabled:opacity-50"
-          >
-            <span>🔄</span>
-            <span>{loading ? "Refreshing..." : "Refresh"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ── 4 Stats Cards ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
-          <div className="text-xs font-bold uppercase tracking-wider text-gray-400">Total Enrolled</div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-gray-900">{stats.totalStudents}</span>
-            <span className="text-xs font-bold text-gray-500">Students</span>
-          </div>
-          <div className="mt-3 text-xs text-gray-500">Active students in college system</div>
-        </div>
-
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-5 shadow-xs">
-          <div className="text-xs font-bold uppercase tracking-wider text-emerald-700">Present Today</div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-emerald-700">{stats.presentCount}</span>
-            <span className="text-xs font-bold text-emerald-800">
-              {stats.totalStudents > 0 ? Math.round((stats.presentCount / stats.totalStudents) * 100) : 0}%
-            </span>
-          </div>
-          <div className="mt-3 text-xs text-emerald-700">Arrived before 09:15 AM cutoff</div>
-        </div>
-
-        <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-5 shadow-xs">
-          <div className="text-xs font-bold uppercase tracking-wider text-amber-700">Late Arrivals</div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-amber-700">{stats.lateCount}</span>
-            <span className="text-xs font-bold text-amber-800">
-              {stats.totalStudents > 0 ? Math.round((stats.lateCount / stats.totalStudents) * 100) : 0}%
-            </span>
-          </div>
-          <div className="mt-3 text-xs text-amber-700">Scanned after 09:15 AM Asia/Dhaka</div>
-        </div>
-
-        <div className="rounded-xl border border-rose-100 bg-rose-50/40 p-5 shadow-xs">
-          <div className="text-xs font-bold uppercase tracking-wider text-rose-700">Absent / Unscanned</div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-rose-700">{stats.absentCount}</span>
-            <span className="text-xs font-bold text-rose-800">
-              {stats.totalStudents > 0 ? Math.round((stats.absentCount / stats.totalStudents) * 100) : 0}%
-            </span>
-          </div>
-          <div className="mt-3 text-xs text-rose-700">Not recorded at main gate</div>
-        </div>
-      </div>
-
-      {/* ── Hardware Scanner & Direct API Trigger Box ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Device Status */}
-        <div className="lg:col-span-1 rounded-xl border border-gray-200 bg-white p-5 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-sm text-gray-900">📡 Gate Scanner Hardware</h3>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                ONLINE
-              </span>
-            </div>
-            <div className="space-y-2.5 text-xs">
-              <div className="flex justify-between py-1 border-b border-gray-100">
-                <span className="text-gray-500">Device ID</span>
-                <span className="font-mono font-bold text-gray-800">GATE-01</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-gray-100">
-                <span className="text-gray-500">Location</span>
-                <span className="font-medium text-gray-800">Main Campus Entrance</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-gray-100">
-                <span className="text-gray-500">Hardware Reader</span>
-                <span className="font-medium text-gray-800">RC522 (13.56 MHz RFID)</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-gray-100">
-                <span className="text-gray-500">Microcontroller</span>
-                <span className="font-medium text-gray-800">ESP8266 NodeMCU V3</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-gray-500">API Endpoint</span>
-                <span className="font-mono text-xs text-blue-600 truncate max-w-[170px]">/api/attendance/scan</span>
-              </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-900">
+                RFID Gate Attendance System
+              </h2>
+              <p className="text-xs text-gray-500">
+                Real-time sync active • Bangladesh Standard Time (<code className="font-mono text-gray-700">Asia/Dhaka</code>)
+              </p>
             </div>
           </div>
 
-          <div className="mt-4 rounded-lg bg-gray-50 p-2.5 text-xs text-gray-600">
-            💡 Tapping your RFID card at the gate automatically posts scans to this backend and updates this screen.
+          {/* Connected Hardware Scanner Status */}
+          <div className="flex flex-wrap items-center gap-2">
+            {devices.map((dev) => (
+              <div
+                key={dev.id}
+                className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs"
+              >
+                <div
+                  className={`h-2 w-2 rounded-full ${
+                    dev.status === "online" ? "bg-emerald-500" : "bg-gray-400"
+                  }`}
+                />
+                <span className="font-semibold text-gray-800">{dev.device_id}</span>
+                <span className="text-gray-400">|</span>
+                <span className="text-gray-500">{dev.location}</span>
+                <span
+                  className={`rounded px-1.5 py-0.2 text-[10px] font-bold uppercase ${
+                    dev.status === "online"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  {dev.status}
+                </span>
+              </div>
+            ))}
+
+            <button
+              onClick={() => refreshData()}
+              disabled={loading}
+              className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-xs disabled:opacity-50 transition-colors"
+            >
+              <span>{loading ? "Refreshing..." : "🔄 Refresh Data"}</span>
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Live Attendance API Simulator / Manual Trigger */}
-        <div className="lg:col-span-2 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/50 to-indigo-50/40 p-5 shadow-xs">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-bold text-sm text-blue-950 flex items-center gap-1.5">
-              <span>⚡</span>
-              <span>Submit Attendance via API (Live Test & Manual Scan)</span>
+      {/* ── Daily Summary Cards ── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 shadow-xs">
+          <div className="text-xs font-bold uppercase tracking-wider text-blue-800">Total Enrolled</div>
+          <div className="mt-2 text-2xl font-extrabold text-blue-900">{stats.totalStudents}</div>
+          <div className="mt-1 text-[11px] text-blue-700">Active College Students</div>
+        </div>
+
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 shadow-xs">
+          <div className="text-xs font-bold uppercase tracking-wider text-emerald-800">Present (On-Time)</div>
+          <div className="mt-2 text-2xl font-extrabold text-emerald-900">{stats.presentCount}</div>
+          <div className="mt-1 text-[11px] text-emerald-700">Arrived before 09:15 AM</div>
+        </div>
+
+        <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-4 shadow-xs">
+          <div className="text-xs font-bold uppercase tracking-wider text-amber-800">Late Arrivals</div>
+          <div className="mt-2 text-2xl font-extrabold text-amber-900">{stats.lateCount}</div>
+          <div className="mt-1 text-[11px] text-amber-700">Arrived after 09:15 AM</div>
+        </div>
+
+        <div className="rounded-xl border border-purple-100 bg-purple-50/60 p-4 shadow-xs">
+          <div className="text-xs font-bold uppercase tracking-wider text-purple-800">Attendance Rate</div>
+          <div className="mt-2 text-2xl font-extrabold text-purple-900">{stats.attendanceRate}%</div>
+          <div className="mt-1 text-[11px] text-purple-700">Today&apos;s Gate Turnout</div>
+        </div>
+      </div>
+
+      {/* ── Test Scan Console for Instant Verification ── */}
+      <div className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50/70 to-blue-50/70 p-4 shadow-xs">
+        <div className="max-w-2xl">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-base">💳</span>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-900">
+              Live Hardware Simulator / Manual Check-In
             </h3>
-            <span className="text-xs text-blue-700 bg-blue-100/70 font-semibold px-2 py-0.5 rounded">
-              POST /api/attendance/scan
-            </span>
           </div>
-          <p className="text-xs text-gray-600 mb-4">
-            Test the attendance backend instantly! Enter a Student ID (e.g. <code className="bg-white px-1 py-0.5 rounded font-mono text-blue-800">STU-2026-1003</code>) or burned RFID Card code (e.g. <code className="bg-white px-1 py-0.5 rounded font-mono text-blue-800">HRMDC-26-8503</code>) to trigger the live API.
+          <p className="text-xs text-gray-600 mb-3">
+            Simulate a gate scan or log attendance manually by typing a Student ID (e.g. <code className="bg-white px-1 py-0.5 rounded font-mono text-indigo-800">STU-2026-1003</code>) or burned RFID Card code (<code className="bg-white px-1 py-0.5 rounded font-mono text-indigo-800">HRMDC-26-8503</code>).
           </p>
 
-          <form onSubmit={handleApiSubmit} className="flex flex-col sm:flex-row gap-3">
+          <form onSubmit={handleApiSubmit} className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
               value={testIdentifier}
               onChange={(e) => setTestIdentifier(e.target.value)}
               placeholder="e.g. STU-2026-1003 or HRMDC-26-8503"
-              className="flex-1 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-xs font-mono font-medium text-gray-900 shadow-xs focus:border-blue-600 focus:outline-none"
+              className="flex-1 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-xs font-mono font-medium text-gray-900 shadow-xs focus:border-indigo-600 focus:outline-none"
             />
             <button
               type="submit"
               disabled={testSubmitting}
-              className="rounded-lg bg-blue-600 px-5 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-xs disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+              className="rounded-lg bg-indigo-600 px-5 py-2 text-xs font-bold text-white hover:bg-indigo-700 shadow-xs disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
             >
-              <span>{testSubmitting ? "Submitting..." : "⚡ Submit Attendance via API"}</span>
+              <span>{testSubmitting ? "Processing..." : "⚡ Log Gate Tap"}</span>
             </button>
           </form>
 
@@ -284,10 +307,15 @@ export default function AttendanceDashboard({
                   <span>{testResult.success ? "✅" : "❌"}</span>
                   <span>STATUS: {testResult.status}</span>
                 </span>
-                {testResult.time && <span>Time: {testResult.time}</span>}
+                <span className="font-mono">
+                  {testResult.date && `${testResult.date}, `}
+                  {testResult.time}
+                </span>
               </div>
               <div className="mt-1 text-xs">
-                {testResult.student_name && <p className="font-semibold">Student: {testResult.student_name}</p>}
+                {testResult.student_name && (
+                  <p className="font-semibold">Student: {testResult.student_name}</p>
+                )}
                 <p>{testResult.message}</p>
               </div>
             </div>
@@ -295,36 +323,110 @@ export default function AttendanceDashboard({
         </div>
       </div>
 
-      {/* ── Attendance Log Table ── */}
+      {/* ── Attendance Log Table & Filters ── */}
       <div className="rounded-xl border border-gray-200 bg-white shadow-xs overflow-hidden">
-        {/* Table Controls */}
-        <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50/50">
-          <div>
-            <h3 className="font-bold text-sm text-gray-900">Attendance Records ({filteredRecords.length})</h3>
-            <p className="text-xs text-gray-500">Date: {selectedDate} (Asia/Dhaka)</p>
+        {/* Table Filter Header */}
+        <div className="p-4 border-b border-gray-200 bg-gray-50/50 space-y-3">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-sm text-gray-900">
+                Attendance Log Records ({filteredRecords.length})
+              </h3>
+              <p className="text-xs text-gray-500">
+                Displaying:{" "}
+                <span className="font-semibold text-gray-800">
+                  {dateFilterMode === "all"
+                    ? "Complete Attendance History (All Dates)"
+                    : dateFilterMode === "today"
+                    ? `Today (${stats.formatted_date})`
+                    : dateFilterMode === "yesterday"
+                    ? "Yesterday"
+                    : `Selected Date (${customDate})`}
+                </span>
+              </p>
+            </div>
+
+            {/* Export CSV Button */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportCsv}
+                disabled={filteredRecords.length === 0}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-xs hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              >
+                <span>📥 Export CSV Report</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Search Input */}
-            <input
-              type="text"
-              placeholder="Search name, ID, or card..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-700 shadow-xs focus:border-blue-500 focus:outline-none w-48"
-            />
+          {/* Quick Date Presets and Filters */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-gray-200/60">
+            <span className="text-xs font-semibold text-gray-500">Date Range:</span>
 
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-xs focus:border-blue-500 focus:outline-none"
+            <button
+              onClick={() => handleModeChange("all")}
+              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+                dateFilterMode === "all"
+                  ? "bg-indigo-600 text-white shadow-xs"
+                  : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
+              }`}
             >
-              <option value="all">All Statuses</option>
-              <option value="present">Present Only</option>
-              <option value="late">Late Only</option>
-              <option value="absent">Absent Only</option>
-            </select>
+              All Dates (Full History)
+            </button>
+
+            <button
+              onClick={() => handleModeChange("today")}
+              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+                dateFilterMode === "today"
+                  ? "bg-indigo-600 text-white shadow-xs"
+                  : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              Today
+            </button>
+
+            <button
+              onClick={() => handleModeChange("yesterday")}
+              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+                dateFilterMode === "yesterday"
+                  ? "bg-indigo-600 text-white shadow-xs"
+                  : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              Yesterday
+            </button>
+
+            {/* Custom Date Picker */}
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={customDate}
+                onChange={handleCustomDateChange}
+                className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 shadow-xs focus:border-indigo-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              {/* Search Input */}
+              <input
+                type="text"
+                placeholder="Search student, ID, card..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-xs text-gray-700 shadow-xs focus:border-indigo-500 focus:outline-none w-48"
+              />
+
+              {/* Status Filter */}
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 shadow-xs focus:border-indigo-500 focus:outline-none"
+              >
+                <option value="all">All Statuses</option>
+                <option value="present">Present Only</option>
+                <option value="late">Late Only</option>
+                <option value="absent">Absent Only</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -333,34 +435,53 @@ export default function AttendanceDashboard({
           <table className="w-full text-left text-xs">
             <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider border-b border-gray-200">
               <tr>
+                <th className="px-4 py-3">Date (DD-MM-YYYY)</th>
+                <th className="px-4 py-3">Day</th>
                 <th className="px-4 py-3">Student Name</th>
                 <th className="px-4 py-3">Student ID</th>
                 <th className="px-4 py-3">Batch / Class</th>
-                <th className="px-4 py-3">In Time</th>
+                <th className="px-4 py-3">Check-In Time</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Card Key / UID</th>
-                <th className="px-4 py-3">Gate Scanner</th>
+                <th className="px-4 py-3">Scanner</th>
                 <th className="px-4 py-3">Remarks</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-gray-700">
               {filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                     <div className="text-2xl mb-2">📋</div>
-                    <p className="font-semibold text-gray-700">No attendance records found for this date.</p>
+                    <p className="font-semibold text-gray-700">No attendance records found.</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      Tap an RFID card on the gate scanner or click &quot;Submit Attendance via API&quot; above to log attendance.
+                      Try selecting &quot;All Dates (Full History)&quot; above or tap an RFID card at the gate scanner.
                     </p>
                   </td>
                 </tr>
               ) : (
                 filteredRecords.map((r) => (
-                  <tr key={r.id} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="px-4 py-3 font-semibold text-gray-900">{r.student_name}</td>
-                    <td className="px-4 py-3 font-mono font-bold text-blue-700">{r.student_code}</td>
-                    <td className="px-4 py-3 text-gray-600">{r.batch_name || "General"}</td>
-                    <td className="px-4 py-3 font-mono text-gray-800">{r.in_time}</td>
+                  <tr key={r.id} className="hover:bg-indigo-50/20 transition-colors">
+                    {/* Date in Bangladesh format DD-MM-YYYY */}
+                    <td className="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
+                      {r.formatted_date || r.date}
+                    </td>
+                    {/* Day of the Week */}
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      {r.day_of_week || "—"}
+                    </td>
+                    <td className="px-4 py-3 font-semibold text-gray-900">
+                      {r.student_name}
+                    </td>
+                    <td className="px-4 py-3 font-mono font-bold text-indigo-700 whitespace-nowrap">
+                      {r.student_code}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {r.batch_name || "General"}
+                    </td>
+                    {/* Time in Bangladesh 12-hour format */}
+                    <td className="px-4 py-3 font-mono font-bold text-gray-800 whitespace-nowrap">
+                      {r.formatted_time || r.in_time}
+                    </td>
                     <td className="px-4 py-3">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide ${
@@ -376,7 +497,9 @@ export default function AttendanceDashboard({
                     </td>
                     <td className="px-4 py-3 font-mono text-gray-600">{r.rfid_card_id}</td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">{r.device_id}</td>
-                    <td className="px-4 py-3 text-gray-500 truncate max-w-xs">{r.remarks || "Gate Tap"}</td>
+                    <td className="px-4 py-3 text-gray-500 truncate max-w-xs">
+                      {r.remarks || "Gate Tap"}
+                    </td>
                   </tr>
                 ))
               )}

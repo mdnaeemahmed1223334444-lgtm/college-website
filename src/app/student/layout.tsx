@@ -1,12 +1,23 @@
-import PortalShell from "@/components/layout/PortalShell";
-import { requireRole } from "@/lib/auth/current-user";
+import { redirect } from "next/navigation";
+import { getAuthenticatedStudent } from "@/features/students/auth";
+import { studentLogoutAction } from "@/features/students/auth-actions";
 import { studentNav } from "@/config/navigation/student";
+import PortalShell from "@/components/layout/PortalShell";
 
-// Only the "student" role may enter. (middleware.ts is the first check, this is the second.)
+// Student portal is protected via custom cookie session (HMAC-signed, 30 days).
+// This runs on every /student/* request (except /student/login which bypasses middleware).
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireRole(["student"]);
+  const student = await getAuthenticatedStudent();
+  if (!student) {
+    redirect("/student/login");
+  }
   return (
-    <PortalShell title="Student Portal" nav={studentNav} userName={user.fullName}>
+    <PortalShell
+      title="Student Portal"
+      nav={studentNav}
+      userName={student.full_name}
+      logoutAction={studentLogoutAction}
+    >
       {children}
     </PortalShell>
   );

@@ -7,10 +7,18 @@ import type { Role } from "@/types/roles";
  * First line of defence:
  *   /admin   -> admin only      /teacher -> teacher only      /student -> student only
  *   /login   -> logged-in users are sent to their own area
+ *
+ * Student area uses a custom HMAC-signed cookie (student_session), NOT Supabase JWT.
+ * So /student/login is public, and /student/* is guarded at page level (not middleware).
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const area = pathname.split("/")[1];
+
+  // /student/login is a public page (no auth required)
+  if (pathname === "/student/login") {
+    return NextResponse.next();
+  }
 
   // Testing bypass active when DEV_BYPASS_AUTH="true" OR when Supabase keys are not configured yet
   const isBypass =
@@ -20,6 +28,11 @@ export async function middleware(request: NextRequest) {
 
   if (isBypass) {
     if (area === "login") {
+      return NextResponse.next();
+    }
+
+    // For the student area in bypass mode, let pages do their own auth check
+    if (area === "student") {
       return NextResponse.next();
     }
 
@@ -53,6 +66,11 @@ export async function middleware(request: NextRequest) {
 
   if (area === "login") {
     return active && role ? redirectTo(roleHome(role)) : response;
+  }
+
+  // Student area uses custom cookie session — let pages handle auth
+  if (area === "student") {
+    return response;
   }
 
   if (!configured) return redirectTo("/login", { error: "config" });

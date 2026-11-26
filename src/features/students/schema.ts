@@ -52,6 +52,15 @@ export const studentSchema = z.object({
   guardian_relation: optionalString,
   photo_url: optionalString,
   rfid_card_id: optionalString,
+  rfid_card_data: optionalString,
+  // Extended fields
+  academic_session: optionalString,
+  admission_date: optionalString,
+  registration_number: optionalString,
+  previous_institution: optionalString,
+  document_url: optionalString,
+  document_name: optionalString,
+  password: optionalString,
   notes: optionalString,
 });
 

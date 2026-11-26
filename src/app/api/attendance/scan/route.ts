@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { privateAdmin } from "@/lib/supabase/private-server";
+import {
+  getDhakaDate,
+  formatDhakaTime,
+  formatDhakaDate,
+  DHAKA_TIMEZONE,
+} from "@/lib/utils/datetime";
 
-// In-memory counter for testing mode scan sequence
-let testScanCounter = 0;
-
-function getDhakaTime() {
+function getDhakaTimeParts() {
   const now = new Date();
   const dhakaFormatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Dhaka",
+    timeZone: DHAKA_TIMEZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -27,11 +30,7 @@ function getDhakaTime() {
   const timeStr = `${partMap.hour}:${partMap.minute}:${partMap.second}`;
   const hour = parseInt(partMap.hour, 10);
   const minute = parseInt(partMap.minute, 10);
-
-  // Formatted 12-hour string (e.g. "08:45:12 AM")
-  const h12 = hour % 12 || 12;
-  const ampm = hour >= 12 ? "PM" : "AM";
-  const formattedTime12 = `${String(h12).padStart(2, "0")}:${partMap.minute}:${partMap.second} ${ampm}`;
+  const formattedTime12 = formatDhakaTime(timeStr);
 
   return { dateStr, timeStr, hour, minute, formattedTime12 };
 }
@@ -41,8 +40,9 @@ function getDhakaTime() {
  * Handshake / Health-check endpoint for ESP8266 device initialization.
  */
 export async function GET(req: NextRequest) {
-  const deviceId = req.headers.get("x-device-id") || req.nextUrl.searchParams.get("device_id") || "GATE-01";
-  const { dateStr, formattedTime12 } = getDhakaTime();
+  const deviceId =
+    req.headers.get("x-device-id") || req.nextUrl.searchParams.get("device_id") || "GATE-01";
+  const { dateStr, formattedTime12 } = getDhakaTimeParts();
 
   return NextResponse.json({
     success: true,
@@ -50,18 +50,18 @@ export async function GET(req: NextRequest) {
     device_id: deviceId,
     server_time: formattedTime12,
     date: dateStr,
-    timezone: "Asia/Dhaka",
-    test_mode: true,
-    message: "RFID Attendance backend online (Test Mode: Unlimited Scans Enabled)",
+    formatted_date: formatDhakaDate(dateStr),
+    timezone: DHAKA_TIMEZONE,
+    message: "RFID Attendance backend online (Asia/Dhaka Standard Time)",
   });
 }
 
 /**
  * POST /api/attendance/scan
- * Main scan processing endpoint.
+ * Main RFID scan processing endpoint.
  * Accepts:
- *   - card_data: Custom text burned into Card Block 4 (e.g. "DMC-2026-102") [PRIMARY]
- *   - card_uid: Hardware 4-byte/7-byte UID (e.g. "A1B2C3D4") [SECONDARY / FALLBACK]
+ *   - card_data: Custom text burned into Card Block 4 (e.g. "HRMDC-26-8503" or student code)
+ *   - card_uid: Hardware physical UID (e.g. "6B452254")
  */
 export async function POST(req: NextRequest) {
   try {
@@ -74,9 +74,9 @@ export async function POST(req: NextRequest) {
     const deviceId = (body.device_id || deviceIdHeader || "GATE-01").trim();
     const token = (body.token || deviceTokenHeader || "").trim();
 
-    // Primary: Custom data written on card (e.g. "DMC-2026-102")
+    // Primary: Custom data written on card (e.g. "HRMDC-26-8503")
     const cardDataRaw = (body.card_data || body.written_data || "").trim();
-    // Secondary: Physical hardware UID (e.g. "A1B2C3D4")
+    // Secondary: Physical hardware UID (e.g. "6B452254")
     const cardUidRaw = (body.card_uid || body.uid || "").trim();
 
     const normalizedData = cardDataRaw;
@@ -93,9 +93,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { dateStr, timeStr, hour, minute, formattedTime12 } = getDhakaTime();
-    testScanCounter++;
-
+    const { dateStr, timeStr, hour, minute, formattedTime12 } = getDhakaTimeParts();
     const privClient = privateAdmin();
 
     if (privClient) {
@@ -127,7 +125,9 @@ export async function POST(req: NextRequest) {
         const { data: matchByData } = await privClient
           .from("students")
           .select("id, student_code, full_name, status, rfid_card_id, rfid_card_data")
-          .or(`student_code.ilike.${normalizedData},rfid_card_data.ilike.${normalizedData},rfid_card_id.ilike.${normalizedData}`)
+          .or(
+            `student_code.ilike.${normalizedData},rfid_card_data.ilike.${normalizedData},rfid_card_id.ilike.${normalizedData}`
+          )
           .maybeSingle();
 
         student = matchByData;
@@ -154,9 +154,10 @@ export async function POST(req: NextRequest) {
           uid: normalizedUid,
           card_data: normalizedData,
           time: formattedTime12,
+          date: formatDhakaDate(dateStr),
           message: normalizedData
             ? `Card data '${normalizedData}' is not registered`
-            : "This card is not registered",
+            : "This card is not registered to any student",
         });
       }
 
@@ -171,26 +172,65 @@ export async function POST(req: NextRequest) {
           student_name: student.full_name,
           student_code: student.student_code,
           time: formattedTime12,
-          message: "This card is disabled",
+          date: formatDhakaDate(dateStr),
+          message: "This student account is suspended/inactive",
         });
       }
 
-      // 3. Determine PRESENT vs LATE status (Cutoff: 09:15 AM Asia/Dhaka)
+      // 3. Duplicate scan prevention (Debounce cooldown: 3 minutes)
+      const { data: recentScan } = await privClient
+        .from("student_attendance")
+        .select("id, scan_timestamp, in_time, status")
+        .eq("student_id", student.id)
+        .eq("date", dateStr)
+        .order("scan_timestamp", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (recentScan) {
+        const lastScanTime = new Date(recentScan.scan_timestamp).getTime();
+        const diffSeconds = (Date.now() - lastScanTime) / 1000;
+
+        // If card was tapped within 180 seconds (3 mins), ignore duplicate tap
+        if (diffSeconds < 180) {
+          const displayStatus = recentScan.status === "late" ? "LATE" : "PRESENT";
+          return NextResponse.json({
+            success: true,
+            status: displayStatus,
+            identifier: normalizedData || student.student_code,
+            uid: normalizedUid,
+            card_data: normalizedData,
+            student_name: student.full_name,
+            student_code: student.student_code,
+            time: formatDhakaTime(recentScan.in_time),
+            date: formatDhakaDate(dateStr),
+            message: `Attendance already recorded today at ${formatDhakaTime(recentScan.in_time)} (Duplicate scan ignored)`,
+            duplicate_ignored: true,
+          });
+        }
+      }
+
+      // 4. Determine PRESENT vs LATE status (Cutoff: 09:15 AM Asia/Dhaka)
       const isLate = hour > 9 || (hour === 9 && minute > 15);
       const scanStatus: "present" | "late" = isLate ? "late" : "present";
       const displayStatus = isLate ? "LATE" : "PRESENT";
 
-      // 4. Record attendance log in database
-      // In testing mode: We record each scan so you can submit as many times as you want!
-      await privClient.from("student_attendance").insert({
+      // 5. Permanently record attendance in database
+      const { error: insertErr } = await privClient.from("student_attendance").insert({
         student_id: student.id,
         date: dateStr,
         in_time: timeStr,
         status: scanStatus,
         rfid_card_id: normalizedUid || normalizedData || "UNKNOWN",
         device_id: deviceId,
-        remarks: `Test scan #${testScanCounter} at ${formattedTime12} (Key: ${normalizedData || normalizedUid})`,
+        scan_timestamp: new Date().toISOString(),
+        remarks: `Gate check-in at ${formattedTime12} (Key: ${normalizedData || normalizedUid})`,
       });
+
+      if (insertErr) {
+        console.error("Failed to insert attendance record:", insertErr);
+        throw insertErr;
+      }
 
       // Update device last seen
       await privClient
@@ -207,13 +247,13 @@ export async function POST(req: NextRequest) {
         student_name: student.full_name,
         student_code: student.student_code,
         time: formattedTime12,
-        scan_count: testScanCounter,
-        message: `Attendance recorded successfully (Scan #${testScanCounter})`,
+        date: formatDhakaDate(dateStr),
+        message: `Attendance recorded successfully: ${displayStatus} at ${formattedTime12}`,
       });
     }
 
-    // ── Local Mock / Preview Mode Fallback ──
-    const displayId = normalizedData || normalizedUid || "DMC-2026-102";
+    // Local Fallback
+    const displayId = normalizedData || normalizedUid || "STU-2026-1003";
     const isLate = hour > 9 || (hour === 9 && minute > 15);
     const displayStatus = isLate ? "LATE" : "PRESENT";
 
@@ -221,13 +261,13 @@ export async function POST(req: NextRequest) {
       success: true,
       status: displayStatus,
       identifier: displayId,
-      uid: normalizedUid || "A1B2C3D4",
-      card_data: normalizedData || "DMC-2026-102",
-      student_name: "Rahim Ahmed",
+      uid: normalizedUid || "6B452254",
+      card_data: normalizedData || "HRMDC-26-8503",
+      student_name: "Student",
       student_code: displayId,
       time: formattedTime12,
-      scan_count: testScanCounter,
-      message: `Attendance recorded successfully (Test Scan #${testScanCounter})`,
+      date: formatDhakaDate(dateStr),
+      message: `Attendance recorded successfully (${displayStatus} at ${formattedTime12})`,
     });
   } catch (err: any) {
     console.error("Attendance scan API error:", err);

@@ -46,6 +46,11 @@ export default function StudentForm({
     batch_id: initialData?.batch_id || (batches[0]?.id ?? ""),
     study_group: initialData?.study_group || "science",
     roll: initialData?.roll ?? 1,
+    section: initialData?.section || "",
+    academic_session: initialData?.academic_session || "2025-2026",
+    admission_date: initialData?.admission_date ? initialData.admission_date.slice(0, 10) : "",
+    registration_number: initialData?.registration_number || "",
+    previous_institution: initialData?.previous_institution || "",
     status: initialData?.status || "active",
     gender: initialData?.gender || "male",
     religion: initialData?.religion || "Islam",
@@ -64,6 +69,10 @@ export default function StudentForm({
     guardian_relation: initialData?.guardian_relation || "Father",
     photo_url: initialData?.photo_url || "",
     rfid_card_id: initialData?.rfid_card_id || "",
+    rfid_card_data: initialData?.rfid_card_data || "",
+    document_url: initialData?.document_url || "",
+    document_name: initialData?.document_name || "",
+    password: "",
     notes: initialData?.notes || "",
   });
 
@@ -226,6 +235,28 @@ export default function StudentForm({
             </select>
           </div>
 
+          <div>
+            <label className="block text-xs font-bold text-gray-800">Section / Shift</label>
+            <input
+              name="section"
+              value={formValues.section}
+              onChange={handleChange}
+              placeholder="e.g. A, B, or Morning"
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-800">Academic Session</label>
+            <input
+              name="academic_session"
+              value={formValues.academic_session}
+              onChange={handleChange}
+              placeholder="e.g. 2025-2026"
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none font-mono text-xs"
+            />
+          </div>
+
           <div className="sm:col-span-2">
             <label className="block text-xs font-bold text-gray-800">
               Student ID / Code
@@ -238,6 +269,39 @@ export default function StudentForm({
               className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none font-mono text-xs"
             />
             <p className="text-[10px] text-gray-400 mt-0.5">Leave blank to auto-generate.</p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-800">Admission Date</label>
+            <input
+              type="date"
+              name="admission_date"
+              value={formValues.admission_date}
+              onChange={handleChange}
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-800">Board Registration Number</label>
+            <input
+              name="registration_number"
+              value={formValues.registration_number}
+              onChange={handleChange}
+              placeholder="e.g. 2018492019"
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none font-mono text-xs"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-bold text-gray-800">Previous School / Institution</label>
+            <input
+              name="previous_institution"
+              value={formValues.previous_institution}
+              onChange={handleChange}
+              placeholder="e.g. Motijheel Govt. Boys' High School"
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+            />
           </div>
         </div>
       </div>
@@ -640,6 +704,45 @@ export default function StudentForm({
 
           <div>
             <label className="block text-xs font-bold text-gray-800">
+              RFID Card Data / Payload (Optional)
+            </label>
+            <input
+              name="rfid_card_data"
+              value={formValues.rfid_card_data}
+              onChange={handleChange}
+              placeholder="Hardware card data string"
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none font-mono text-xs"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-800">
+              Student Document Name (Optional)
+            </label>
+            <input
+              name="document_name"
+              value={formValues.document_name}
+              onChange={handleChange}
+              placeholder="e.g. HSC Registration Slip / Transcript"
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-800">
+              Student Document File URL (Optional)
+            </label>
+            <input
+              name="document_url"
+              value={formValues.document_url}
+              onChange={handleChange}
+              placeholder="e.g. /uploads/documents/std-transcript.pdf or URL"
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none font-mono text-xs"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-bold text-gray-800">
               Administrative Notes
             </label>
             <textarea
@@ -650,6 +753,38 @@ export default function StudentForm({
               placeholder="e.g. Scholarship recipient, Olympiad winner, etc."
               className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Section 6: Student Portal Credentials */}
+      <div className="space-y-4">
+        <div className="border-b pb-2">
+          <h3 className="text-base font-bold text-gray-900">
+            6. Student Portal Authentication
+          </h3>
+          <p className="text-xs text-gray-500">
+            Set or reset password for the student to sign in at <code>/student/login</code>.
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+          <div className="max-w-md">
+            <label className="block text-xs font-bold text-gray-800">
+              {formValues.id ? "Set New Password (Leave blank to keep current)" : "Initial Password (Optional)"}
+            </label>
+            <input
+              type="password"
+              name="password"
+              value={formValues.password}
+              onChange={handleChange}
+              autoComplete="new-password"
+              placeholder={formValues.id ? "Enter new password (min 6 characters)" : "Defaults to student123 or Student ID"}
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+            />
+            <p className="text-[11px] text-gray-500 mt-1.5">
+              Passwords are cryptographically hashed using bcrypt (10 rounds). Plaintext passwords are never stored.
+            </p>
           </div>
         </div>
       </div>

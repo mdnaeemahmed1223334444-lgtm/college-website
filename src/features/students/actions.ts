@@ -6,6 +6,7 @@ import { privateAdmin } from "@/lib/supabase/private-server";
 import { deleteUploadedFile } from "@/lib/storage/uploader";
 import { studentSchema, batchSchema } from "./schema";
 import type { StudentFeedback } from "./types";
+import { hashPassword } from "./auth";
 
 function extractErrorMessage(err: any, fallback: string): string {
   const msg =
@@ -45,6 +46,12 @@ export async function saveStudentAction(
     const str = (key: string): string => (formData.get(key) as string) ?? "";
     const opt = (key: string): string | undefined => (formData.get(key) as string) || undefined;
 
+    const rawPassword = (formData.get("password") as string)?.trim();
+    let newPasswordHash: string | undefined = undefined;
+    if (rawPassword && rawPassword.length >= 6) {
+      newPasswordHash = await hashPassword(rawPassword);
+    }
+
     const parsed = studentSchema.safeParse({
       id,
       student_code,
@@ -72,6 +79,13 @@ export async function saveStudentAction(
       guardian_relation: opt("guardian_relation"),
       photo_url: opt("photo_url"),
       rfid_card_id: opt("rfid_card_id"),
+      rfid_card_data: opt("rfid_card_data"),
+      academic_session: opt("academic_session") || "2025-2026",
+      admission_date: normalizeOptionalDate(opt("admission_date")),
+      registration_number: opt("registration_number"),
+      previous_institution: opt("previous_institution"),
+      document_url: opt("document_url"),
+      document_name: opt("document_name"),
       notes: opt("notes"),
     });
 
@@ -79,26 +93,78 @@ export async function saveStudentAction(
       return { error: parsed.error.issues[0]?.message || "Validation failed" };
     }
 
-    const payload: Record<string, any> = {
-      ...parsed.data,
-      photo_key: parsed.data.photo_url || null, // Keep photo_key synced with photo_url
+    const privClient = privateAdmin();
+
+    // Prepare extended notes JSON to store extended fields & hashed password safely
+    let extendedData: Record<string, any> = {
+      academic_session: parsed.data.academic_session,
+      admission_date: parsed.data.admission_date,
+      registration_number: parsed.data.registration_number,
+      previous_institution: parsed.data.previous_institution,
+      document_url: parsed.data.document_url,
+      document_name: parsed.data.document_name,
+      admin_notes: parsed.data.notes || "",
     };
 
-    const privClient = privateAdmin();
+    if (newPasswordHash) {
+      extendedData.password_hash = newPasswordHash;
+      extendedData.password_updated_at = new Date().toISOString();
+    }
+
+    const payload: Record<string, any> = {
+      student_code: parsed.data.student_code,
+      full_name: parsed.data.full_name,
+      bangla_name: parsed.data.bangla_name,
+      batch_id: parsed.data.batch_id,
+      study_group: parsed.data.study_group,
+      roll: parsed.data.roll,
+      section: parsed.data.section,
+      status: parsed.data.status,
+      gender: parsed.data.gender,
+      religion: parsed.data.religion,
+      date_of_birth: parsed.data.date_of_birth,
+      blood_group: parsed.data.blood_group,
+      phone: parsed.data.phone,
+      email: parsed.data.email,
+      address: parsed.data.address,
+      permanent_address: parsed.data.permanent_address,
+      father_name: parsed.data.father_name,
+      father_phone: parsed.data.father_phone,
+      mother_name: parsed.data.mother_name,
+      mother_phone: parsed.data.mother_phone,
+      guardian_name: parsed.data.guardian_name,
+      guardian_phone: parsed.data.guardian_phone,
+      guardian_relation: parsed.data.guardian_relation,
+      photo_url: parsed.data.photo_url,
+      photo_key: parsed.data.photo_url || null,
+      rfid_card_id: parsed.data.rfid_card_id,
+      rfid_card_data: parsed.data.rfid_card_data,
+    };
 
     if (privClient) {
       if (id) {
         // Automatic cleanup of old unused student photo
         const { data: existing } = await privClient
           .from("students")
-          .select("photo_url, photo_key")
+          .select("photo_url, photo_key, notes")
           .eq("id", id)
           .single();
+
+        if (existing?.notes && existing.notes.startsWith("{")) {
+          try {
+            const oldNotes = JSON.parse(existing.notes);
+            if (!extendedData.password_hash && oldNotes.password_hash) {
+              extendedData.password_hash = oldNotes.password_hash;
+            }
+          } catch {}
+        }
 
         const oldPhoto = existing?.photo_url || existing?.photo_key;
         if (oldPhoto && oldPhoto !== payload.photo_url) {
           await deleteUploadedFile(oldPhoto);
         }
+
+        payload.notes = JSON.stringify(extendedData);
 
         const { error } = await privClient
           .from("students")
@@ -110,8 +176,7 @@ export async function saveStudentAction(
 
         if (error) throw error;
       } else {
-        // Remove undefined/null id so PostgreSQL uses default gen_random_uuid()
-        delete payload.id;
+        payload.notes = JSON.stringify(extendedData);
 
         const { error } = await privClient.from("students").insert({
           ...payload,

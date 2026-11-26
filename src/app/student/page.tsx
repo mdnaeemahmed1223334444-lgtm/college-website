@@ -1,6 +1,6 @@
-import PlaceholderPage from "@/components/shared/PlaceholderPage";
+import { redirect } from "next/navigation";
 
-// Student Dashboard
-export default function Page() {
-  return <PlaceholderPage href="/student" />;
+// Redirect root /student to the student dashboard
+export default function StudentRootPage() {
+  redirect("/student/dashboard");
 }

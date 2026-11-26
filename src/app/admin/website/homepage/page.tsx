@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { getHomepageSettings } from "@/features/website/queries";
+import { getHomepageSettings, getScrollExpandHeroSettings } from "@/features/website/queries";
 import HomepageForm from "@/components/admin/website/HomepageForm";
 
 export default async function ManageHomepagePage() {
-  const homepage = await getHomepageSettings();
+  const [homepage, scrollExpandHero] = await Promise.all([
+    getHomepageSettings(),
+    getScrollExpandHeroSettings(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -28,7 +31,7 @@ export default async function ManageHomepagePage() {
               Interactive ScrollExpand Opening Hero
             </h3>
             <p className="text-xs text-indigo-700 mt-0.5">
-              Looking to customize the cinematic full-screen opening animation that visitors see when first loading the website?
+              Current status: <span className="font-bold">{scrollExpandHero.enabled ? "Enabled (Displays on Homepage)" : "Disabled (Standard Hero Displayed)"}</span>
             </p>
           </div>
         </div>
@@ -36,12 +39,12 @@ export default async function ManageHomepagePage() {
           href="/admin/website/scroll-expand-hero"
           className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
         >
-          <span>Open Hero Settings</span>
+          <span>Advanced Hero Settings</span>
           <span>&rarr;</span>
         </Link>
       </div>
 
-      <HomepageForm initialData={homepage} />
+      <HomepageForm initialData={homepage} scrollExpandEnabled={scrollExpandHero.enabled} />
     </div>
   );
 }

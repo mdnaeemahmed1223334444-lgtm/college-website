@@ -43,6 +43,17 @@ export interface StudentRecord {
   photo_url?: string | null;
   photo_key?: string | null;
   rfid_card_id?: string | null;
+  rfid_card_data?: string | null;
+  // Extended Academic & Document fields
+  academic_session?: string | null;
+  admission_date?: string | null;
+  registration_number?: string | null;
+  previous_institution?: string | null;
+  document_url?: string | null;
+  document_name?: string | null;
+  // Account credential status
+  has_password?: boolean;
+  password_hash?: string | null;
   notes?: string | null;
   created_at: string;
   updated_at: string;
@@ -63,4 +74,5 @@ export interface StudentFeedback {
   error?: string;
   message?: string;
   studentId?: string;
+  generatedPassword?: string;
 }

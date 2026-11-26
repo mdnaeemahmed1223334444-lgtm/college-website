@@ -5,11 +5,29 @@ export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
     const date = searchParams.get("date") || undefined;
+    const startDate = searchParams.get("startDate") || undefined;
+    const endDate = searchParams.get("endDate") || undefined;
+    const month = searchParams.get("month") || undefined;
     const status = searchParams.get("status") || undefined;
     const search = searchParams.get("search") || undefined;
+    const studentId = searchParams.get("studentId") || undefined;
+    const studentCode = searchParams.get("studentCode") || undefined;
+    const batchId = searchParams.get("batchId") || undefined;
+    const studyGroup = searchParams.get("studyGroup") || undefined;
 
     const [records, stats, devices] = await Promise.all([
-      getAttendanceRecords({ date, status, search }),
+      getAttendanceRecords({
+        date,
+        startDate,
+        endDate,
+        month,
+        status,
+        search,
+        studentId,
+        studentCode,
+        batchId,
+        studyGroup,
+      }),
       getAttendanceStats(date),
       getGateDevices(),
     ]);
