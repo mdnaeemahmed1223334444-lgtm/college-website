@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { cookies } from "next/headers";
@@ -205,7 +206,7 @@ function formatStudentRecord(student: any): StudentRecord {
  * - Account active status (deactivated accounts lose access immediately)
  * - Testing mode support: dev_role="student" fallback
  */
-export async function getAuthenticatedStudent(): Promise<StudentRecord | null> {
+export const getAuthenticatedStudent = cache(async (): Promise<StudentRecord | null> => {
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
@@ -286,4 +287,4 @@ export async function getAuthenticatedStudent(): Promise<StudentRecord | null> {
     console.error("Error authenticating student session:", err);
     return null;
   }
-}
+});

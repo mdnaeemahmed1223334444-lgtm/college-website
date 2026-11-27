@@ -95,6 +95,7 @@ export default function PublicHeader({
                         <div key={child.href}>
                           <Link
                             href={child.href}
+                            prefetch={false}
                             className="block px-4 py-2 text-xs font-semibold text-gray-200 hover:text-[#dfc89f] hover:bg-white/5 transition-colors"
                           >
                             {child.title}
@@ -103,6 +104,7 @@ export default function PublicHeader({
                             <Link
                               key={sub.href}
                               href={sub.href}
+                              prefetch={false}
                               className="block py-1 pl-7 pr-4 text-[11px] text-gray-400 hover:text-white transition-colors"
                             >
                               ↳ {sub.title}

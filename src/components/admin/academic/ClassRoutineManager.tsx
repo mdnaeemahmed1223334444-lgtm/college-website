@@ -1,102 +1,17 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
-import { saveFullRoutineGridAction, publishRoutineGroupAction } from "@/features/academic/routine-actions";
+import { useState, useTransition } from "react";
+import { saveFullRoutineGridAction } from "@/features/academic/routine-actions";
 import type { ClassRoutineRecord } from "@/features/academic/types";
 import type { StaffProfileRecord } from "@/features/staff/types";
-
-export interface PeriodSlot {
-  number: number;
-  label: string;
-  defaultStart: string;
-  defaultEnd: string;
-}
-
-export const DEFAULT_PERIODS: PeriodSlot[] = [
-  { number: 1, label: "Period 1", defaultStart: "09:00", defaultEnd: "09:45" },
-  { number: 2, label: "Period 2", defaultStart: "09:45", defaultEnd: "10:30" },
-  { number: 3, label: "Period 3", defaultStart: "10:30", defaultEnd: "11:15" },
-  { number: 4, label: "Period 4", defaultStart: "11:15", defaultEnd: "12:00" },
-  { number: 5, label: "Period 5", defaultStart: "12:00", defaultEnd: "12:45" },
-  { number: 6, label: "Period 6", defaultStart: "12:45", defaultEnd: "13:30" },
-  { number: 7, label: "Period 7", defaultStart: "13:30", defaultEnd: "14:10" },
-];
-
-export const COLLEGE_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"];
-
-export const DEFAULT_ROUTINES_BY_GROUP: Record<string, Record<string, string[]>> = {
-  science: {
-    Sunday: ["Physics 1st Paper", "Chemistry 1st Paper", "Higher Math 1st Paper", "Biology 1st Paper", "Bangla 1st Paper", "English 1st Paper", "ICT"],
-    Monday: ["Chemistry 1st Paper", "Physics 1st Paper", "Biology 1st Paper", "Higher Math 1st Paper", "English 1st Paper", "Bangla 1st Paper", "Physics Practical"],
-    Tuesday: ["Higher Math 1st Paper", "Biology 1st Paper", "Physics 1st Paper", "Chemistry 1st Paper", "ICT", "English 2nd Paper", "Chemistry Practical"],
-    Wednesday: ["Biology 1st Paper", "Higher Math 1st Paper", "Chemistry 1st Paper", "Physics 1st Paper", "Bangla 2nd Paper", "English 2nd Paper", "Biology Practical"],
-    Thursday: ["Physics 2nd Paper", "Chemistry 2nd Paper", "Biology 2nd Paper", "Higher Math 2nd Paper", "ICT Lab", "General Science Review", "Physical Training (PT)"],
-  },
-  business_studies: {
-    Sunday: ["Accounting 1st Paper", "Business Organization", "Finance & Banking", "Economics 1st Paper", "Bangla 1st Paper", "English 1st Paper", "ICT"],
-    Monday: ["Business Organization", "Accounting 1st Paper", "Economics 1st Paper", "Finance & Banking", "English 1st Paper", "Bangla 1st Paper", "Business Math"],
-    Tuesday: ["Finance & Banking", "Economics 1st Paper", "Accounting 1st Paper", "Business Organization", "ICT", "English 2nd Paper", "Accounting Workshop"],
-    Wednesday: ["Economics 1st Paper", "Finance & Banking", "Business Organization", "Accounting 1st Paper", "Bangla 2nd Paper", "English 2nd Paper", "Case Studies"],
-    Thursday: ["Accounting 2nd Paper", "Business Org 2nd", "Finance 2nd Paper", "Economics 2nd Paper", "ICT Lab", "Career Guidance", "Physical Training (PT)"],
-  },
-  humanities: {
-    Sunday: ["History 1st Paper", "Civics & Governance", "Economics 1st Paper", "Social Work 1st Paper", "Bangla 1st Paper", "English 1st Paper", "ICT"],
-    Monday: ["Civics & Governance", "History 1st Paper", "Social Work 1st Paper", "Economics 1st Paper", "English 1st Paper", "Bangla 1st Paper", "General Studies"],
-    Tuesday: ["Economics 1st Paper", "Social Work 1st Paper", "History 1st Paper", "Civics & Governance", "ICT", "English 2nd Paper", "Debate & Logic"],
-    Wednesday: ["Social Work 1st Paper", "Economics 1st Paper", "Civics & Governance", "History 1st Paper", "Bangla 2nd Paper", "English 2nd Paper", "Literature & Culture"],
-    Thursday: ["History 2nd Paper", "Civics 2nd Paper", "Economics 2nd Paper", "Social Work 2nd Paper", "ICT Practical", "Reading / Library", "Physical Training (PT)"],
-  },
-};
-
-const GROUP_SUBJECT_SUGGESTIONS: Record<string, string[]> = {
-  science: [
-    "Physics 1st Paper",
-    "Physics 2nd Paper",
-    "Physics Practical",
-    "Chemistry 1st Paper",
-    "Chemistry 2nd Paper",
-    "Chemistry Practical",
-    "Higher Math 1st Paper",
-    "Higher Math 2nd Paper",
-    "Biology 1st Paper",
-    "Biology 2nd Paper",
-    "Bangla 1st Paper",
-    "Bangla 2nd Paper",
-    "English 1st Paper",
-    "English 2nd Paper",
-    "ICT",
-    "Physical Training (PT)",
-  ],
-  business_studies: [
-    "Accounting 1st Paper",
-    "Accounting 2nd Paper",
-    "Business Organization",
-    "Finance & Banking",
-    "Economics 1st Paper",
-    "Economics 2nd Paper",
-    "Bangla 1st Paper",
-    "Bangla 2nd Paper",
-    "English 1st Paper",
-    "English 2nd Paper",
-    "ICT",
-    "Physical Training (PT)",
-  ],
-  humanities: [
-    "History 1st Paper",
-    "History 2nd Paper",
-    "Civics & Governance",
-    "Economics 1st Paper",
-    "Economics 2nd Paper",
-    "Social Work 1st Paper",
-    "Social Work 2nd Paper",
-    "Bangla 1st Paper",
-    "Bangla 2nd Paper",
-    "English 1st Paper",
-    "English 2nd Paper",
-    "ICT",
-    "Physical Training (PT)",
-  ],
-};
+import {
+  PeriodSlot,
+  DEFAULT_PERIODS,
+  TIFFIN_BREAK,
+  COLLEGE_DAYS,
+  DEFAULT_ROUTINES_BY_GROUP,
+  GROUP_SUBJECT_SUGGESTIONS,
+} from "@/features/academic/routine-defaults";
 
 interface GridCell {
   day: string;
@@ -106,7 +21,7 @@ interface GridCell {
   subject: string;
   teacherName: string;
   isPhysicalTraining: boolean;
-  color?: string;
+  isPractical: boolean;
 }
 
 interface Props {
@@ -121,17 +36,18 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
   const [isPending, startTransition] = useTransition();
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  // Custom period timings
+  // Period timings
   const [periodTimings, setPeriodTimings] = useState<PeriodSlot[]>(DEFAULT_PERIODS);
   const [showTimingsModal, setShowTimingsModal] = useState(false);
 
-  // Modal for editing a specific cell
+  // Cell editor modal
   const [editingCell, setEditingCell] = useState<{
     day: string;
     periodNumber: number;
     subject: string;
     teacherName: string;
     isPhysicalTraining: boolean;
+    isPractical: boolean;
     startTime: string;
     endTime: string;
   } | null>(null);
@@ -141,12 +57,11 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Build grid data from database records or defaults
+  // Build grid data
   const [cellMap, setCellMap] = useState<Record<string, GridCell>>(() => {
     return buildInitialGrid(initialRecords, selectedBatch, selectedGroup, DEFAULT_PERIODS);
   });
 
-  // Switch batch or group
   const handleGroupChange = (group: string) => {
     setSelectedGroup(group);
     setCellMap(buildInitialGrid(initialRecords, selectedBatch, group, periodTimings));
@@ -165,7 +80,6 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
   ): Record<string, GridCell> {
     const map: Record<string, GridCell> = {};
 
-    // Filter DB records for selected batch and group
     const relevant = records.filter(
       (r) =>
         (r.batch_id === batchId || !r.batch_id) &&
@@ -179,7 +93,6 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
         const key = `${day}-${slot.number}`;
 
         if (hasDbData) {
-          // Find matching slot in DB records by day and matching time or sort_order
           const match = relevant.find(
             (r) =>
               r.day_of_week === day &&
@@ -189,24 +102,26 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
           );
 
           if (match) {
+            const sub = match.subject || "";
             map[key] = {
               day,
               periodNumber: slot.number,
               startTime: match.start_time?.slice(0, 5) || slot.defaultStart,
               endTime: match.end_time?.slice(0, 5) || slot.defaultEnd,
-              subject: match.subject || "",
+              subject: sub,
               teacherName: match.teacher_name || "",
-              isPhysicalTraining: Boolean(match.is_physical_training),
-              color: match.color || undefined,
+              isPhysicalTraining: Boolean(match.is_physical_training) || sub.toLowerCase().includes("physical training") || sub.toLowerCase().includes("(pt)"),
+              isPractical: Boolean(match.is_practical) || sub.toLowerCase().includes("practical"),
             };
             continue;
           }
         }
 
-        // Pre-fill with default routine table
+        // Default routine pre-fill
         const defaultSubjects = DEFAULT_ROUTINES_BY_GROUP[group]?.[day] || [];
         const defaultSubject = defaultSubjects[slot.number - 1] || "";
         const isPT = defaultSubject.toLowerCase().includes("physical training") || defaultSubject.toLowerCase().includes("(pt)");
+        const isPrac = defaultSubject.toLowerCase().includes("practical");
 
         map[key] = {
           day,
@@ -216,6 +131,7 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
           subject: defaultSubject,
           teacherName: "",
           isPhysicalTraining: isPT,
+          isPractical: isPrac,
         };
       }
     }
@@ -223,7 +139,6 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
     return map;
   }
 
-  // Handle cell click
   const openCellEditor = (day: string, slot: PeriodSlot) => {
     const key = `${day}-${slot.number}`;
     const cell = cellMap[key] || {
@@ -234,6 +149,7 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
       subject: "",
       teacherName: "",
       isPhysicalTraining: false,
+      isPractical: false,
     };
 
     setEditingCell({
@@ -242,6 +158,7 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
       subject: cell.subject,
       teacherName: cell.teacherName,
       isPhysicalTraining: cell.isPhysicalTraining,
+      isPractical: cell.isPractical,
       startTime: cell.startTime,
       endTime: cell.endTime,
     });
@@ -250,6 +167,9 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
   const handleSaveCell = () => {
     if (!editingCell) return;
     const key = `${editingCell.day}-${editingCell.periodNumber}`;
+    const sub = editingCell.subject.trim();
+    const isPT = editingCell.isPhysicalTraining || sub.toLowerCase().includes("physical training") || sub.toLowerCase().includes("(pt)");
+    const isPrac = editingCell.isPractical || sub.toLowerCase().includes("practical");
 
     setCellMap((prev) => ({
       ...prev,
@@ -258,9 +178,10 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
         periodNumber: editingCell.periodNumber,
         startTime: editingCell.startTime,
         endTime: editingCell.endTime,
-        subject: editingCell.subject.trim(),
+        subject: sub,
         teacherName: editingCell.teacherName,
-        isPhysicalTraining: editingCell.isPhysicalTraining,
+        isPhysicalTraining: isPT,
+        isPractical: isPrac,
       },
     }));
 
@@ -280,14 +201,14 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
         subject: "",
         teacherName: "",
         isPhysicalTraining: false,
+        isPractical: false,
       },
     }));
     setEditingCell(null);
   };
 
-  // Reset to default 7-period routine table
   const handleResetToDefault = () => {
-    if (!confirm(`Reset timetable to default 7-period schedule for ${selectedGroup.toUpperCase()}?`)) return;
+    if (!confirm(`Reset timetable to default 7-period schedule with tiffin break for ${selectedGroup.toUpperCase()}?`)) return;
     const map: Record<string, GridCell> = {};
     for (const day of COLLEGE_DAYS) {
       for (const slot of periodTimings) {
@@ -295,6 +216,7 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
         const defaultSubjects = DEFAULT_ROUTINES_BY_GROUP[selectedGroup]?.[day] || [];
         const defaultSubject = defaultSubjects[slot.number - 1] || "";
         const isPT = defaultSubject.toLowerCase().includes("physical training") || defaultSubject.toLowerCase().includes("(pt)");
+        const isPrac = defaultSubject.toLowerCase().includes("practical");
         map[key] = {
           day,
           periodNumber: slot.number,
@@ -303,6 +225,7 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
           subject: defaultSubject,
           teacherName: "",
           isPhysicalTraining: isPT,
+          isPractical: isPrac,
         };
       }
     }
@@ -310,7 +233,6 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
     showToast("success", "Loaded default 7-period routine table. Click 'Save Full Routine' to commit.");
   };
 
-  // Save full routine to DB
   const handleSaveFullRoutine = async (publish: boolean = true) => {
     startTransition(async () => {
       const itemsToSave = Object.values(cellMap).map((c) => ({
@@ -320,6 +242,7 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
         subject: c.subject,
         teacher_name: c.teacherName || null,
         is_physical_training: c.isPhysicalTraining,
+        is_practical: c.isPractical,
         sort_order: c.periodNumber,
       }));
 
@@ -343,6 +266,14 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
     });
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Group periods into before tiffin (1..3) and after tiffin (4..7)
+  const periodsBeforeTiffin = periodTimings.filter((p) => p.number <= 3);
+  const periodsAfterTiffin = periodTimings.filter((p) => p.number > 3);
+
   return (
     <div className="space-y-6">
       {/* Toast Notification */}
@@ -359,32 +290,39 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
       )}
 
       {/* Routine & Attendance Connection Notice */}
-      <div className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="print:hidden rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex items-start gap-3">
           <span className="text-2xl mt-0.5">🔗</span>
           <div>
             <h2 className="text-xs font-black uppercase tracking-wider text-blue-900">
-              Timetable Connected to RFID Gate Attendance
+              Timetable Connected to RFID Gate Attendance & Tiffin Recess
             </h2>
-            <p className="text-xs text-blue-800 mt-0.5">
-              • <strong>Arrival Check-in:</strong> 09:00 AM (Period 1 start). Scans after 09:15 AM are marked <strong>LATE</strong>.<br />
-              • <strong>Departure Check-out:</strong> Expected at <strong>01:30 PM</strong> (after Period 6) or <strong>02:10 PM</strong> (after Period 7).<br />
-              • <strong>🏃 Physical Training (PT):</strong> Excluded from exit calculation so student scans during PT are <strong>not counted as leaving college</strong>.
+            <p className="text-xs text-blue-800 mt-0.5 leading-relaxed">
+              • <strong>Arrival Check-in:</strong> 09:00 AM (Period 1 start). Late flag applies after 09:15 AM.<br />
+              • <strong>Tiffin Recess:</strong> 11:15 AM – 11:45 AM (after Period 3).<br />
+              • <strong>Regular Departure:</strong> Expected when regular theory classes end (e.g. 01:15 PM / 01:55 PM).<br />
+              • <strong>🏃 PT & 🔬 Practical Exemption:</strong> Students leaving before or during PT / Practical classes are <strong>NOT flagged as left early</strong>.
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
+            onClick={handlePrint}
+            className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-xs transition"
+          >
+            🖨️ Download PDF / Print
+          </button>
+          <button
             onClick={() => setShowTimingsModal(true)}
             className="rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-xs font-bold text-blue-800 hover:bg-blue-100/60 shadow-xs transition"
           >
-            ⚙️ Edit Period Times
+            ⚙️ Period Times
           </button>
         </div>
       </div>
 
       {/* Top Filter & Action Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
+      <div className="print:hidden flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
         <div className="flex flex-wrap items-center gap-4">
           {/* Batch Selector */}
           <div>
@@ -436,7 +374,6 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
           <button
             onClick={handleResetToDefault}
             className="rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-xs transition"
-            title="Reset this stream to standard 7-period schedule"
           >
             🔄 Reset to Default
           </button>
@@ -450,7 +387,18 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
         </div>
       </div>
 
-      {/* 7-Period Timetable Table */}
+      {/* Printable Heading */}
+      <div className="hidden print:block text-center py-2 border-b border-gray-200">
+        <h1 className="text-xl font-black text-gray-900">HAJI RANGU MIAH DEGREE COLLEGE</h1>
+        <p className="text-sm font-bold text-blue-800 mt-0.5">
+          Weekly Academic Timetable — {selectedGroup.toUpperCase()} STREAM
+        </p>
+        <p className="text-xs text-gray-500">
+          7 Periods Daily with Tiffin Break (11:15 AM – 11:45 AM)
+        </p>
+      </div>
+
+      {/* Unified 7-Period Timetable Table with Tiffin Break */}
       <div className="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -459,10 +407,30 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
                 <th className="px-4 py-3 border-r border-blue-600/50 w-28 uppercase tracking-wider">
                   Day
                 </th>
-                {periodTimings.map((slot) => (
+                {/* Periods 1-3 */}
+                {periodsBeforeTiffin.map((slot) => (
                   <th
                     key={slot.number}
-                    className="px-3 py-3 border-r border-blue-600/50 text-center min-w-[140px] last:border-0"
+                    className="px-3 py-3 border-r border-blue-600/50 text-center min-w-[130px]"
+                  >
+                    <div className="font-extrabold">{slot.label}</div>
+                    <div className="text-[10px] text-blue-200 font-mono font-normal">
+                      {slot.defaultStart} – {slot.defaultEnd}
+                    </div>
+                  </th>
+                ))}
+
+                {/* Tiffin Break Column Header */}
+                <th className="px-2 py-3 bg-amber-600 text-white text-center w-24 border-r border-amber-500">
+                  <div className="font-black text-[11px]">☕ TIFFIN</div>
+                  <div className="text-[9px] text-amber-100 font-mono">11:15–11:45</div>
+                </th>
+
+                {/* Periods 4-7 */}
+                {periodsAfterTiffin.map((slot) => (
+                  <th
+                    key={slot.number}
+                    className="px-3 py-3 border-r border-blue-600/50 text-center min-w-[130px] last:border-0"
                   >
                     <div className="font-extrabold">{slot.label}</div>
                     <div className="text-[10px] text-blue-200 font-mono font-normal">
@@ -481,8 +449,8 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
                     <div className="text-[10px] text-gray-500 font-normal">7 Periods</div>
                   </td>
 
-                  {/* 7 Period Cells */}
-                  {periodTimings.map((slot) => {
+                  {/* Periods 1 to 3 */}
+                  {periodsBeforeTiffin.map((slot) => {
                     const key = `${day}-${slot.number}`;
                     const cell = cellMap[key];
                     const hasSubject = cell && cell.subject.trim().length > 0;
@@ -491,8 +459,8 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
                       <td
                         key={slot.number}
                         onClick={() => openCellEditor(day, slot)}
-                        className={`px-2.5 py-2 border-r border-gray-200 last:border-0 cursor-pointer transition-all hover:ring-2 hover:ring-blue-400 hover:ring-inset ${
-                          cell?.isPhysicalTraining
+                        className={`px-2.5 py-2 border-r border-gray-200 cursor-pointer transition-all hover:ring-2 hover:ring-blue-400 hover:ring-inset ${
+                          cell?.isPhysicalTraining || cell?.isPractical
                             ? "bg-orange-50/60"
                             : hasSubject
                             ? "bg-white"
@@ -506,8 +474,80 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
                                 {cell.subject}
                               </span>
                               {cell.isPhysicalTraining && (
-                                <span className="shrink-0 rounded-full bg-orange-100 text-orange-800 border border-orange-300 px-1.5 py-0.5 text-[9px] font-black">
+                                <span className="shrink-0 rounded bg-orange-100 text-orange-800 border border-orange-300 px-1 py-0.2 text-[9px] font-black">
                                   PT
+                                </span>
+                              )}
+                              {cell.isPractical && (
+                                <span className="shrink-0 rounded bg-teal-100 text-teal-800 border border-teal-300 px-1 py-0.2 text-[9px] font-black">
+                                  Lab
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-gray-500 truncate flex items-center gap-1">
+                              {cell.teacherName ? (
+                                <>
+                                  <span>👨‍🏫</span>
+                                  <span className="font-semibold text-gray-700 truncate">
+                                    {cell.teacherName}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-amber-600 font-medium italic">
+                                  No teacher assigned
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="py-2 text-center text-[11px] text-gray-400 font-medium hover:text-blue-600">
+                            + Assign
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
+
+                  {/* Tiffin Break Column Body */}
+                  <td className="px-2 py-3 bg-amber-50/90 text-center border-r border-amber-200">
+                    <div className="text-[10px] font-extrabold text-amber-800 uppercase tracking-tighter">
+                      BREAK
+                    </div>
+                    <div className="text-[9px] text-amber-600 font-mono">30 min</div>
+                  </td>
+
+                  {/* Periods 4 to 7 */}
+                  {periodsAfterTiffin.map((slot) => {
+                    const key = `${day}-${slot.number}`;
+                    const cell = cellMap[key];
+                    const hasSubject = cell && cell.subject.trim().length > 0;
+
+                    return (
+                      <td
+                        key={slot.number}
+                        onClick={() => openCellEditor(day, slot)}
+                        className={`px-2.5 py-2 border-r border-gray-200 last:border-0 cursor-pointer transition-all hover:ring-2 hover:ring-blue-400 hover:ring-inset ${
+                          cell?.isPhysicalTraining || cell?.isPractical
+                            ? "bg-orange-50/60"
+                            : hasSubject
+                            ? "bg-white"
+                            : "bg-gray-50/40"
+                        }`}
+                      >
+                        {hasSubject ? (
+                          <div className="space-y-1">
+                            <div className="flex items-start justify-between gap-1">
+                              <span className="font-bold text-gray-900 leading-tight block">
+                                {cell.subject}
+                              </span>
+                              {cell.isPhysicalTraining && (
+                                <span className="shrink-0 rounded bg-orange-100 text-orange-800 border border-orange-300 px-1 py-0.2 text-[9px] font-black">
+                                  PT
+                                </span>
+                              )}
+                              {cell.isPractical && (
+                                <span className="shrink-0 rounded bg-teal-100 text-teal-800 border border-teal-300 px-1 py-0.2 text-[9px] font-black">
+                                  Lab
                                 </span>
                               )}
                             </div>
@@ -542,7 +582,7 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
       </div>
 
       {/* Weekend Off-Days Banner */}
-      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600 flex items-center justify-between">
+      <div className="print:hidden rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
           🎉 <strong>Friday & Saturday:</strong> Weekly College Holidays (Exempt from Attendance & Routines).
         </div>
@@ -616,8 +656,8 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
                 </p>
               </div>
 
-              {/* PT Toggle */}
-              <div className="rounded-xl border border-orange-200 bg-orange-50/70 p-3">
+              {/* PT & Practical Class Toggles */}
+              <div className="space-y-2 rounded-xl border border-orange-200 bg-orange-50/70 p-3">
                 <label className="flex items-start gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -630,8 +670,24 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
                       🏃 Physical Training (PT) Class
                     </span>
                     <span className="text-[10px] text-orange-800 leading-tight block mt-0.5">
-                      PT class will be shown in the student's routine, but RFID card scans during PT
-                      will <strong>NOT</strong> count as leaving college.
+                      Card scans during PT will <strong>NOT</strong> count as leaving college early.
+                    </span>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-2 cursor-pointer pt-1 border-t border-orange-200/60">
+                  <input
+                    type="checkbox"
+                    checked={editingCell.isPractical}
+                    onChange={(e) => setEditingCell((p) => p ? { ...p, isPractical: e.target.checked } : null)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                  />
+                  <div>
+                    <span className="font-bold text-teal-950 block">
+                      🔬 Practical / Laboratory Class
+                    </span>
+                    <span className="text-[10px] text-teal-800 leading-tight block mt-0.5">
+                      Exempt from theory checkout requirement: leaving before practical will <strong>NOT</strong> say left early.
                     </span>
                   </div>
                 </label>
@@ -676,7 +732,7 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
               <div>
                 <h3 className="font-bold text-sm">Configure 7 Periods Standard Timings</h3>
                 <p className="text-xs text-blue-200">
-                  Adjust start and end times for all 7 periods across the college routine.
+                  Tiffin break is automatically observed after Period 3 (11:15 AM – 11:45 AM).
                 </p>
               </div>
               <button
@@ -689,36 +745,41 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
 
             <div className="p-5 space-y-3 max-h-[60vh] overflow-y-auto text-xs">
               {periodTimings.map((slot, idx) => (
-                <div
-                  key={slot.number}
-                  className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-gray-100 bg-gray-50/70"
-                >
-                  <span className="font-bold text-gray-900 w-20">Period {slot.number}</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="time"
-                      value={slot.defaultStart}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setPeriodTimings((prev) =>
-                          prev.map((s, i) => (i === idx ? { ...s, defaultStart: val } : s))
-                        );
-                      }}
-                      className="rounded-lg border border-gray-300 px-2 py-1 text-xs font-mono font-bold"
-                    />
-                    <span className="text-gray-400 font-bold">to</span>
-                    <input
-                      type="time"
-                      value={slot.defaultEnd}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setPeriodTimings((prev) =>
-                          prev.map((s, i) => (i === idx ? { ...s, defaultEnd: val } : s))
-                        );
-                      }}
-                      className="rounded-lg border border-gray-300 px-2 py-1 text-xs font-mono font-bold"
-                    />
+                <div key={slot.number} className="space-y-2">
+                  <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-gray-100 bg-gray-50/70">
+                    <span className="font-bold text-gray-900 w-20">{slot.label}</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="time"
+                        value={slot.defaultStart}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPeriodTimings((prev) =>
+                            prev.map((s, i) => (i === idx ? { ...s, defaultStart: val } : s))
+                          );
+                        }}
+                        className="rounded-lg border border-gray-300 px-2 py-1 text-xs font-mono font-bold"
+                      />
+                      <span className="text-gray-400 font-bold">to</span>
+                      <input
+                        type="time"
+                        value={slot.defaultEnd}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPeriodTimings((prev) =>
+                            prev.map((s, i) => (i === idx ? { ...s, defaultEnd: val } : s))
+                          );
+                        }}
+                        className="rounded-lg border border-gray-300 px-2 py-1 text-xs font-mono font-bold"
+                      />
+                    </div>
                   </div>
+
+                  {slot.number === 3 && (
+                    <div className="rounded-lg bg-amber-50 border border-amber-200 p-2 text-center text-xs font-bold text-amber-900">
+                      ☕ Tiffin Break: 11:15 AM – 11:45 AM (Recess)
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

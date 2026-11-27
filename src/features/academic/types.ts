@@ -15,8 +15,9 @@ export interface ClassRoutineRecord {
   end_time: string;
   subject: string;
   teacher_name: string | null;
-  room_number: string | null;
+  room_number?: string | null;
   is_physical_training: boolean;
+  is_practical?: boolean;
   is_published: boolean;
   sort_order: number;
   color: string | null;

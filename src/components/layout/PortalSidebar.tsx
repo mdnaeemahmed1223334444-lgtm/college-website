@@ -69,6 +69,7 @@ export default function PortalSidebar({ items }: { items: NavNode[] }) {
               <div className="flex items-center">
                 <Link
                   href={item.href}
+                  prefetch={false}
                   className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
                     isExactActive && !hasChildren
                       ? "bg-blue-600 text-white shadow-xs"
@@ -121,6 +122,7 @@ export default function PortalSidebar({ items }: { items: NavNode[] }) {
                       <li key={child.href}>
                         <Link
                           href={child.href}
+                          prefetch={false}
                           className={`block rounded-md px-2.5 py-1.5 text-xs transition-colors ${
                             isChildCurrent
                               ? "bg-blue-600 text-white font-bold shadow-xs"

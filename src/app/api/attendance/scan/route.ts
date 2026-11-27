@@ -201,10 +201,14 @@ export async function POST(req: NextRequest) {
         // Class routines table fallback
       }
 
-      // Check if current scan is during a Physical Training (PT) period
-      const isPtClassNow = routineRecords.some(
+      // Check if current scan is during a Physical Training (PT) or Practical class period
+      const isPtOrPracticalClassNow = routineRecords.some(
         (r: any) =>
-          r.is_physical_training &&
+          (r.is_physical_training ||
+            r.is_practical ||
+            r.subject?.toLowerCase().includes("physical training") ||
+            r.subject?.toLowerCase().includes("(pt)") ||
+            r.subject?.toLowerCase().includes("practical")) &&
           r.start_time?.slice(0, 5) <= timeStr.slice(0, 5) &&
           r.end_time?.slice(0, 5) >= timeStr.slice(0, 5)
       );
@@ -241,11 +245,12 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        // PT class check: Physical training should not count as getting out of college
-        if (isPtClassNow) {
+        // PT / Practical class scan check:
+        // Physical training and practical classes are not counted as standard theory dismissal gates.
+        if (isPtOrPracticalClassNow) {
           return NextResponse.json({
             success: true,
-            status: "PT_SESSION",
+            status: "ACTIVITY_SESSION",
             identifier: normalizedData || student.student_code,
             uid: normalizedUid,
             card_data: normalizedData,
@@ -253,15 +258,26 @@ export async function POST(req: NextRequest) {
             student_code: student.student_code,
             time: formattedTime12,
             date: formatDhakaDate(dateStr),
-            message: `Physical Training (PT) scan recorded at ${formattedTime12}. Not counted as departure.`,
+            message: `Practical / PT session scan recorded at ${formattedTime12}. Not counted as departure.`,
           });
         }
 
         // Subsquent scan: CHECK-OUT / GETTING OUT OF COLLEGE
-        // Determine expected departure time from student's routine
+        // Determine expected dismissal time from student's regular theory classes
+        // (PT and Practical classes are excluded so students leaving after regular theory classes are NOT marked early)
+        const regularTheoryClasses = routineRecords.filter((r: any) => {
+          const sub = (r.subject || "").toLowerCase();
+          const isSpecial =
+            r.is_physical_training ||
+            r.is_practical ||
+            sub.includes("physical training") ||
+            sub.includes("(pt)") ||
+            sub.includes("practical");
+          return !isSpecial;
+        });
+
         let expectedExitTime = attSettings.exit_time_default || "13:30";
-        const regularClasses = routineRecords.filter((r: any) => !r.is_physical_training);
-        const targetClasses = regularClasses.length > 0 ? regularClasses : routineRecords;
+        const targetClasses = regularTheoryClasses.length > 0 ? regularTheoryClasses : routineRecords;
         if (targetClasses.length > 0) {
           const sortedByEnd = [...targetClasses].sort((a: any, b: any) =>
             (b.end_time || "").localeCompare(a.end_time || "")
@@ -306,7 +322,7 @@ export async function POST(req: NextRequest) {
           time: formattedTime12,
           date: formatDhakaDate(dateStr),
           message: isLeftEarly
-            ? `Early departure: Student left early at ${formattedTime12} (Scheduled departure: ${formatDhakaTime(expectedExitTime)})`
+            ? `Early departure: Student left early at ${formattedTime12} (Scheduled regular class end: ${formatDhakaTime(expectedExitTime)})`
             : `Check-out recorded successfully at ${formattedTime12}. Goodbye!`,
         });
       }

@@ -5,7 +5,7 @@ const links = [
   { title: "Apply Online",   href: "/admission/apply",       icon: "📝", color: "from-indigo-500 to-indigo-700" },
   { title: "Class Routine",  href: "/academic/class-routine", icon: "📅", color: "from-teal-500 to-teal-700" },
   { title: "Notices",        href: "/notices",               icon: "📢", color: "from-amber-500 to-amber-600" },
-  { title: "Student Portal", href: "/login",                 icon: "🔐", color: "from-purple-500 to-purple-700" },
+  { title: "Student Portal", href: "/student/dashboard",      icon: "🔐", color: "from-purple-500 to-purple-700" },
 ];
 
 export default function QuickLinks() {

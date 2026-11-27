@@ -66,6 +66,7 @@ export async function saveFullRoutineGridAction(
     subject: string;
     teacher_name?: string | null;
     is_physical_training?: boolean;
+    is_practical?: boolean;
     color?: string | null;
     sort_order?: number;
   }>,
@@ -92,19 +93,25 @@ export async function saveFullRoutineGridAction(
     // 2. Filter valid items and insert
     const validItems = items
       .filter((it) => it.subject && it.subject.trim().length > 0)
-      .map((it, idx) => ({
-        batch_id: batch_id || null,
-        study_group: study_group || null,
-        day_of_week: it.day_of_week,
-        start_time: it.start_time,
-        end_time: it.end_time,
-        subject: it.subject.trim(),
-        teacher_name: it.teacher_name || null,
-        is_physical_training: Boolean(it.is_physical_training),
-        is_published,
-        sort_order: it.sort_order ?? idx,
-        color: it.color || null,
-      }));
+      .map((it, idx) => {
+        const sub = it.subject.trim();
+        const isPT = Boolean(it.is_physical_training) || sub.toLowerCase().includes("physical training") || sub.toLowerCase().includes("(pt)");
+        const isPrac = Boolean(it.is_practical) || sub.toLowerCase().includes("practical");
+        return {
+          batch_id: batch_id || null,
+          study_group: study_group || null,
+          day_of_week: it.day_of_week,
+          start_time: it.start_time,
+          end_time: it.end_time,
+          subject: sub,
+          teacher_name: it.teacher_name || null,
+          is_physical_training: isPT,
+          is_practical: isPrac,
+          is_published,
+          sort_order: it.sort_order ?? idx,
+          color: it.color || null,
+        };
+      });
 
     if (validItems.length > 0) {
       const { error: insertErr } = await supabase.from("class_routines").insert(validItems);

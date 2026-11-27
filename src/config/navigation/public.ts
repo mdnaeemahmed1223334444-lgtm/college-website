@@ -212,7 +212,25 @@ export const publicNav: NavNode[] = [
     "href": "/contact"
   },
   {
-    "title": "Login / Portal",
-    "href": "/login"
+    "title": "Portals",
+    "href": "/login",
+    "children": [
+      {
+        "title": "Student Portal",
+        "href": "/student/dashboard"
+      },
+      {
+        "title": "Teacher Portal",
+        "href": "/teacher"
+      },
+      {
+        "title": "Admin Portal",
+        "href": "/admin"
+      },
+      {
+        "title": "All Portals Login",
+        "href": "/login"
+      }
+    ]
   }
 ];

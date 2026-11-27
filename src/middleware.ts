@@ -18,8 +18,9 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
 
-  // /student/login is a public page (no auth required)
-  if (pathname === "/student/login") {
+  // Student area uses custom HMAC-signed session cookies and is authenticated at layout level.
+  // Bypass Supabase edge middleware lookup completely for zero-latency response.
+  if (area === "student") {
     return NextResponse.next({
       request: {
         headers: requestHeaders,
@@ -91,14 +92,6 @@ export async function middleware(request: NextRequest) {
     return active && role ? redirectTo(roleHome(role)) : response;
   }
 
-  // Student area uses custom cookie session — let pages handle auth
-  if (area === "student") {
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
-  }
 
   if (!configured) return redirectTo("/login", { error: "config" });
   if (!active || !role) return redirectTo("/login", { next: pathname });
