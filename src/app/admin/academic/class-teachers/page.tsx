@@ -1,6 +1,5 @@
-import PlaceholderPage from "@/components/shared/PlaceholderPage";
+import { redirect } from "next/navigation";
 
-// Class Teacher Assignment
 export default function Page() {
-  return <PlaceholderPage href="/admin/academic/class-teachers" />;
+  redirect("/admin/staff/class-section");
 }

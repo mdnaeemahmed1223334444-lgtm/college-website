@@ -352,3 +352,86 @@ export async function adminResetTeacherPasswordAction(
     return { error: extractErrorMessage(err, "Failed to reset teacher password") };
   }
 }
+
+export async function assignSectionSubjectAction(
+  teacherId: string,
+  sectionCode: string,
+  subjectName: string
+): Promise<StaffFeedback> {
+  try {
+    await requireRole(["admin"]);
+    const privClient = privateAdmin();
+    if (!privClient) return { error: "Database not connected" };
+
+    const { data: teacher, error: fetchErr } = await privClient
+      .from("staff_profiles")
+      .select("assigned_subjects, assigned_classes")
+      .eq("id", teacherId)
+      .single();
+
+    if (fetchErr || !teacher) return { error: "Teacher not found" };
+
+    const existingSubjects: string[] = teacher.assigned_subjects || [];
+    const existingClasses: string[] = teacher.assigned_classes || [];
+
+    const updatedSubjects = Array.from(new Set([...existingSubjects, subjectName.trim()])).filter(Boolean);
+    const updatedClasses = Array.from(new Set([...existingClasses, sectionCode.trim()])).filter(Boolean);
+
+    const { error } = await privClient
+      .from("staff_profiles")
+      .update({
+        assigned_subjects: updatedSubjects,
+        assigned_classes: updatedClasses,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", teacherId);
+
+    if (error) throw error;
+
+    revalidatePath("/admin/staff/class-section");
+    revalidatePath("/admin/staff/subjects");
+    return { success: true, message: `Assigned ${subjectName} in ${sectionCode} successfully.` };
+  } catch (err: unknown) {
+    return { error: extractErrorMessage(err, "Failed to assign subject") };
+  }
+}
+
+export async function removeSectionSubjectAction(
+  teacherId: string,
+  sectionCode: string,
+  subjectName: string
+): Promise<StaffFeedback> {
+  try {
+    await requireRole(["admin"]);
+    const privClient = privateAdmin();
+    if (!privClient) return { error: "Database not connected" };
+
+    const { data: teacher, error: fetchErr } = await privClient
+      .from("staff_profiles")
+      .select("assigned_subjects, assigned_classes")
+      .eq("id", teacherId)
+      .single();
+
+    if (fetchErr || !teacher) return { error: "Teacher not found" };
+
+    const updatedSubjects = (teacher.assigned_subjects || []).filter(
+      (s: string) => s.toLowerCase() !== subjectName.toLowerCase()
+    );
+
+    const { error } = await privClient
+      .from("staff_profiles")
+      .update({
+        assigned_subjects: updatedSubjects,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", teacherId);
+
+    if (error) throw error;
+
+    revalidatePath("/admin/staff/class-section");
+    revalidatePath("/admin/staff/subjects");
+    return { success: true, message: `Removed ${subjectName} from teacher assignment.` };
+  } catch (err: unknown) {
+    return { error: extractErrorMessage(err, "Failed to remove subject") };
+  }
+}

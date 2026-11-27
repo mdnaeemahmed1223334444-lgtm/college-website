@@ -1,6 +1,5 @@
-import PlaceholderPage from "@/components/shared/PlaceholderPage";
+import { redirect } from "next/navigation";
 
-// Manage Subjects
 export default function Page() {
-  return <PlaceholderPage href="/admin/academic/subjects" />;
+  redirect("/admin/staff/subjects");
 }
