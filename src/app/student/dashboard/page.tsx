@@ -95,6 +95,51 @@ export default async function StudentDashboardPage() {
     }
   }
 
+  // If no DB routine exists for today and it's a weekday, show default 7-period schedule
+  if (todayClasses.length === 0 && !["Friday", "Saturday"].includes(todayDay)) {
+    const groupKey = student.study_group || "science";
+    const defaultPeriods = [
+      { start_time: "09:00", end_time: "09:45" },
+      { start_time: "09:45", end_time: "10:30" },
+      { start_time: "10:30", end_time: "11:15" },
+      { start_time: "11:15", end_time: "12:00" },
+      { start_time: "12:00", end_time: "12:45" },
+      { start_time: "12:45", end_time: "13:30" },
+      { start_time: "13:30", end_time: "14:10" },
+    ];
+    const defaultSubjects: Record<string, Record<string, string[]>> = {
+      science: {
+        Sunday: ["Physics 1st Paper", "Chemistry 1st Paper", "Higher Math 1st Paper", "Biology 1st Paper", "Bangla 1st Paper", "English 1st Paper", "ICT"],
+        Monday: ["Chemistry 1st Paper", "Physics 1st Paper", "Biology 1st Paper", "Higher Math 1st Paper", "English 1st Paper", "Bangla 1st Paper", "Physics Practical"],
+        Tuesday: ["Higher Math 1st Paper", "Biology 1st Paper", "Physics 1st Paper", "Chemistry 1st Paper", "ICT", "English 2nd Paper", "Chemistry Practical"],
+        Wednesday: ["Biology 1st Paper", "Higher Math 1st Paper", "Chemistry 1st Paper", "Physics 1st Paper", "Bangla 2nd Paper", "English 2nd Paper", "Biology Practical"],
+        Thursday: ["Physics 2nd Paper", "Chemistry 2nd Paper", "Biology 2nd Paper", "Higher Math 2nd Paper", "ICT Lab", "General Science Review", "Physical Training (PT)"],
+      },
+      business_studies: {
+        Sunday: ["Accounting 1st Paper", "Business Organization", "Finance & Banking", "Economics 1st Paper", "Bangla 1st Paper", "English 1st Paper", "ICT"],
+        Monday: ["Business Organization", "Accounting 1st Paper", "Economics 1st Paper", "Finance & Banking", "English 1st Paper", "Bangla 1st Paper", "Business Math"],
+        Tuesday: ["Finance & Banking", "Economics 1st Paper", "Accounting 1st Paper", "Business Organization", "ICT", "English 2nd Paper", "Accounting Workshop"],
+        Wednesday: ["Economics 1st Paper", "Finance & Banking", "Business Organization", "Accounting 1st Paper", "Bangla 2nd Paper", "English 2nd Paper", "Case Studies"],
+        Thursday: ["Accounting 2nd Paper", "Business Org 2nd", "Finance 2nd Paper", "Economics 2nd Paper", "ICT Lab", "Career Guidance", "Physical Training (PT)"],
+      },
+      humanities: {
+        Sunday: ["History 1st Paper", "Civics & Governance", "Economics 1st Paper", "Social Work 1st Paper", "Bangla 1st Paper", "English 1st Paper", "ICT"],
+        Monday: ["Civics & Governance", "History 1st Paper", "Social Work 1st Paper", "Economics 1st Paper", "English 1st Paper", "Bangla 1st Paper", "General Studies"],
+        Tuesday: ["Economics 1st Paper", "Social Work 1st Paper", "History 1st Paper", "Civics & Governance", "ICT", "English 2nd Paper", "Debate & Logic"],
+        Wednesday: ["Social Work 1st Paper", "Economics 1st Paper", "Civics & Governance", "History 1st Paper", "Bangla 2nd Paper", "English 2nd Paper", "Literature & Culture"],
+        Thursday: ["History 2nd Paper", "Civics 2nd Paper", "Economics 2nd Paper", "Social Work 2nd Paper", "ICT Practical", "Reading / Library", "Physical Training (PT)"],
+      },
+    };
+    const daySubjects = (defaultSubjects[groupKey] || defaultSubjects.science)[todayDay] || [];
+    todayClasses = daySubjects.map((sub, idx) => ({
+      subject: sub,
+      start_time: defaultPeriods[idx]?.start_time || "09:00",
+      end_time: defaultPeriods[idx]?.end_time || "10:00",
+      teacher_name: "Assigned Faculty",
+      is_physical_training: sub.toLowerCase().includes("physical training") || sub.toLowerCase().includes("(pt)"),
+    }));
+  }
+
   const studyGroupLabel: Record<string, string> = {
     science: "Science",
     business_studies: "Business Studies",
@@ -208,11 +253,9 @@ export default async function StudentDashboardPage() {
                   <span>
                     {c.start_time?.slice(0, 5)} – {c.end_time?.slice(0, 5)}
                   </span>
-                  {c.room_number && (
-                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
-                      {c.room_number}
-                    </span>
-                  )}
+                  <span className="rounded bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[10px] font-black text-blue-700">
+                    Period {i + 1}
+                  </span>
                 </div>
                 <h3 className="text-sm font-bold text-gray-900 truncate">{c.subject}</h3>
                 <div className="flex items-center justify-between mt-2 text-xs">

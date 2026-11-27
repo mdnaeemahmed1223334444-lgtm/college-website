@@ -76,7 +76,6 @@ export default async function TeacherRoutinesPage() {
                       <th className="px-4 py-3">Group</th>
                       <th className="px-4 py-3">Subject</th>
                       <th className="px-4 py-3">Teacher</th>
-                      <th className="px-4 py-3">Room</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -98,7 +97,6 @@ export default async function TeacherRoutinesPage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-gray-600">{r.teacher_name || "—"}</td>
-                        <td className="px-4 py-3 text-gray-500">{r.room_number || "—"}</td>
                       </tr>
                     ))}
                   </tbody>
