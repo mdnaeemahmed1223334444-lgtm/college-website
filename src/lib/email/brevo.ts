@@ -123,12 +123,29 @@ export async function sendBrevoEmail(payload: BrevoSendPayload): Promise<BrevoSe
       name: senderName,
       email: senderEmail,
     },
+    replyTo: {
+      name: senderName,
+      email: senderEmail,
+    },
     subject: payload.subject,
     htmlContent: payload.htmlContent,
   };
 
   if (payload.textContent) {
     requestBody.textContent = payload.textContent;
+  } else {
+    // Generate clean plaintext fallback from html to pass multipart spam checks
+    requestBody.textContent = payload.htmlContent
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<[^>]+>/g, "\n")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/\n\s*\n/g, "\n\n")
+      .trim();
   }
 
   // Format attachments if present
