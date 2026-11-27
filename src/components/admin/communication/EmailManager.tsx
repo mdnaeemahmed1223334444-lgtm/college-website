@@ -33,6 +33,7 @@ interface Props {
   students?: StudentRecord[];
   logs: BroadcastLogItem[];
   collegeName: string;
+  logoUrl?: string;
 }
 
 export default function EmailManager({
@@ -43,6 +44,7 @@ export default function EmailManager({
   students = [],
   logs,
   collegeName,
+  logoUrl,
 }: Props) {
   const [activeTab, setActiveTab] = useState<
     "compose" | "templates" | "ai_settings" | "blocked" | "settings" | "logs"
@@ -579,6 +581,7 @@ export default function EmailManager({
                 currentSubject={subjectText}
                 templates={templates}
                 collegeName={collegeName}
+                logoUrl={logoUrl}
                 onApplyHtml={(generatedHtml) => {
                   setPreAiHtml(currentHtml);
                   setCurrentHtml(generatedHtml);
@@ -923,6 +926,7 @@ export default function EmailManager({
         <EmailTemplateManager
           initialTemplates={templates}
           collegeName={collegeName}
+          logoUrl={logoUrl}
           onSelectTemplateForCompose={(tpl) => {
             if (tpl.sampleBody) {
               const formatted = tpl.sampleBody

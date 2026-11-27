@@ -37,6 +37,7 @@ export default async function ContentEmailBroadcastPage() {
         students={students}
         logs={logs}
         collegeName={branding.collegeName || "Dhaka Model College"}
+        logoUrl={branding.logoUrl || ""}
       />
     </div>
   );

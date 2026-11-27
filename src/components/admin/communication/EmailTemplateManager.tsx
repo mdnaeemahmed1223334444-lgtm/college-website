@@ -12,12 +12,14 @@ interface Props {
   initialTemplates: EmailTemplateItem[];
   onSelectTemplateForCompose?: (template: EmailTemplateItem) => void;
   collegeName?: string;
+  logoUrl?: string;
 }
 
 export default function EmailTemplateManager({
   initialTemplates,
   onSelectTemplateForCompose,
   collegeName = "Haji Rahmatullah Model Degree College",
+  logoUrl,
 }: Props) {
   const [templates, setTemplates] = useState<EmailTemplateItem[]>(initialTemplates);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplateItem>(
@@ -541,6 +543,16 @@ export default function EmailTemplateManager({
                   }}
                   className="text-white text-center"
                 >
+                  {logoUrl && (
+                    <div className="flex justify-center mb-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={logoUrl}
+                        alt={collegeName}
+                        className="h-11 w-11 sm:h-12 sm:w-12 rounded-full object-cover border-2 border-white/80 shadow-md"
+                      />
+                    </div>
+                  )}
                   <p
                     style={{
                       fontSize: previewDevice === "mobile" ? "11px" : "12px",

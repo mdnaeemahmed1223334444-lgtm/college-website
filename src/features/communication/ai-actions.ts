@@ -98,6 +98,7 @@ export async function generateAiEmailHtmlAction({
       accentColor,
       badgeLabel,
       collegeName,
+      logoUrl: branding?.logoUrl || "",
     });
   } catch (err: any) {
     return {

@@ -244,6 +244,7 @@ export async function generateBeautifiedEmailHtml({
   accentColor,
   badgeLabel,
   collegeName = "Haji Rahmatullah Model Degree College",
+  logoUrl,
 }: {
   rawText: string;
   subject?: string;
@@ -254,6 +255,7 @@ export async function generateBeautifiedEmailHtml({
   accentColor?: string;
   badgeLabel?: string;
   collegeName?: string;
+  logoUrl?: string;
 }): Promise<{ success: boolean; html?: string; error?: string }> {
   if (!rawText || rawText.trim().length === 0) {
     return { success: false, error: "Please enter the raw text of your email." };
@@ -311,9 +313,18 @@ ${rawText.trim()}
            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.06); border:1px solid #e2e8f0; margin:0 auto;">
    - Close all tables cleanly at the end.
 
-2. **Branded Header Banner (Stunning Visual Appeal):**
+2. **Branded Header Banner (Stunning Visual Appeal with Official College Logo):**
    - Top banner with background color "${pColor}" (or elegant gradient if celebration).
    - Padding: 30px 24px on desktop, scaling smoothly on mobile.
+   - Text alignment: Center.
+${
+  logoUrl
+    ? `   - **Official Logo Image:** Render the official college logo centered at the top of the header:
+     <div style="text-align:center; margin-bottom:12px;">
+       <img src="${logoUrl}" alt="${collegeName}" width="60" height="60" style="width:60px; height:60px; max-width:60px; border-radius:50%; object-fit:cover; display:inline-block; border:2px solid rgba(255,255,255,0.7); box-shadow:0 4px 12px rgba(0,0,0,0.2);" />
+     </div>`
+    : `   - Institution Monogram: Render a circular gold/white monogram symbol in the header.`
+}
    - Branded institution name: "${collegeName}" in crisp white font (font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ffffff; opacity: 0.95;).
    - Distinctive pill badge:
      <span style="display:inline-block; margin-top:8px; padding:4px 12px; border-radius:9999px; font-size:11px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; background-color:rgba(255,255,255,0.18); color:#ffffff; border:1px solid rgba(255,255,255,0.3);">${badge}</span>

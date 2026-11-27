@@ -15,6 +15,7 @@ interface Props {
   onOpenTemplatesManager?: () => void;
   templates?: EmailTemplateItem[];
   collegeName?: string;
+  logoUrl?: string;
 }
 
 export default function AiEmailGenerator({
@@ -25,6 +26,7 @@ export default function AiEmailGenerator({
   onOpenTemplatesManager,
   templates = defaultBuiltInTemplates,
   collegeName = "Haji Rahmatullah Model Degree College",
+  logoUrl,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [rawText, setRawText] = useState("");
@@ -253,6 +255,16 @@ export default function AiEmailGenerator({
                     }}
                     className="text-white text-center"
                   >
+                    {logoUrl && (
+                      <div className="flex justify-center mb-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={logoUrl}
+                          alt={collegeName}
+                          className="h-11 w-11 sm:h-12 sm:w-12 rounded-full object-cover border-2 border-white/80 shadow-md"
+                        />
+                      </div>
+                    )}
                     <p className="text-[11px] font-bold uppercase tracking-wider text-white/90">
                       {collegeName}
                     </p>

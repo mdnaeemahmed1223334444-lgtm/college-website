@@ -30,6 +30,7 @@ export default async function EmailCommunicationPage() {
         students={students}
         logs={logs}
         collegeName={branding.collegeName || "Dhaka Model College"}
+        logoUrl={branding.logoUrl || ""}
       />
     </div>
   );
