@@ -54,6 +54,7 @@ export interface StudentRecord {
   // Account credential status
   has_password?: boolean;
   password_hash?: string | null;
+  current_password?: string | null;
   notes?: string | null;
   created_at: string;
   updated_at: string;

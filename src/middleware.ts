@@ -9,15 +9,22 @@ import type { Role } from "@/types/roles";
  *   /login   -> logged-in users are sent to their own area
  *
  * Student area uses a custom HMAC-signed cookie (student_session), NOT Supabase JWT.
- * So /student/login is public, and /student/* is guarded at page level (not middleware).
+ * So /student/login is public, and /student/* is guarded at page/layout level.
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const area = pathname.split("/")[1];
 
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+
   // /student/login is a public page (no auth required)
   if (pathname === "/student/login") {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
   }
 
   // Testing bypass active when DEV_BYPASS_AUTH="true" OR when Supabase keys are not configured yet
@@ -28,17 +35,29 @@ export async function middleware(request: NextRequest) {
 
   if (isBypass) {
     if (area === "login") {
-      return NextResponse.next();
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
     }
 
     // For the student area in bypass mode, let pages do their own auth check
     if (area === "student") {
-      return NextResponse.next();
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
     }
 
     if (AREA_ROLE[area]) {
       const targetRole = AREA_ROLE[area] as Role;
-      const res = NextResponse.next();
+      const res = NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
       const currentDevRole = request.cookies.get("dev_role")?.value;
       if (currentDevRole !== targetRole) {
         res.cookies.set("dev_role", targetRole, { path: "/", maxAge: 60 * 60 * 24 });
@@ -46,7 +65,11 @@ export async function middleware(request: NextRequest) {
       return res;
     }
 
-    return NextResponse.next();
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
   }
 
   const { response, configured, userId, role, status } = await updateSession(request);
@@ -70,7 +93,11 @@ export async function middleware(request: NextRequest) {
 
   // Student area uses custom cookie session — let pages handle auth
   if (area === "student") {
-    return response;
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
   }
 
   if (!configured) return redirectTo("/login", { error: "config" });

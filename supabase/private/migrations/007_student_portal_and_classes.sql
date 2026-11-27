@@ -4,6 +4,7 @@
 
 -- 1. Extend students table with direct columns for portal authentication & academic history
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS password_hash TEXT;
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS current_password TEXT DEFAULT 'student123';
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS academic_session TEXT DEFAULT '2025-2026';
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS admission_date DATE;
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS registration_number TEXT;
@@ -11,6 +12,9 @@ ALTER TABLE public.students ADD COLUMN IF NOT EXISTS previous_institution TEXT;
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS document_url TEXT;
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS document_name TEXT;
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS rfid_card_data TEXT;
+
+-- Extend staff_profiles table with portal_password for teacher accounts
+ALTER TABLE public.staff_profiles ADD COLUMN IF NOT EXISTS portal_password TEXT DEFAULT 'teacher123';
 
 -- Index student_code for fast portal login lookup
 CREATE INDEX IF NOT EXISTS idx_students_student_code_lower ON public.students (LOWER(student_code));

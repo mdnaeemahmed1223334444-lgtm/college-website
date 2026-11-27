@@ -108,6 +108,7 @@ export async function saveStudentAction(
 
     if (newPasswordHash) {
       extendedData.password_hash = newPasswordHash;
+      extendedData.current_password = rawPassword;
       extendedData.password_updated_at = new Date().toISOString();
     }
 
@@ -155,6 +156,9 @@ export async function saveStudentAction(
             const oldNotes = JSON.parse(existing.notes);
             if (!extendedData.password_hash && oldNotes.password_hash) {
               extendedData.password_hash = oldNotes.password_hash;
+            }
+            if (!extendedData.current_password && oldNotes.current_password) {
+              extendedData.current_password = oldNotes.current_password;
             }
           } catch {}
         }

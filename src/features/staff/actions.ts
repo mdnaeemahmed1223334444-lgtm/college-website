@@ -317,3 +317,38 @@ export async function saveStaffAssignmentsAction(
     return { error: extractErrorMessage(err, "Failed to save assignments") };
   }
 }
+
+export async function adminResetTeacherPasswordAction(
+  staffId: string,
+  newPassword: string
+): Promise<StaffFeedback> {
+  try {
+    await requireRole(["admin"]);
+
+    if (!newPassword || newPassword.length < 6) {
+      return { error: "Password must be at least 6 characters long." };
+    }
+
+    const privClient = privateAdmin();
+    if (privClient) {
+      const { error } = await privClient
+        .from("staff_profiles")
+        .update({
+          portal_password: newPassword,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", staffId);
+
+      if (error) {
+        console.warn("Could not update portal_password in staff_profiles:", error.message);
+      }
+    }
+
+    revalidatePath("/admin/staff/accounts");
+    revalidatePath("/admin/staff");
+
+    return { success: true, message: "Teacher portal password updated successfully." };
+  } catch (err: unknown) {
+    return { error: extractErrorMessage(err, "Failed to reset teacher password") };
+  }
+}

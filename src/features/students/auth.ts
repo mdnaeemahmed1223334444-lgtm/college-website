@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { cookies } from "next/headers";
 import { privateAdmin } from "@/lib/supabase/private-server";
 import type { StudentRecord } from "./types";
+import { defaultStudents } from "./queries";
 
 const SESSION_COOKIE_NAME = "student_session";
 const SESSION_SECRET =
@@ -136,6 +137,65 @@ export async function destroyStudentSession(): Promise<void> {
   }
 }
 
+function formatStudentRecord(student: any): StudentRecord {
+  let extendedData: Record<string, any> = {};
+  if (student.notes) {
+    try {
+      if (student.notes.startsWith("{") && student.notes.endsWith("}")) {
+        extendedData = JSON.parse(student.notes);
+      }
+    } catch {
+      // regular notes
+    }
+  }
+
+  const batch = student.batches;
+  return {
+    id: student.id,
+    profile_id: student.profile_id,
+    student_code: student.student_code,
+    full_name: student.full_name,
+    bangla_name: student.bangla_name,
+    batch_id: student.batch_id,
+    batch_name: batch?.name || "General",
+    study_group: student.study_group,
+    roll: student.roll,
+    section: student.section,
+    status: student.status,
+    gender: student.gender,
+    religion: student.religion,
+    date_of_birth: student.date_of_birth,
+    blood_group: student.blood_group,
+    phone: student.phone,
+    email: student.email,
+    address: student.address,
+    permanent_address: student.permanent_address,
+    father_name: student.father_name,
+    father_phone: student.father_phone,
+    mother_name: student.mother_name,
+    mother_phone: student.mother_phone,
+    guardian_name: student.guardian_name,
+    guardian_phone: student.guardian_phone,
+    guardian_relation: student.guardian_relation,
+    photo_url: student.photo_url || student.photo_key,
+    photo_key: student.photo_key,
+    rfid_card_id: student.rfid_card_id,
+    rfid_card_data: student.rfid_card_data,
+    academic_session: student.academic_session || extendedData.academic_session || "2025-2026",
+    admission_date: student.admission_date || extendedData.admission_date,
+    registration_number: student.registration_number || extendedData.registration_number,
+    previous_institution: student.previous_institution || extendedData.previous_institution,
+    document_url: student.document_url || extendedData.document_url,
+    document_name: student.document_name || extendedData.document_name,
+    has_password: Boolean(student.password_hash || extendedData.password_hash || extendedData.current_password),
+    password_hash: student.password_hash || extendedData.password_hash,
+    current_password: student.current_password || extendedData.current_password || (student.password_hash ? undefined : "student123"),
+    notes: extendedData.admin_notes || student.notes,
+    created_at: student.created_at,
+    updated_at: student.updated_at,
+  };
+}
+
 /**
  * Retrieves the currently logged-in student from the persistent session.
  * Enforces:
@@ -143,11 +203,47 @@ export async function destroyStudentSession(): Promise<void> {
  * - 30-day expiration check
  * - Server database lookup
  * - Account active status (deactivated accounts lose access immediately)
+ * - Testing mode support: dev_role="student" fallback
  */
 export async function getAuthenticatedStudent(): Promise<StudentRecord | null> {
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+
+    const isDevBypass =
+      process.env.DEV_BYPASS_AUTH === "true" ||
+      !process.env.PRIVATE_SUPABASE_ANON_KEY ||
+      process.env.NODE_ENV !== "production";
+
+    // In dev / test bypass mode, if user selected student role, auto-authenticate
+    if (!sessionCookie && isDevBypass) {
+      const devRole = cookieStore.get("dev_role")?.value;
+      if (devRole === "student") {
+        const privClient = privateAdmin();
+        if (privClient) {
+          const { data: firstStudent } = await privClient
+            .from("students")
+            .select(`
+              *,
+              batches:batch_id (
+                id,
+                name
+              )
+            `)
+            .eq("status", "active")
+            .order("roll", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+          if (firstStudent) {
+            return formatStudentRecord(firstStudent);
+          }
+        }
+        return defaultStudents[0] || null;
+      }
+      return null;
+    }
+
     if (!sessionCookie) return null;
 
     const verified = verifyPayload(sessionCookie);
@@ -176,68 +272,13 @@ export async function getAuthenticatedStudent(): Promise<StudentRecord | null> {
       return null;
     }
 
-    // Account active check (part 3.2 item 7: If the admin deactivates an account, student must lose access)
+    // Account active check
     if (student.status !== "active") {
       await destroyStudentSession();
       return null;
     }
 
-    // Parse extended data from notes if present
-    let extendedData: Record<string, any> = {};
-    if (student.notes) {
-      try {
-        if (student.notes.startsWith("{") && student.notes.endsWith("}")) {
-          extendedData = JSON.parse(student.notes);
-        }
-      } catch {
-        // regular notes
-      }
-    }
-
-    const batch = student.batches;
-    return {
-      id: student.id,
-      profile_id: student.profile_id,
-      student_code: student.student_code,
-      full_name: student.full_name,
-      bangla_name: student.bangla_name,
-      batch_id: student.batch_id,
-      batch_name: batch?.name || "General",
-      study_group: student.study_group,
-      roll: student.roll,
-      section: student.section,
-      status: student.status,
-      gender: student.gender,
-      religion: student.religion,
-      date_of_birth: student.date_of_birth,
-      blood_group: student.blood_group,
-      phone: student.phone,
-      email: student.email,
-      address: student.address,
-      permanent_address: student.permanent_address,
-      father_name: student.father_name,
-      father_phone: student.father_phone,
-      mother_name: student.mother_name,
-      mother_phone: student.mother_phone,
-      guardian_name: student.guardian_name,
-      guardian_phone: student.guardian_phone,
-      guardian_relation: student.guardian_relation,
-      photo_url: student.photo_url || student.photo_key,
-      photo_key: student.photo_key,
-      rfid_card_id: student.rfid_card_id,
-      rfid_card_data: student.rfid_card_data,
-      academic_session: student.academic_session || extendedData.academic_session || "2025-2026",
-      admission_date: student.admission_date || extendedData.admission_date,
-      registration_number: student.registration_number || extendedData.registration_number,
-      previous_institution: student.previous_institution || extendedData.previous_institution,
-      document_url: student.document_url || extendedData.document_url,
-      document_name: student.document_name || extendedData.document_name,
-      has_password: Boolean(student.password_hash || extendedData.password_hash),
-      password_hash: student.password_hash || extendedData.password_hash,
-      notes: extendedData.admin_notes || student.notes,
-      created_at: student.created_at,
-      updated_at: student.updated_at,
-    };
+    return formatStudentRecord(student);
   } catch (err: any) {
     if (err?.digest === "DYNAMIC_SERVER_USAGE" || err?.message?.includes?.("Dynamic server usage")) {
       throw err;

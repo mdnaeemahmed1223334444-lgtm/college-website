@@ -48,12 +48,19 @@ export async function studentLoginAction(
   }
 
   try {
-    // 1. Resolve student by student_code or id
-    const { data: student, error } = await privClient
+    // 1. Resolve student by student_code (or id if UUID)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentIdRaw);
+    let studentQuery = privClient
       .from("students")
-      .select("id, student_code, full_name, status, notes")
-      .or(`student_code.ilike.${studentIdRaw},id.eq.${studentIdRaw}`)
-      .maybeSingle();
+      .select("id, student_code, full_name, status, notes, password_hash");
+
+    if (isUuid) {
+      studentQuery = studentQuery.or(`student_code.ilike.${studentIdRaw},id.eq.${studentIdRaw}`);
+    } else {
+      studentQuery = studentQuery.or(`student_code.ilike.${studentIdRaw},email.ilike.${studentIdRaw}`);
+    }
+
+    const { data: student, error } = await studentQuery.maybeSingle();
 
     if (error || !student) {
       recordFailedAttempt(studentIdRaw.toLowerCase());
@@ -94,9 +101,10 @@ export async function studentLoginAction(
         try {
           const notesObj = updatedNotes.startsWith("{") ? JSON.parse(updatedNotes) : {};
           notesObj.password_hash = initialHash;
+          notesObj.current_password = password;
           updatedNotes = JSON.stringify(notesObj);
         } catch {
-          updatedNotes = JSON.stringify({ password_hash: initialHash });
+          updatedNotes = JSON.stringify({ password_hash: initialHash, current_password: password });
         }
 
         await privClient
@@ -186,6 +194,7 @@ export async function adminResetStudentPasswordAction(
       }
     }
     notesObj.password_hash = hashed;
+    notesObj.current_password = newPassword;
     notesObj.password_updated_at = new Date().toISOString();
 
     const { error: updateErr } = await privClient

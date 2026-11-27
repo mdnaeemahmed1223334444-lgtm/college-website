@@ -209,11 +209,29 @@ export async function getStudents(filters?: {
 
       const { data, error } = await query;
       if (!error && data && data.length > 0) {
-        return data.map((d: any) => ({
-          ...d,
-          batch_name: d.batches?.name || "Unassigned",
-          photo_url: d.photo_url || d.photo_key || null,
-        })) as StudentRecord[];
+        return data.map((d: any) => {
+          let ext: Record<string, any> = {};
+          if (d.notes && d.notes.startsWith("{")) {
+            try {
+              ext = JSON.parse(d.notes);
+            } catch {}
+          }
+          return {
+            ...d,
+            batch_name: d.batches?.name || "Unassigned",
+            photo_url: d.photo_url || d.photo_key || null,
+            academic_session: d.academic_session || ext.academic_session || "2025-2026",
+            admission_date: d.admission_date || ext.admission_date,
+            registration_number: d.registration_number || ext.registration_number,
+            previous_institution: d.previous_institution || ext.previous_institution,
+            document_url: d.document_url || ext.document_url,
+            document_name: d.document_name || ext.document_name,
+            has_password: Boolean(d.password_hash || ext.password_hash || ext.current_password),
+            password_hash: d.password_hash || ext.password_hash,
+            current_password: d.current_password || ext.current_password || (d.password_hash ? undefined : "student123"),
+            notes: ext.admin_notes || d.notes,
+          };
+        }) as StudentRecord[];
       }
     } catch {
       // fallback
@@ -266,10 +284,26 @@ export async function getStudentById(id: string): Promise<StudentRecord | null> 
         .maybeSingle();
 
       if (!error && data) {
+        let ext: Record<string, any> = {};
+        if (data.notes && data.notes.startsWith("{")) {
+          try {
+            ext = JSON.parse(data.notes);
+          } catch {}
+        }
         return {
           ...data,
           batch_name: data.batches?.name || "Unassigned",
           photo_url: data.photo_url || data.photo_key || null,
+          academic_session: data.academic_session || ext.academic_session || "2025-2026",
+          admission_date: data.admission_date || ext.admission_date,
+          registration_number: data.registration_number || ext.registration_number,
+          previous_institution: data.previous_institution || ext.previous_institution,
+          document_url: data.document_url || ext.document_url,
+          document_name: data.document_name || ext.document_name,
+          has_password: Boolean(data.password_hash || ext.password_hash || ext.current_password),
+          password_hash: data.password_hash || ext.password_hash,
+          current_password: data.current_password || ext.current_password || (data.password_hash ? undefined : "student123"),
+          notes: ext.admin_notes || data.notes,
         } as StudentRecord;
       }
     } catch {

@@ -768,7 +768,18 @@ export default function StudentForm({
           </p>
         </div>
 
-        <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+        <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 space-y-3">
+          {initialData?.id && (
+            <div className="max-w-md rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 block">
+                Current Student Password:
+              </span>
+              <span className="font-mono text-sm font-bold text-amber-950 mt-1 block">
+                {initialData.current_password || (initialData.has_password ? "Custom (Encrypted)" : "student123 (Default)")}
+              </span>
+            </div>
+          )}
+
           <div className="max-w-md">
             <label className="block text-xs font-bold text-gray-800">
               {formValues.id ? "Set New Password (Leave blank to keep current)" : "Initial Password (Optional)"}

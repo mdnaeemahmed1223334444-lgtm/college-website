@@ -90,11 +90,13 @@ export default function LoginForm({ next }: { next?: string }) {
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">Email (optional during testing)</label>
+          <label className="mb-1 block text-xs font-medium text-gray-700">
+            Student ID / Teacher ID / Email
+          </label>
           <input
             name="email"
-            type="email"
-            placeholder="admin@college.edu"
+            type="text"
+            placeholder="e.g. STU-2026-1003, T-100, or admin@college.edu"
             autoComplete="username"
             className="w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
           />

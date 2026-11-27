@@ -18,10 +18,25 @@ export default function StudentAccountsManager({ students, batches }: Props) {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [isPending, startTransition] = useTransition();
 
+  // Map of student id -> boolean for toggling password visibility
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
   // Password reset modal state
   const [resetModalStudent, setResetModalStudent] = useState<StudentRecord | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [modalFeedback, setModalFeedback] = useState<{ error?: string; success?: string } | null>(null);
+
+  const togglePasswordVisibility = (id: string) => {
+    setVisiblePasswords((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const copyPassword = (id: string, pwd?: string | null) => {
+    const textToCopy = pwd || "student123";
+    navigator.clipboard.writeText(textToCopy);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   // Filter students
   const filteredStudents = students.filter((s) => {
@@ -86,6 +101,9 @@ export default function StudentAccountsManager({ students, batches }: Props) {
         setModalFeedback({ error: res.error });
       } else {
         setModalFeedback({ success: res.message || "Password updated successfully!" });
+        // Update local object so current password updates in UI
+        resetModalStudent.current_password = newPassword.trim();
+        resetModalStudent.has_password = true;
       }
     });
   };
@@ -169,7 +187,7 @@ export default function StudentAccountsManager({ students, batches }: Props) {
       <div className="rounded-xl border border-gray-200 bg-white shadow-xs overflow-hidden">
         <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
           <div className="text-sm font-bold text-gray-900">
-            Student Accounts ({filteredStudents.length})
+            Student Accounts &amp; Credentials ({filteredStudents.length})
           </div>
           <Link
             href="/admin/students/new"
@@ -188,6 +206,7 @@ export default function StudentAccountsManager({ students, batches }: Props) {
                 <th className="px-4 py-3">Batch &amp; Group</th>
                 <th className="px-4 py-3">Session</th>
                 <th className="px-4 py-3">Account Status</th>
+                <th className="px-4 py-3">Current Password</th>
                 <th className="px-4 py-3">RFID Card</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
@@ -195,113 +214,151 @@ export default function StudentAccountsManager({ students, batches }: Props) {
             <tbody className="divide-y divide-gray-100 text-gray-700">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-500">
+                  <td colSpan={8} className="p-8 text-center text-gray-500">
                     No student accounts matched your filter criteria.
                   </td>
                 </tr>
               ) : (
-                filteredStudents.map((student) => (
-                  <tr key={student.id} className="hover:bg-gray-50/50">
-                    {/* Student Info */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        {student.photo_url ? (
-                          <img
-                            src={student.photo_url}
-                            alt=""
-                            className="h-9 w-9 rounded-full object-cover ring-1 ring-gray-200"
-                          />
-                        ) : (
-                          <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center">
-                            {student.full_name?.charAt(0)}
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-bold text-gray-900">{student.full_name}</div>
-                          {student.bangla_name && (
-                            <div className="text-[11px] text-gray-500">{student.bangla_name}</div>
+                filteredStudents.map((student) => {
+                  const isVisible = visiblePasswords[student.id];
+                  const displayPassword = student.current_password || "student123";
+
+                  return (
+                    <tr key={student.id} className="hover:bg-gray-50/50">
+                      {/* Student Info */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          {student.photo_url ? (
+                            <img
+                              src={student.photo_url}
+                              alt=""
+                              className="h-9 w-9 rounded-full object-cover ring-1 ring-gray-200"
+                            />
+                          ) : (
+                            <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center">
+                              {student.full_name?.charAt(0)}
+                            </div>
                           )}
+                          <div>
+                            <div className="font-bold text-gray-900">{student.full_name}</div>
+                            {student.bangla_name && (
+                              <div className="text-[11px] text-gray-500">{student.bangla_name}</div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Code & Roll */}
-                    <td className="px-4 py-3">
-                      <div className="font-mono font-bold text-blue-700">{student.student_code}</div>
-                      <div className="text-[11px] text-gray-500">Roll: #{student.roll}</div>
-                    </td>
+                      {/* Code & Roll */}
+                      <td className="px-4 py-3">
+                        <div className="font-mono font-bold text-blue-700">{student.student_code}</div>
+                        <div className="text-[11px] text-gray-500">Roll: #{student.roll}</div>
+                      </td>
 
-                    {/* Batch */}
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-gray-900">{student.batch_name}</div>
-                      <div className="text-[11px] capitalize text-gray-500">
-                        {student.study_group?.replace("_", " ")}
-                      </div>
-                    </td>
+                      {/* Batch */}
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-gray-900">{student.batch_name}</div>
+                        <div className="text-[11px] capitalize text-gray-500">
+                          {student.study_group?.replace("_", " ")}
+                        </div>
+                      </td>
 
-                    {/* Academic Session */}
-                    <td className="px-4 py-3 font-mono text-gray-600">
-                      {student.academic_session || "2025-2026"}
-                    </td>
+                      {/* Academic Session */}
+                      <td className="px-4 py-3 font-mono text-gray-600">
+                        {student.academic_session || "2025-2026"}
+                      </td>
 
-                    {/* Status Badge */}
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase ${
-                          student.status === "active"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : student.status === "suspended"
-                            ? "bg-rose-100 text-rose-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {student.status}
-                      </span>
-                    </td>
-
-                    {/* RFID */}
-                    <td className="px-4 py-3 font-mono text-[11px] text-gray-500">
-                      {student.rfid_card_id || "—"}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {/* Reset Password */}
-                        <button
-                          type="button"
-                          onClick={() => handleOpenResetModal(student)}
-                          className="rounded border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 hover:bg-amber-100 transition"
-                          title="Reset student login password"
-                        >
-                          🔑 Reset Password
-                        </button>
-
-                        {/* Toggle Status */}
-                        <button
-                          type="button"
-                          disabled={isPending}
-                          onClick={() => handleToggleStatus(student)}
-                          className={`rounded px-2.5 py-1 text-xs font-bold transition ${
+                      {/* Status Badge */}
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase ${
                             student.status === "active"
-                              ? "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                              : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : student.status === "suspended"
+                              ? "bg-rose-100 text-rose-800"
+                              : "bg-gray-100 text-gray-800"
                           }`}
                         >
-                          {student.status === "active" ? "Deactivate" : "Activate"}
-                        </button>
+                          {student.status}
+                        </span>
+                      </td>
 
-                        {/* Edit Link */}
-                        <Link
-                          href={`/admin/students/${student.id}`}
-                          className="rounded border border-gray-300 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
-                        >
-                          Edit Profile
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      {/* Current Password (Admin Viewable) */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`font-mono text-xs font-bold px-2 py-0.5 rounded border ${
+                              isVisible
+                                ? "bg-amber-50 text-amber-900 border-amber-300"
+                                : "bg-gray-100 text-gray-500 border-gray-200"
+                            }`}
+                          >
+                            {isVisible ? displayPassword : "••••••••"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordVisibility(student.id)}
+                            className="text-gray-500 hover:text-gray-800 p-1 text-xs"
+                            title={isVisible ? "Hide Password" : "Show Current Password"}
+                          >
+                            {isVisible ? "🙈" : "👁️"}
+                          </button>
+                          {isVisible && (
+                            <button
+                              type="button"
+                              onClick={() => copyPassword(student.id, displayPassword)}
+                              className="text-gray-500 hover:text-blue-700 p-1 text-xs"
+                              title="Copy password to clipboard"
+                            >
+                              {copiedId === student.id ? "✅" : "📋"}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* RFID */}
+                      <td className="px-4 py-3 font-mono text-[11px] text-gray-500">
+                        {student.rfid_card_id || "—"}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {/* Reset Password */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenResetModal(student)}
+                            className="rounded border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 hover:bg-amber-100 transition"
+                            title="Reset student login password"
+                          >
+                            🔑 Reset
+                          </button>
+
+                          {/* Toggle Status */}
+                          <button
+                            type="button"
+                            disabled={isPending}
+                            onClick={() => handleToggleStatus(student)}
+                            className={`rounded px-2.5 py-1 text-xs font-bold transition ${
+                              student.status === "active"
+                                ? "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                                : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                            }`}
+                          >
+                            {student.status === "active" ? "Deactivate" : "Activate"}
+                          </button>
+
+                          {/* Edit Link */}
+                          <Link
+                            href={`/admin/students/${student.id}`}
+                            className="rounded border border-gray-300 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+                          >
+                            Edit
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -314,7 +371,7 @@ export default function StudentAccountsManager({ students, batches }: Props) {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="text-base font-bold text-gray-900">
-                Reset Password: {resetModalStudent.full_name}
+                Password Settings: {resetModalStudent.full_name}
               </h3>
               <button
                 type="button"
@@ -325,10 +382,30 @@ export default function StudentAccountsManager({ students, batches }: Props) {
               </button>
             </div>
 
+            {/* Current Password Display */}
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                Current Password on Record:
+              </div>
+              <div className="mt-1 flex items-center justify-between font-mono font-bold text-sm text-amber-950">
+                <span>{resetModalStudent.current_password || "student123 (Default)"}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    copyPassword(
+                      resetModalStudent.id,
+                      resetModalStudent.current_password || "student123"
+                    )
+                  }
+                  className="rounded border border-amber-300 bg-white px-2 py-0.5 text-xs text-amber-800 hover:bg-amber-100"
+                >
+                  {copiedId === resetModalStudent.id ? "Copied! ✅" : "Copy 📋"}
+                </button>
+              </div>
+            </div>
+
             <p className="text-xs text-gray-500">
-              Assign a new portal password for student ID{" "}
-              <strong className="font-mono text-gray-900">{resetModalStudent.student_code}</strong>.
-              The student will use this password to sign in at <code>/student/login</code>.
+              To change this password, enter a new one below or click Generate.
             </p>
 
             {modalFeedback?.error && (
@@ -345,7 +422,7 @@ export default function StudentAccountsManager({ students, batches }: Props) {
 
             <div className="space-y-2">
               <label className="block text-xs font-bold text-gray-700 uppercase">
-                New Password (minimum 6 characters)
+                Assign New Password (minimum 6 characters)
               </label>
               <div className="flex gap-2">
                 <input

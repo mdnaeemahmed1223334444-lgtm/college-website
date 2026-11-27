@@ -59,6 +59,7 @@ export interface StaffProfileRecord {
   assigned_classes?: string[];
   display_order?: number;
   show_on_website?: boolean;
+  portal_password?: string;
   created_at?: string;
   updated_at?: string;
 }

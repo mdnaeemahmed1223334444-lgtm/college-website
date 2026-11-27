@@ -569,6 +569,7 @@ export async function getStaffList(filter?: StaffFilter): Promise<StaffProfileRe
         let results = (data as StaffProfileRecord[]).map((item) => ({
           ...item,
           religion: item.religion || "Islam",
+          portal_password: (item as any).portal_password || (item.role === "teacher" ? "teacher123" : "staff123"),
         }));
         if (filter?.search) {
           const s = filter.search.toLowerCase();
@@ -627,6 +628,7 @@ export async function getStaffProfileById(id: string): Promise<StaffProfileRecor
         return {
           ...data,
           religion: data.religion || "Islam",
+          portal_password: (data as any).portal_password || (data.role === "teacher" ? "teacher123" : "staff123"),
         } as StaffProfileRecord;
       }
     }
