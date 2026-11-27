@@ -9,7 +9,7 @@ import type { Role } from "@/types/roles";
 import { loginSchema } from "./schema";
 import type { LoginState } from "./types";
 import { createStudentSession, verifyPassword } from "@/features/students/auth";
-import { getStudents } from "@/features/students/queries";
+import { getStudents, defaultStudents } from "@/features/students/queries";
 
 /** Only allow redirecting back to a path inside the user's own area. */
 function safeNext(next: FormDataEntryValue | null | string, role: Role): string {
@@ -23,6 +23,25 @@ const isDevAuthBypass = () =>
   !process.env.PRIVATE_SUPABASE_ANON_KEY ||
   process.env.NODE_ENV !== "production";
 
+async function getQuickStudentId(): Promise<string> {
+  const privClient = privateAdmin();
+  if (privClient) {
+    try {
+      const { data } = await privClient
+        .from("students")
+        .select("id")
+        .eq("status", "active")
+        .order("roll", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (data?.id) return data.id;
+    } catch {
+      // fallback
+    }
+  }
+  return defaultStudents[0]?.id || "std-001";
+}
+
 /** Direct 1-click login action for testing without credentials */
 export async function quickTestLoginAction(formData: FormData) {
   const role = ((formData.get("role") as string) || "admin") as Role;
@@ -32,13 +51,10 @@ export async function quickTestLoginAction(formData: FormData) {
 
   if (role === "student") {
     try {
-      const students = await getStudents();
-      const first = students[0];
-      if (first) {
-        await createStudentSession(first.id);
-      }
-    } catch {
-      // ignore
+      const studentId = await getQuickStudentId();
+      await createStudentSession(studentId);
+    } catch (err: any) {
+      if (err?.digest?.includes("NEXT_REDIRECT")) throw err;
     }
     redirect("/student/dashboard");
   }
@@ -67,13 +83,10 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
 
     if (resolvedRole === "student") {
       try {
-        const students = await getStudents();
-        const first = students[0];
-        if (first) {
-          await createStudentSession(first.id);
-        }
-      } catch {
-        // ignore
+        const studentId = await getQuickStudentId();
+        await createStudentSession(studentId);
+      } catch (err: any) {
+        if (err?.digest?.includes("NEXT_REDIRECT")) throw err;
       }
       redirect("/student/dashboard");
     }

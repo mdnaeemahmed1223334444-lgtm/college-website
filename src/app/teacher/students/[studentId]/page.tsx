@@ -131,7 +131,7 @@ export default async function TeacherStudentDetailPage({ params }: Props) {
             </div>
             {student.rfid_card_id && (
               <div className="col-span-2">
-                <dt className="text-gray-400 font-medium">Hardware RFID Tag</dt>
+                <dt className="text-gray-400 font-medium">Digital ID Card Tag</dt>
                 <dd className="font-mono text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 inline-block mt-0.5">
                   {student.rfid_card_id}
                 </dd>

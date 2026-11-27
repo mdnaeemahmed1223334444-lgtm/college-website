@@ -159,7 +159,7 @@ export default async function ClassRoutinePage() {
       <div className="no-print rounded-xl border border-gray-200 bg-gray-50/80 p-4 text-xs text-gray-700 flex items-start gap-3 shadow-xs">
         <span className="text-xl">🪪</span>
         <div>
-          <p className="font-bold text-gray-900">RFID Attendance & Exit Gate Rules:</p>
+          <p className="font-bold text-gray-900">Campus Gate Attendance & Dismissal Rules:</p>
           <p className="mt-1 text-gray-600 leading-relaxed">
             • <strong>Morning Arrival:</strong> Scan card by 09:00 AM (Period 1). Scans after 09:15 AM are flagged as <strong>Late</strong>.
             <br />

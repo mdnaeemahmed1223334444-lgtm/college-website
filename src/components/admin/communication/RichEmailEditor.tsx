@@ -23,12 +23,17 @@ export default function RichEmailEditor({
 
   // Sync content into editable div
   useEffect(() => {
-    if (editorRef.current && !isCodeView) {
+    if (initialContent !== undefined && initialContent !== htmlContent) {
+      setHtmlContent(initialContent);
+      if (editorRef.current && !isCodeView) {
+        editorRef.current.innerHTML = initialContent;
+      }
+    } else if (editorRef.current && !isCodeView) {
       if (editorRef.current.innerHTML !== htmlContent) {
         editorRef.current.innerHTML = htmlContent;
       }
     }
-  }, [isCodeView]);
+  }, [initialContent, isCodeView]);
 
   const handleInput = () => {
     if (editorRef.current) {

@@ -5,7 +5,7 @@ import { getBrandingSettings } from "@/features/website/queries";
 
 export const metadata = {
   title: "Digital Student ID Card | Student Portal",
-  description: "Official digital identity card with student details and RFID credentials.",
+  description: "Official digital identity card with student details and campus entry credentials.",
 };
 
 export default async function StudentIdCardPage() {
@@ -27,7 +27,7 @@ export default async function StudentIdCardPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Digital Student ID Card</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Official college digital identity credential and campus RFID pass.
+            Official college digital identity credential and campus entry pass.
           </p>
         </div>
         <Link
@@ -158,10 +158,10 @@ export default async function StudentIdCardPage() {
           </div>
         </div>
 
-        {/* Bottom Bar: RFID & Card Key */}
+        {/* Bottom Bar: Smart Card Key */}
         <div className="mt-6 pt-4 border-t border-white/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-[11px] text-blue-200">
           <div className="flex items-center gap-2">
-            <span>🪪 RFID Tag:</span>
+            <span>🪪 Smart Card ID:</span>
             <span className="font-mono font-bold text-white bg-white/10 px-2 py-0.5 rounded">
               {student.rfid_card_id || "GATE-PASS REGISTERED"}
             </span>
@@ -177,7 +177,7 @@ export default async function StudentIdCardPage() {
         <h3 className="font-bold text-sm text-gray-900">ID Card Guidelines</h3>
         <ul className="list-disc list-inside space-y-1 text-gray-600">
           <li>Carry this ID card or digital copy during college hours and examinations.</li>
-          <li>Tap the registered RFID card at Gate 01 for automated attendance logging.</li>
+          <li>Tap your registered smart ID card at Gate 01 for automated attendance logging.</li>
           <li>For lost cards or information corrections, please contact the College Registrar.</li>
         </ul>
       </div>

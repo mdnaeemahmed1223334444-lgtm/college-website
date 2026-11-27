@@ -132,7 +132,7 @@ export default async function StudentProfilePage() {
               : undefined
           }
         />
-        <InfoRow label="RFID Card ID" value={student.rfid_card_id} />
+        <InfoRow label="Smart ID Card Number" value={student.rfid_card_id} />
       </Section>
 
       {/* Examination Results */}

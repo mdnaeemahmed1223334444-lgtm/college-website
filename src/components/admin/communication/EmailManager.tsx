@@ -15,9 +15,13 @@ import {
   testBrevoConnectionAction,
 } from "@/features/communication/email-actions";
 import RichEmailEditor from "./RichEmailEditor";
+import AiEmailGenerator from "./AiEmailGenerator";
+import AiEmailSettingsManager from "./AiEmailSettingsManager";
+import { type EmailAiConfig, defaultEmailAiConfig } from "@/features/communication/ai-types";
 
 interface Props {
   initialSettings: EmailBroadcastSettings;
+  initialAiConfig?: EmailAiConfig;
   batches: BatchRecord[];
   students?: StudentRecord[];
   logs: BroadcastLogItem[];
@@ -26,13 +30,15 @@ interface Props {
 
 export default function EmailManager({
   initialSettings,
+  initialAiConfig,
   batches,
   students = [],
   logs,
   collegeName,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<"compose" | "blocked" | "settings" | "logs">("compose");
+  const [activeTab, setActiveTab] = useState<"compose" | "ai_settings" | "blocked" | "settings" | "logs">("compose");
   const [settings, setSettings] = useState(initialSettings);
+  const [aiConfig, setAiConfig] = useState<EmailAiConfig>(initialAiConfig || defaultEmailAiConfig);
   const [isPending, startTransition] = useTransition();
 
   // Send action state
@@ -298,6 +304,14 @@ export default function EmailManager({
         <nav className="flex space-x-4">
           {[
             { id: "compose", label: "✉️ Compose & Broadcast", count: null },
+            {
+              id: "ai_settings",
+              label: "🤖 AI Assistant & Keys",
+              count:
+                aiConfig.provider === "google"
+                  ? `${aiConfig.googleKeys.filter((k) => k.isActive).length} Keys`
+                  : "Custom AI",
+            },
             { id: "blocked", label: "🚫 Saved Blocked Recipients", count: settings.global_blocked_emails.length },
             { id: "settings", label: "⚙️ Sender & Brevo Config", count: null },
             { id: "logs", label: "📋 Delivery Logs", count: logs.length },
@@ -637,6 +651,18 @@ export default function EmailManager({
               />
             </div>
 
+            {/* AI Email Formatter & Generator */}
+            {aiConfig.enabled && (
+              <AiEmailGenerator
+                currentSubject={subjectText}
+                onApplyHtml={(generatedHtml) => {
+                  setCurrentHtml(generatedHtml);
+                  setShowPreview(true);
+                }}
+                onOpenSettings={() => setActiveTab("ai_settings")}
+              />
+            )}
+
             {/* Rich Editor */}
             <div>
               <label className="block text-xs font-bold text-gray-800 mb-1">
@@ -846,6 +872,14 @@ export default function EmailManager({
             </div>
           )}
         </div>
+      )}
+
+      {/* TAB: AI ASSISTANT CONFIG */}
+      {activeTab === "ai_settings" && (
+        <AiEmailSettingsManager
+          initialConfig={aiConfig}
+          onSaved={(newCfg) => setAiConfig(newCfg)}
+        />
       )}
 
       {/* TAB 3: SETTINGS & SENDER CONFIG */}

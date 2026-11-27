@@ -5,7 +5,7 @@ import { getStudentAttendanceSummary } from "@/features/attendance/queries";
 
 export const metadata = {
   title: "My Attendance | Student Portal",
-  description: "View your RFID gate attendance history and monthly statistics.",
+  description: "View your campus gate attendance history and monthly statistics.",
 };
 
 export default async function StudentAttendancePage() {
@@ -28,7 +28,7 @@ export default async function StudentAttendancePage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">My Attendance Records</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Complete RFID gate scan history — Bangladesh Standard Time (Asia/Dhaka)
+            Complete campus gate check-in & departure history — Bangladesh Standard Time (Asia/Dhaka)
           </p>
         </div>
         <Link
@@ -89,11 +89,11 @@ export default async function StudentAttendancePage() {
             </div>
           </div>
 
-          {/* RFID Info Banner */}
+          {/* Gate Attendance Info Banner */}
           <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-xs text-indigo-900 flex items-start gap-3">
             <span className="text-xl">🪪</span>
             <div>
-              <span className="font-bold">Smart RFID Gate Attendance:</span> Tap your college ID card at
+              <span className="font-bold">Automated Campus Gate Attendance:</span> Tap your college ID card at
               Gate 01 to record attendance. All times are displayed in Bangladesh Standard Time (UTC+6, 12-hour format).
               {student.rfid_card_id && (
                 <> Your card ID: <code className="font-mono bg-white/60 px-1 rounded">{student.rfid_card_id}</code>.</>
@@ -128,7 +128,7 @@ export default async function StudentAttendancePage() {
                   {attendance.records.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
-                        No attendance records found. Tap your RFID card at the gate to start recording.
+                        No attendance records found. Tap your ID card at the gate to start recording.
                       </td>
                     </tr>
                   ) : (
@@ -168,7 +168,7 @@ export default async function StudentAttendancePage() {
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-500">
           <p className="text-4xl mb-3">📊</p>
           <p className="font-semibold text-gray-900">No attendance data available</p>
-          <p className="text-sm mt-1">Your attendance records will appear here after your RFID card is scanned at the gate.</p>
+          <p className="text-sm mt-1">Your attendance records will appear here after your ID card is scanned at the campus gate.</p>
         </div>
       )}
     </div>

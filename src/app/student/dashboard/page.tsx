@@ -67,33 +67,43 @@ export default async function StudentDashboardPage() {
   const student = await getAuthenticatedStudent();
   if (!student) redirect("/student/login");
 
-  const attendance = await getStudentAttendanceSummary(student.id);
-
   const today = formatDhakaDate(getDhakaDate());
   const todayDay = formatDhakaDayOfWeek(getDhakaDate());
 
-  // Fetch today's classes from class_routines for student's batch and group
-  let todayClasses: any[] = [];
   const supabase = privateAdmin();
-  if (supabase) {
-    try {
-      const { data } = await supabase
-        .from("class_routines")
-        .select("*")
-        .eq("is_published", true)
-        .eq("day_of_week", todayDay)
-        .or(`batch_id.is.null,batch_id.eq.${student.batch_id || ""}`)
-        .order("start_time");
 
-      if (data && data.length > 0) {
-        todayClasses = data.filter(
-          (r: any) => !r.study_group || r.study_group === student.study_group
-        );
+  // Run attendance summary and routine lookup in parallel for fast load
+  const [attendance, routineData] = await Promise.all([
+    getStudentAttendanceSummary(student.id),
+    (async () => {
+      if (!supabase) return [];
+      try {
+        let query = supabase
+          .from("class_routines")
+          .select("*")
+          .eq("is_published", true)
+          .eq("day_of_week", todayDay);
+
+        if (student.batch_id) {
+          query = query.or(`batch_id.is.null,batch_id.eq.${student.batch_id}`);
+        } else {
+          query = query.is("batch_id", null);
+        }
+
+        const { data } = await query.order("start_time");
+        if (data && data.length > 0) {
+          return data.filter(
+            (r: any) => !r.study_group || r.study_group === student.study_group
+          );
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
-    }
-  }
+      return [];
+    })(),
+  ]);
+
+  let todayClasses: any[] = routineData;
 
   // If no DB routine exists for today and it's a weekday, show default 7-period schedule
   if (todayClasses.length === 0 && !["Friday", "Saturday"].includes(todayDay)) {
@@ -334,7 +344,7 @@ export default async function StudentDashboardPage() {
             href="/student/attendance"
             label="Attendance Records"
             icon="🪪"
-            description="View your RFID gate scan history"
+            description="View your daily gate check-in & departure history"
           />
           <QuickLink
             href="/student/class-routine"
@@ -369,14 +379,14 @@ export default async function StudentDashboardPage() {
         </div>
       </div>
 
-      {/* RFID Card Info */}
+      {/* Digital ID Card Info */}
       {student.rfid_card_id && (
         <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-4 text-xs text-indigo-900 flex items-start gap-3">
           <span className="text-xl">🪪</span>
           <div>
-            <span className="font-bold">RFID Card Linked:</span> Card ID{" "}
+            <span className="font-bold">Digital ID Card Linked:</span> Card ID{" "}
             <code className="font-mono bg-white/60 px-1 rounded">{student.rfid_card_id}</code> is
-            registered to your account. Tap it at the campus gate to record attendance.
+            registered to your account. Tap your ID card at the campus gate to record attendance.
           </div>
         </div>
       )}

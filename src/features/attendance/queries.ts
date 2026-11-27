@@ -298,12 +298,18 @@ export async function getStudentAttendanceSummary(
   if (!supabase) return null;
 
   try {
-    // 1. Find the student record
-    const { data: student } = await supabase
+    // 1. Find the student record (fast index on UUID)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentIdOrCode);
+    let studentQuery = supabase
       .from("students")
-      .select("id, student_code, full_name")
-      .or(`id.eq.${studentIdOrCode},student_code.ilike.${studentIdOrCode}`)
-      .maybeSingle();
+      .select("id, student_code, full_name");
+
+    if (isUuid) {
+      studentQuery = studentQuery.eq("id", studentIdOrCode);
+    } else {
+      studentQuery = studentQuery.or(`id.eq.${studentIdOrCode},student_code.ilike.${studentIdOrCode}`);
+    }
+    const { data: student } = await studentQuery.maybeSingle();
 
     if (!student) return null;
 

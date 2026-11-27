@@ -297,7 +297,7 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
           <span className="text-2xl mt-0.5">🔗</span>
           <div>
             <h2 className="text-xs font-black uppercase tracking-wider text-blue-900">
-              Timetable Connected to RFID Gate Attendance & Tiffin Recess
+              Timetable Connected to Gate Attendance & Tiffin Recess
             </h2>
             <p className="text-xs text-blue-800 mt-0.5 leading-relaxed">
               • <strong>Arrival Check-in:</strong> 09:00 AM (Period 1 start). Late flag applies after 09:15 AM.<br />
