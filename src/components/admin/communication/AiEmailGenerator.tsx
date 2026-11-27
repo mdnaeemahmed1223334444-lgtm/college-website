@@ -6,12 +6,14 @@ import { generateAiEmailHtmlAction } from "@/features/communication/ai-actions";
 interface Props {
   currentSubject?: string;
   onApplyHtml: (html: string) => void;
+  onUndoRestoreOriginal?: (originalDraft: string) => void;
   onOpenSettings?: () => void;
 }
 
 export default function AiEmailGenerator({
   currentSubject = "",
   onApplyHtml,
+  onUndoRestoreOriginal,
   onOpenSettings,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,7 +23,9 @@ export default function AiEmailGenerator({
   >("institutional");
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [lastGeneratedHtml, setLastGeneratedHtml] = useState<string | null>(null);
+  const [hasAppliedAi, setHasAppliedAi] = useState(false);
 
   const handleGenerate = async () => {
     if (!rawText.trim()) {
@@ -31,6 +35,7 @@ export default function AiEmailGenerator({
 
     setIsGenerating(true);
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     try {
       const res = await generateAiEmailHtmlAction({
@@ -41,7 +46,9 @@ export default function AiEmailGenerator({
 
       if (res.success && res.html) {
         setLastGeneratedHtml(res.html);
+        setHasAppliedAi(true);
         onApplyHtml(res.html);
+        setSuccessMsg("✨ Stunning HTML generated & loaded into editor!");
       } else {
         setErrorMsg(res.error || "Failed to generate email template.");
       }
@@ -49,6 +56,14 @@ export default function AiEmailGenerator({
       setErrorMsg(err.message || "Failed to generate email template.");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleUndoRestore = () => {
+    if (onUndoRestoreOriginal) {
+      onUndoRestoreOriginal(rawText);
+      setHasAppliedAi(false);
+      setSuccessMsg("↩️ Removed HTML template & restored your original text into editor.");
     }
   };
 
@@ -153,6 +168,25 @@ export default function AiEmailGenerator({
             />
           </div>
 
+          {/* Success / Status Message */}
+          {successMsg && !errorMsg && (
+            <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-xs text-emerald-900 flex items-center justify-between gap-2 animate-fadeIn">
+              <div className="flex items-center gap-2">
+                <span>✅</span>
+                <span className="font-semibold">{successMsg}</span>
+              </div>
+              {hasAppliedAi && (
+                <button
+                  type="button"
+                  onClick={handleUndoRestore}
+                  className="rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 px-2.5 py-1 text-xs font-bold transition cursor-pointer"
+                >
+                  ↩️ Undo Now
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Error Message */}
           {errorMsg && (
             <div className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-xs text-rose-800 flex items-start justify-between gap-2">
@@ -178,35 +212,54 @@ export default function AiEmailGenerator({
               💡 The generated template will automatically load into the editor and preview below.
             </div>
 
-            <div className="flex items-center gap-2">
-              {lastGeneratedHtml && (
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Undo / Restore Original Draft Button */}
+              {hasAppliedAi && (
                 <button
                   type="button"
-                  onClick={() => onApplyHtml(lastGeneratedHtml)}
-                  className="rounded-xl border border-gray-300 bg-white hover:bg-gray-50 px-3 py-2 text-xs font-bold text-gray-700 shadow-2xs transition"
+                  onClick={handleUndoRestore}
+                  className="rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 px-3.5 py-2 text-xs font-bold text-amber-900 shadow-2xs transition cursor-pointer flex items-center gap-1.5"
+                  title="Remove the AI HTML template and restore your original plain draft text"
                 >
-                  Re-apply Last HTML
+                  <span>↩️</span>
+                  <span>Undo / Restore Original Text</span>
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={handleGenerate}
-                disabled={isGenerating}
-                className="rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-5 py-2 text-xs font-bold text-white shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-2"
-              >
-                {isGenerating ? (
-                  <>
-                    <span className="animate-spin text-sm">✨</span>
-                    <span>Generating Stunning HTML…</span>
-                  </>
-                ) : (
-                  <>
-                    <span>✨</span>
-                    <span>Generate HTML Email</span>
-                  </>
-                )}
-              </button>
+              {/* Regenerate Button */}
+              {lastGeneratedHtml && (
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={isGenerating}
+                  className="rounded-xl border border-indigo-300 bg-white hover:bg-indigo-50 px-3.5 py-2 text-xs font-bold text-indigo-700 shadow-2xs transition disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>🔄</span>
+                  <span>Regenerate HTML</span>
+                </button>
+              )}
+
+              {/* Primary Generate Button (Shown if not generated yet) */}
+              {!lastGeneratedHtml && (
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={isGenerating}
+                  className="rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-5 py-2 text-xs font-bold text-white shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                >
+                  {isGenerating ? (
+                    <>
+                      <span className="animate-spin text-sm">✨</span>
+                      <span>Generating Stunning HTML…</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>✨</span>
+                      <span>Generate HTML Email</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

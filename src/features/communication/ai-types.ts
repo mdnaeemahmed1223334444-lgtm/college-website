@@ -22,7 +22,7 @@ export interface EmailAiConfig {
 export const defaultEmailAiConfig: EmailAiConfig = {
   provider: "google",
   googleKeys: [],
-  googleModel: "gemini-2.0-flash",
+  googleModel: "gemini-3.8-flash",
   customBaseUrl: "https://api.openai.com/v1",
   customApiKey: "",
   customModel: "gpt-4o-mini",

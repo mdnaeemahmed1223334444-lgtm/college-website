@@ -8,6 +8,25 @@ import {
 const AI_CONFIG_KEY = "email_ai_config";
 
 /**
+ * Resolves and auto-upgrades Google Gemini model IDs.
+ * Google AI Studio deprecated gemini-2.0-flash and gemini-1.5-* in favor of gemini-3.8-flash.
+ */
+export function resolveGoogleModel(rawModel?: string): string {
+  const m = (rawModel || "").trim();
+  if (!m) return "gemini-3.8-flash";
+  if (
+    m.includes("gemini-2.0") ||
+    m.includes("gemini-1.5") ||
+    m === "gemini-pro" ||
+    m === "gemini-flash"
+  ) {
+    if (m.includes("pro")) return "gemini-3.8-pro";
+    return "gemini-3.8-flash";
+  }
+  return m;
+}
+
+/**
  * Loads current Email AI configuration from database or env fallbacks
  */
 export async function getEmailAiConfig(): Promise<EmailAiConfig> {
@@ -106,7 +125,7 @@ export async function testAiConnection(
 
       // Test the first active key
       const keyToTest = activeKeys[0].apiKey.trim();
-      const model = activeConfig.googleModel || "gemini-2.0-flash";
+      const model = resolveGoogleModel(activeConfig.googleModel);
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${keyToTest}`;
 
       const res = await fetch(url, {
@@ -288,7 +307,7 @@ ${rawText.trim()}
         };
       }
 
-      const model = config.googleModel || "gemini-2.0-flash";
+      const model = resolveGoogleModel(config.googleModel);
       let lastError = "";
 
       // Try active keys with automatic fallback on 429 quota or errors

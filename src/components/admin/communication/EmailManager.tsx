@@ -67,11 +67,12 @@ export default function EmailManager({
   const [showPreview, setShowPreview] = useState(false);
   const [subjectText, setSubjectText] = useState("");
   const [currentHtml, setCurrentHtml] = useState("");
+  const [preAiHtml, setPreAiHtml] = useState<string>("");
 
-  // Interactive student checklist state
+  // Interactive student checklist state (collapsed by default at bottom)
   const [deselectedStudentIds, setDeselectedStudentIds] = useState<Set<string>>(new Set());
   const [studentSearch, setStudentSearch] = useState("");
-  const [showStudentList, setShowStudentList] = useState(true);
+  const [showStudentList, setShowStudentList] = useState(false);
 
   // Dynamic additional email rows
   const [additionalEmails, setAdditionalEmails] = useState<string[]>([]);
@@ -447,122 +448,26 @@ export default function EmailManager({
               </label>
             </div>
 
-            {/* Interactive Student Checklist & Individual Deselection */}
+            {/* Quick recipient counter hint & jump to bottom review */}
             {shouldShowStudentsList && students.length > 0 && (
-              <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/40 p-4 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-blue-200/60 pb-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-blue-950">
-                        👥 Eligible Students in this Selection:
-                      </span>
-                      <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-extrabold text-white">
-                        {selectedStudentCount} selected / {filteredStudents.length} total
-                      </span>
-                    </div>
-                    <p className="text-xs text-blue-700 mt-0.5">
-                      Uncheck any student below to exclude them from receiving this email broadcast.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleSelectAllStudents}
-                      className="rounded bg-white border border-blue-300 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
-                    >
-                      Select All
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDeselectAllStudents}
-                      className="rounded bg-white border border-gray-300 px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100"
-                    >
-                      Deselect All
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowStudentList(!showStudentList)}
-                      className="rounded bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800 hover:bg-blue-200"
-                    >
-                      {showStudentList ? "Hide List ▲" : "Show List ▼"}
-                    </button>
-                  </div>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/70 border border-blue-200 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">👥</span>
+                  <span className="text-blue-950 font-semibold">
+                    Target Selection: <strong>{selectedStudentCount}</strong> student(s) selected ({filteredStudents.length} matching criteria).
+                  </span>
                 </div>
-
-                {showStudentList && (
-                  <div className="space-y-3">
-                    {/* Search box within student list */}
-                    <div className="max-w-md">
-                      <input
-                        type="text"
-                        value={studentSearch}
-                        onChange={(e) => setStudentSearch(e.target.value)}
-                        placeholder="Search student by name, roll, or ID code..."
-                        className="w-full rounded border border-blue-200 bg-white px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-
-                    {/* Scrollable Checkbox Grid */}
-                    <div className="max-h-60 overflow-y-auto rounded-lg border border-blue-200 bg-white p-3 space-y-1">
-                      {filteredStudents.length === 0 ? (
-                        <p className="text-xs text-gray-500 py-2 text-center">
-                          No students match the current batch/major filters.
-                        </p>
-                      ) : (
-                        filteredStudents.map((s) => {
-                          const isDeselected = deselectedStudentIds.has(s.id);
-                          const isGloballyBlocked = settings.global_blocked_emails.includes(
-                            s.email?.toLowerCase() || ""
-                          );
-
-                          return (
-                            <label
-                              key={s.id}
-                              className={`flex items-center justify-between p-1.5 rounded transition cursor-pointer text-xs ${
-                                isGloballyBlocked
-                                  ? "bg-red-50 text-red-700 cursor-not-allowed"
-                                  : isDeselected
-                                  ? "bg-gray-50 text-gray-400 line-through"
-                                  : "hover:bg-blue-50/70 text-gray-800"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5">
-                                <input
-                                  type="checkbox"
-                                  disabled={isGloballyBlocked}
-                                  checked={!isDeselected && !isGloballyBlocked}
-                                  onChange={() => toggleStudentSelection(s.id)}
-                                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                />
-                                <div>
-                                  <span className="font-semibold text-gray-900">{s.full_name}</span>{" "}
-                                  <span className="text-[11px] text-gray-500 font-mono">
-                                    ({s.student_code} • Roll: {s.roll})
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase bg-gray-100 text-gray-600">
-                                  {s.study_group}
-                                </span>
-                                <span className="text-[11px] text-gray-500 hidden sm:inline">
-                                  {s.email}
-                                </span>
-                                {isGloballyBlocked && (
-                                  <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
-                                    Permanently Blocked
-                                  </span>
-                                )}
-                              </div>
-                            </label>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowStudentList(true);
+                    const el = document.getElementById("recipient-checklist-section");
+                    el?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="text-blue-700 hover:text-blue-900 font-bold underline cursor-pointer text-xs"
+                >
+                  Review or Uncheck Students at Bottom ↓
+                </button>
               </div>
             )}
           </div>
@@ -656,8 +561,25 @@ export default function EmailManager({
               <AiEmailGenerator
                 currentSubject={subjectText}
                 onApplyHtml={(generatedHtml) => {
+                  setPreAiHtml(currentHtml);
                   setCurrentHtml(generatedHtml);
                   setShowPreview(true);
+                }}
+                onUndoRestoreOriginal={(originalDraft) => {
+                  if (originalDraft && originalDraft.trim()) {
+                    const paragraphs = originalDraft
+                      .split("\n\n")
+                      .map((p) => p.trim())
+                      .filter(Boolean)
+                      .map((p) => `<p>${p.replace(/\n/g, "<br/>")}</p>`)
+                      .join("");
+                    setCurrentHtml(paragraphs);
+                  } else if (preAiHtml) {
+                    setCurrentHtml(preAiHtml);
+                  } else {
+                    setCurrentHtml("<p></p>");
+                  }
+                  setShowPreview(false);
                 }}
                 onOpenSettings={() => setActiveTab("ai_settings")}
               />
@@ -737,6 +659,128 @@ export default function EmailManager({
               </div>
             )}
           </div>
+
+          {/* Section 4: Interactive Student Checklist & Individual Deselection (Collapsed by Default at Bottom) */}
+          {shouldShowStudentsList && students.length > 0 && (
+            <div
+              id="recipient-checklist-section"
+              className="rounded-xl border border-blue-200 bg-white p-5 shadow-xs space-y-3"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-100 pb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-gray-900">
+                      👥 Eligible Students in this Selection:
+                    </span>
+                    <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-extrabold text-white">
+                      {selectedStudentCount} selected / {filteredStudents.length} total
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Uncheck any student below to exclude them from receiving this email broadcast.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSelectAllStudents}
+                    className="rounded-lg bg-gray-50 border border-gray-200 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50 cursor-pointer"
+                  >
+                    Select All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeselectAllStudents}
+                    className="rounded-lg bg-gray-50 border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100 cursor-pointer"
+                  >
+                    Deselect All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowStudentList(!showStudentList)}
+                    className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-xs font-bold transition shadow-2xs cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>{showStudentList ? "Hide Student List ▲" : "Review Students ▼"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {showStudentList && (
+                <div className="space-y-3 pt-1 animate-fadeIn">
+                  {/* Search box within student list */}
+                  <div className="max-w-md">
+                    <input
+                      type="text"
+                      value={studentSearch}
+                      onChange={(e) => setStudentSearch(e.target.value)}
+                      placeholder="Search student by name, roll, or ID code..."
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Scrollable Checkbox Grid */}
+                  <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50/50 p-3 space-y-1">
+                    {filteredStudents.length === 0 ? (
+                      <p className="text-xs text-gray-500 py-2 text-center">
+                        No students match the current batch/major filters.
+                      </p>
+                    ) : (
+                      filteredStudents.map((s) => {
+                        const isDeselected = deselectedStudentIds.has(s.id);
+                        const isGloballyBlocked = settings.global_blocked_emails.includes(
+                          s.email?.toLowerCase() || ""
+                        );
+
+                        return (
+                          <label
+                            key={s.id}
+                            className={`flex items-center justify-between p-2 rounded-lg transition cursor-pointer text-xs ${
+                              isGloballyBlocked
+                                ? "bg-red-50 text-red-700 cursor-not-allowed"
+                                : isDeselected
+                                ? "bg-gray-100 text-gray-400 line-through"
+                                : "hover:bg-blue-50/70 bg-white border border-gray-100 text-gray-800 shadow-2xs"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <input
+                                type="checkbox"
+                                disabled={isGloballyBlocked}
+                                checked={!isDeselected && !isGloballyBlocked}
+                                onChange={() => toggleStudentSelection(s.id)}
+                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                              />
+                              <div>
+                                <span className="font-semibold text-gray-900">{s.full_name}</span>{" "}
+                                <span className="text-[11px] text-gray-500 font-mono">
+                                  ({s.student_code} • Roll: {s.roll})
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase bg-gray-100 text-gray-600">
+                                {s.study_group}
+                              </span>
+                              <span className="text-[11px] text-gray-500 hidden sm:inline">
+                                {s.email}
+                              </span>
+                              {isGloballyBlocked && (
+                                <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
+                                  Permanently Blocked
+                                </span>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Success / Error Feedback Alert Placed Right Near Send Button */}
           <div ref={feedbackRef} className="space-y-3">

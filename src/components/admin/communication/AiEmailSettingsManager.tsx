@@ -20,7 +20,23 @@ export default function AiEmailSettingsManager({
   initialConfig,
   onSaved,
 }: Props) {
-  const [config, setConfig] = useState<EmailAiConfig>(initialConfig);
+  const sanitizeConfig = (cfg: EmailAiConfig): EmailAiConfig => {
+    let googleModel = cfg.googleModel;
+    if (
+      !googleModel ||
+      googleModel.includes("gemini-2.0") ||
+      googleModel.includes("gemini-1.5") ||
+      googleModel === "gemini-pro"
+    ) {
+      googleModel = "gemini-3.8-flash";
+    }
+    return {
+      ...cfg,
+      googleModel,
+    };
+  };
+
+  const [config, setConfig] = useState<EmailAiConfig>(() => sanitizeConfig(initialConfig));
   const [isPending, startTransition] = useTransition();
   const [testResult, setTestResult] = useState<{
     success?: boolean;
@@ -243,25 +259,55 @@ export default function AiEmailSettingsManager({
           </div>
 
           {/* Model Selection */}
-          <div>
-            <label className="block text-xs font-bold text-gray-800 mb-1">
-              Gemini Model
-            </label>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-gray-800">
+                Google Gemini Model
+              </label>
+              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+                ✨ Gemini 3.8 Series Active
+              </span>
+            </div>
             <select
-              value={config.googleModel}
-              onChange={(e) => setConfig({ ...config, googleModel: e.target.value })}
+              value={
+                ["gemini-3.8-flash", "gemini-3.8-pro", "gemini-3.8-flash-lite"].includes(config.googleModel)
+                  ? config.googleModel
+                  : "custom"
+              }
+              onChange={(e) => {
+                if (e.target.value !== "custom") {
+                  setConfig({ ...config, googleModel: e.target.value });
+                } else {
+                  setConfig({ ...config, googleModel: "" });
+                }
+              }}
               className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-900 focus:border-blue-500 focus:outline-none"
             >
-              <option value="gemini-2.0-flash">
-                gemini-2.0-flash (Fastest & Best Quality — Recommended)
+              <option value="gemini-3.8-flash">
+                gemini-3.8-flash (Latest — Fastest & Best Quality — Recommended)
               </option>
-              <option value="gemini-1.5-flash">
-                gemini-1.5-flash (Standard High Speed)
+              <option value="gemini-3.8-pro">
+                gemini-3.8-pro (High Reasoning Complexity)
               </option>
-              <option value="gemini-1.5-pro">
-                gemini-1.5-pro (High Reasoning Complexity)
+              <option value="gemini-3.8-flash-lite">
+                gemini-3.8-flash-lite (Ultra Fast Lightweight)
+              </option>
+              <option value="custom">
+                Custom Gemini Model Name (Type below...)
               </option>
             </select>
+
+            {!["gemini-3.8-flash", "gemini-3.8-pro", "gemini-3.8-flash-lite"].includes(config.googleModel) && (
+              <div className="mt-1.5">
+                <input
+                  type="text"
+                  placeholder="Enter custom Gemini model name (e.g. gemini-3.8-flash)"
+                  value={config.googleModel}
+                  onChange={(e) => setConfig({ ...config, googleModel: e.target.value })}
+                  className="w-full rounded-xl border border-blue-400 bg-blue-50/30 px-3 py-2 text-xs font-mono text-gray-900 focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+            )}
           </div>
 
           {/* Add New Key Form */}
