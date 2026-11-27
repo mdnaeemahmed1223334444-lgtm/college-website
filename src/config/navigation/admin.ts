@@ -474,7 +474,7 @@ export const adminNav: NavNode[] = [
         "href": "/admin/communication/teacher-announcements"
       },
       {
-        "title": "Email Integration",
+        "title": "Brevo Email & Broadcasts",
         "href": "/admin/communication/email"
       },
       {

@@ -13,6 +13,8 @@ import {
   careerCircularSchema,
 } from "./schema";
 import { type ContentFeedback, isMeaningfulTitle } from "./types";
+import { broadcastNoticeEmail } from "@/features/communication/email-actions";
+import type { BroadcastTarget } from "@/features/communication/email-types";
 
 function autoSlug(text: string): string {
   const base = text
@@ -61,6 +63,30 @@ export async function saveNoticeAction(_prev: ContentFeedback, formData: FormDat
 
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Invalid notice data." };
+  }
+
+  // Check if email broadcast is requested on publication
+  const sendEmail = formData.get("send_email") === "on" || formData.get("send_email") === "true";
+  if (parsed.data.status === "published" && sendEmail) {
+    const emailTarget = (formData.get("email_target")?.toString() || "all") as BroadcastTarget;
+    const emailBatchId = formData.get("email_batch_id")?.toString();
+    const additionalEmails = formData.get("email_additional")?.toString();
+    const excludedEmails = formData.get("email_excluded")?.toString();
+
+    // Trigger asynchronous broadcast via Brevo without delaying web response
+    broadcastNoticeEmail({
+      title: parsed.data.title,
+      category: parsed.data.category,
+      content: parsed.data.content,
+      attachment_url: parsed.data.attachment_url,
+      is_urgent: parsed.data.is_urgent,
+      target: emailTarget,
+      batch_id: emailBatchId,
+      additional_emails: additionalEmails,
+      excluded_emails: excludedEmails,
+    }).catch((err) => {
+      console.error("Notice email broadcast background error:", err);
+    });
   }
 
   const supabase = mainAdmin();

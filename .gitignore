@@ -4,6 +4,9 @@ out
 .env
 .env.local
 .env.*.local
+**/.env
+**/.env.*
+email-sender/
 .vercel
 *.tsbuildinfo
 next-env.d.ts
