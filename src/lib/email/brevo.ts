@@ -154,7 +154,8 @@ export async function sendBrevoEmail(payload: BrevoSendPayload): Promise<BrevoSe
       if (att.url) {
         return { url: att.url, name: att.name };
       }
-      return { content: att.content, name: att.name };
+      const cleanContent = (att.content || "").replace(/^data:[^;]+;base64,/, "");
+      return { content: cleanContent, name: att.name };
     });
   }
 

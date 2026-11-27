@@ -3,6 +3,9 @@ export type BroadcastTarget =
   | "students"
   | "teachers"
   | "batch"
+  | "science"
+  | "business_studies"
+  | "humanities"
   | "individual"
   | "custom";
 
@@ -11,7 +14,8 @@ export interface EmailBroadcastSettings {
   sender_name: string;
   sender_email: string;
   auto_send_on_notice: boolean;
-  global_blocked_emails: string[]; // List of emails or student IDs permanently blocked
+  auto_send_on_news?: boolean;
+  global_blocked_emails: string[]; // List of emails or student IDs permanently saved as blocked
   last_tested_at?: string;
 }
 
@@ -21,7 +25,9 @@ export interface RecipientInfo {
   role: "student" | "teacher" | "custom";
   batchName?: string;
   batchId?: string;
+  studyGroup?: string;
   studentCode?: string;
+  studentId?: string;
   employeeId?: string;
 }
 

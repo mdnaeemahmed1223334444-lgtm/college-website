@@ -1,5 +1,5 @@
 import { getEmailSettingsAction, getBroadcastLogsAction } from "@/features/communication/email-actions";
-import { getBatches } from "@/features/students/queries";
+import { getBatches, getStudents } from "@/features/students/queries";
 import { getBrandingSettings } from "@/features/website/queries";
 import EmailManager from "@/components/admin/communication/EmailManager";
 
@@ -9,9 +9,10 @@ export const metadata = {
 };
 
 export default async function EmailCommunicationPage() {
-  const [settings, batches, logs, branding] = await Promise.all([
+  const [settings, batches, students, logs, branding] = await Promise.all([
     getEmailSettingsAction(),
     getBatches(),
+    getStudents(),
     getBroadcastLogsAction(),
     getBrandingSettings(),
   ]);
@@ -21,6 +22,7 @@ export default async function EmailCommunicationPage() {
       <EmailManager
         initialSettings={settings}
         batches={batches}
+        students={students}
         logs={logs}
         collegeName={branding.collegeName || "Dhaka Model College"}
       />

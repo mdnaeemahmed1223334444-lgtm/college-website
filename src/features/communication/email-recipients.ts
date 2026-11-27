@@ -1,14 +1,17 @@
 import "server-only";
-import { getStudents, getBatches } from "@/features/students/queries";
+import { getStudents } from "@/features/students/queries";
 import { getTeacherProfiles } from "@/features/staff/queries";
 import type { BroadcastTarget, RecipientInfo } from "./email-types";
 
 export interface ResolveRecipientsOptions {
   target: BroadcastTarget;
   batchId?: string;
+  batchIds?: string[];
+  studyGroup?: "all" | "science" | "business_studies" | "humanities";
   includeAlumni?: boolean;
   additionalEmails?: string | string[];
   excludedEmails?: string | string[];
+  excludedStudentIds?: string[];
   globalBlockedEmails?: string[];
   individualEmail?: string;
 }
@@ -21,7 +24,8 @@ export interface ResolvedRecipientsResult {
 
 /**
  * Resolves all eligible email recipients according to admin audience criteria,
- * batch selection, alumni inclusion, additional custom emails, and suppression blocklists.
+ * batch selection, major/study group, alumni inclusion, additional custom emails,
+ * and suppression blocklists (including unchecked student checkboxes).
  */
 export async function resolveBroadcastRecipients(
   options: ResolveRecipientsOptions
@@ -29,24 +33,27 @@ export async function resolveBroadcastRecipients(
   const {
     target,
     batchId,
+    batchIds,
+    studyGroup,
     includeAlumni = false,
     additionalEmails,
     excludedEmails,
+    excludedStudentIds = [],
     globalBlockedEmails = [],
     individualEmail,
   } = options;
 
-  // 1. Build suppression/blacklist sets (both by lowercase email AND student/employee IDs)
+  // 1. Build suppression/blacklist sets (lowercase emails, student codes, student UUIDs, and employee IDs)
   const blockSet = new Set<string>();
 
-  // Add global blocked items
+  // Add global saved blocked items
   for (const item of globalBlockedEmails) {
     if (item && item.trim()) {
       blockSet.add(item.trim().toLowerCase());
     }
   }
 
-  // Add per-announcement exclusions
+  // Add per-announcement excluded emails/IDs
   const exclusionsArray = Array.isArray(excludedEmails)
     ? excludedEmails
     : (excludedEmails || "")
@@ -58,10 +65,25 @@ export async function resolveBroadcastRecipients(
     blockSet.add(item.trim().toLowerCase());
   }
 
+  // Add individually deselected student IDs
+  for (const sId of excludedStudentIds) {
+    if (sId && sId.trim()) {
+      blockSet.add(sId.trim().toLowerCase());
+    }
+  }
+
   const rawRecipients: RecipientInfo[] = [];
 
-  // 2. Fetch Students if needed
-  if (target === "all" || target === "students" || target === "batch") {
+  // Determine if students should be included
+  const includeStudents =
+    target === "all" ||
+    target === "students" ||
+    target === "batch" ||
+    target === "science" ||
+    target === "business_studies" ||
+    target === "humanities";
+
+  if (includeStudents) {
     const students = await getStudents();
 
     for (const s of students) {
@@ -72,8 +94,34 @@ export async function resolveBroadcastRecipients(
         continue;
       }
 
+      // Filter by major / study group
+      const desiredGroup =
+        studyGroup && studyGroup !== "all"
+          ? studyGroup
+          : target === "science"
+          ? "science"
+          : target === "business_studies"
+          ? "business_studies"
+          : target === "humanities"
+          ? "humanities"
+          : null;
+
+      if (desiredGroup && s.study_group !== desiredGroup) {
+        continue;
+      }
+
       // Filter by batch if specified
-      if (batchId && batchId !== "all" && s.batch_id !== batchId) {
+      if (batchIds && batchIds.length > 0) {
+        if (!batchIds.includes(s.batch_id)) continue;
+      } else if (batchId && batchId !== "all" && batchId !== "all_running") {
+        if (s.batch_id !== batchId) continue;
+      }
+
+      // Check if student was individually deselected via ID or student_code
+      if (
+        blockSet.has(s.id.toLowerCase()) ||
+        blockSet.has(s.student_code.toLowerCase())
+      ) {
         continue;
       }
 
@@ -83,12 +131,14 @@ export async function resolveBroadcastRecipients(
         role: "student",
         batchName: s.batch_name,
         batchId: s.batch_id,
+        studyGroup: s.study_group,
         studentCode: s.student_code,
+        studentId: s.id,
       });
     }
   }
 
-  // 3. Fetch Teachers if needed
+  // 2. Fetch Teachers if needed
   if (target === "all" || target === "teachers") {
     const teachers = await getTeacherProfiles();
 
@@ -105,7 +155,7 @@ export async function resolveBroadcastRecipients(
     }
   }
 
-  // 4. Handle Individual recipient
+  // 3. Handle Individual recipient
   if (target === "individual" && individualEmail) {
     const cleanInd = individualEmail.trim();
     if (cleanInd.includes("@")) {
@@ -117,7 +167,7 @@ export async function resolveBroadcastRecipients(
     }
   }
 
-  // 5. Add custom extra emails
+  // 4. Add custom additional emails
   const extraArray = Array.isArray(additionalEmails)
     ? additionalEmails
     : (additionalEmails || "")
@@ -128,26 +178,28 @@ export async function resolveBroadcastRecipients(
   for (const extra of extraArray) {
     if (extra.includes("@") && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(extra)) {
       rawRecipients.push({
-        email: extra,
+        email: extra.trim(),
         name: extra.split("@")[0],
         role: "custom",
       });
     }
   }
 
-  // 6. Filter against blocklist (checking email, studentCode, and employeeId)
+  // 5. Final pass against blockset (checking email, studentCode, and employeeId)
   const finalRecipientsMap = new Map<string, RecipientInfo>();
   const blockedIdentified = new Set<string>();
 
   for (const r of rawRecipients) {
     const emailLower = r.email.toLowerCase();
     const codeLower = r.studentCode?.toLowerCase();
+    const idLower = r.studentId?.toLowerCase();
     const empLower = r.employeeId?.toLowerCase();
 
-    // Check if blocked by email or ID
+    // Check if blocked
     const isBlocked =
       blockSet.has(emailLower) ||
       (codeLower && blockSet.has(codeLower)) ||
+      (idLower && blockSet.has(idLower)) ||
       (empLower && blockSet.has(empLower));
 
     if (isBlocked) {

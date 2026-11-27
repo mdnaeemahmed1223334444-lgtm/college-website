@@ -418,6 +418,10 @@ export const adminNav: NavNode[] = [
         "href": "/admin/content/career-circulars"
       },
       {
+        "title": "Email Broadcast & Sender",
+        "href": "/admin/content/email"
+      },
+      {
         "title": "Holiday Management",
         "href": "/admin/content/holidays"
       },
@@ -454,36 +458,6 @@ export const adminNav: NavNode[] = [
       {
         "title": "Library Reports",
         "href": "/admin/library/reports"
-      }
-    ]
-  },
-  {
-    "title": "Communication Management",
-    "href": "/admin/communication",
-    "children": [
-      {
-        "title": "Send Notifications",
-        "href": "/admin/communication/notifications"
-      },
-      {
-        "title": "Student Announcements",
-        "href": "/admin/communication/student-announcements"
-      },
-      {
-        "title": "Teacher Announcements",
-        "href": "/admin/communication/teacher-announcements"
-      },
-      {
-        "title": "Brevo Email & Broadcasts",
-        "href": "/admin/communication/email"
-      },
-      {
-        "title": "SMS Integration",
-        "href": "/admin/communication/sms"
-      },
-      {
-        "title": "Contact Messages",
-        "href": "/admin/communication/contact-messages"
       }
     ]
   },

@@ -3,10 +3,20 @@
 import { useActionState, useState } from "react";
 import { saveNewsEventAction, deleteNewsEventAction } from "@/features/content/actions";
 import type { NewsEventRecord, ContentFeedback } from "@/features/content/types";
+import type { BatchRecord, StudentRecord } from "@/features/students/types";
 import { SubmitButton, FeedbackAlert } from "@/components/admin/website/FormControls";
 import ImageUploadInput from "@/components/shared/ImageUploadInput";
+import EmailBroadcastCard from "@/components/admin/communication/EmailBroadcastCard";
 
-export default function NewsEventManager({ items }: { items: NewsEventRecord[] }) {
+export default function NewsEventManager({
+  items,
+  batches = [],
+  students = [],
+}: {
+  items: NewsEventRecord[];
+  batches?: BatchRecord[];
+  students?: StudentRecord[];
+}) {
   const [editing, setEditing] = useState<NewsEventRecord | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "news" | "event">("all");
@@ -159,6 +169,14 @@ export default function NewsEventManager({ items }: { items: NewsEventRecord[] }
                 className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
               />
             </div>
+
+            {/* Email Broadcast on Publish */}
+            <EmailBroadcastCard
+              batches={batches}
+              students={students}
+              defaultEnabled={true}
+              typeLabel="News & Event Announcement"
+            />
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t">
               <button

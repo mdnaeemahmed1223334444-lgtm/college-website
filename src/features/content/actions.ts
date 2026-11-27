@@ -13,7 +13,7 @@ import {
   careerCircularSchema,
 } from "./schema";
 import { type ContentFeedback, isMeaningfulTitle } from "./types";
-import { broadcastNoticeEmail } from "@/features/communication/email-actions";
+import { broadcastNoticeEmail, broadcastNewsEmail } from "@/features/communication/email-actions";
 import type { BroadcastTarget } from "@/features/communication/email-types";
 
 function autoSlug(text: string): string {
@@ -70,8 +70,12 @@ export async function saveNoticeAction(_prev: ContentFeedback, formData: FormDat
   if (parsed.data.status === "published" && sendEmail) {
     const emailTarget = (formData.get("email_target")?.toString() || "all") as BroadcastTarget;
     const emailBatchId = formData.get("email_batch_id")?.toString();
-    const additionalEmails = formData.get("email_additional")?.toString();
+    const emailStudyGroup = (formData.get("email_study_group")?.toString() || "all") as any;
+    const additionalEmailsList = formData.getAll("email_additional").map(String).filter(Boolean);
+    const legacyAdditional = formData.get("email_additional")?.toString();
+    const allAdditional = [...additionalEmailsList, ...(legacyAdditional ? [legacyAdditional] : [])];
     const excludedEmails = formData.get("email_excluded")?.toString();
+    const excludedStudentIds = formData.getAll("email_excluded_student_ids").map(String).filter(Boolean);
 
     // Trigger asynchronous broadcast via Brevo without delaying web response
     broadcastNoticeEmail({
@@ -82,8 +86,10 @@ export async function saveNoticeAction(_prev: ContentFeedback, formData: FormDat
       is_urgent: parsed.data.is_urgent,
       target: emailTarget,
       batch_id: emailBatchId,
-      additional_emails: additionalEmails,
+      study_group: emailStudyGroup,
+      additional_emails: allAdditional,
       excluded_emails: excludedEmails,
+      excluded_student_ids: excludedStudentIds,
     }).catch((err) => {
       console.error("Notice email broadcast background error:", err);
     });
@@ -163,6 +169,36 @@ export async function saveNewsEventAction(_prev: ContentFeedback, formData: Form
 
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Invalid news/event data." };
+  }
+
+  // Check if email broadcast is requested on publication
+  const sendEmail = formData.get("send_email") === "on" || formData.get("send_email") === "true";
+  if (parsed.data.status === "published" && sendEmail) {
+    const emailTarget = (formData.get("email_target")?.toString() || "all") as BroadcastTarget;
+    const emailBatchId = formData.get("email_batch_id")?.toString();
+    const emailStudyGroup = (formData.get("email_study_group")?.toString() || "all") as any;
+    const additionalEmailsList = formData.getAll("email_additional").map(String).filter(Boolean);
+    const legacyAdditional = formData.get("email_additional")?.toString();
+    const allAdditional = [...additionalEmailsList, ...(legacyAdditional ? [legacyAdditional] : [])];
+    const excludedEmails = formData.get("email_excluded")?.toString();
+    const excludedStudentIds = formData.getAll("email_excluded_student_ids").map(String).filter(Boolean);
+
+    broadcastNewsEmail({
+      title: parsed.data.title,
+      category: parsed.data.category,
+      excerpt: parsed.data.summary,
+      content: parsed.data.content,
+      event_date: parsed.data.event_date ? new Date(parsed.data.event_date).toISOString() : null,
+      image_url: parsed.data.cover_image_url,
+      target: emailTarget,
+      batch_id: emailBatchId,
+      study_group: emailStudyGroup,
+      additional_emails: allAdditional,
+      excluded_emails: excludedEmails,
+      excluded_student_ids: excludedStudentIds,
+    }).catch((err) => {
+      console.error("News & Event email broadcast background error:", err);
+    });
   }
 
   const supabase = mainAdmin();

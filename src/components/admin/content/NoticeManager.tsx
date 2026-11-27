@@ -3,23 +3,24 @@
 import { useActionState, useState } from "react";
 import { saveNoticeAction, deleteNoticeAction } from "@/features/content/actions";
 import type { NoticeRecord, ContentFeedback } from "@/features/content/types";
-import type { BatchRecord } from "@/features/students/types";
+import type { BatchRecord, StudentRecord } from "@/features/students/types";
 import { SubmitButton, FeedbackAlert } from "@/components/admin/website/FormControls";
 import FileUploadInput from "@/components/shared/FileUploadInput";
+import EmailBroadcastCard from "@/components/admin/communication/EmailBroadcastCard";
 
 export default function NoticeManager({
   notices,
   batches = [],
+  students = [],
 }: {
   notices: NoticeRecord[];
   batches?: BatchRecord[];
+  students?: StudentRecord[];
 }) {
   const [editing, setEditing] = useState<NoticeRecord | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [formatType, setFormatType] = useState<"none" | "pdf" | "image" | "word">("none");
-  const [sendEmail, setSendEmail] = useState(true);
-  const [emailTarget, setEmailTarget] = useState<string>("all");
   const [state, formAction] = useActionState<ContentFeedback, FormData>(saveNoticeAction, {});
   const [deleteMsg, setDeleteMsg] = useState<string | null>(null);
 
@@ -314,90 +315,12 @@ export default function NoticeManager({
             </div>
 
             {/* Brevo Email Broadcast Integration */}
-            <div className="rounded-lg border border-purple-200 bg-purple-50/50 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer font-bold text-sm text-purple-900">
-                  <input
-                    type="checkbox"
-                    name="send_email"
-                    checked={sendEmail}
-                    onChange={(e) => setSendEmail(e.target.checked)}
-                    className="h-4 w-4 rounded border-purple-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
-                  />
-                  <span>📧 Broadcast Notice via Email (Brevo)</span>
-                </label>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-200 text-purple-800 font-semibold">
-                  Campus Mailer
-                </span>
-              </div>
-
-              {sendEmail && (
-                <div className="pt-2 border-t border-purple-200/60 space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-purple-950 mb-1">
-                        Recipient Audience
-                      </label>
-                      <select
-                        name="email_target"
-                        value={emailTarget}
-                        onChange={(e) => setEmailTarget(e.target.value)}
-                        className="w-full rounded border border-purple-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 focus:border-purple-600 focus:outline-none"
-                      >
-                        <option value="all">🌐 Entire Campus (Active Students & Teachers)</option>
-                        <option value="students">🎓 Students Only</option>
-                        <option value="teachers">👨‍🏫 Teachers & Staff Only</option>
-                        <option value="batch">👥 Specific Batch</option>
-                      </select>
-                    </div>
-
-                    {emailTarget === "batch" && (
-                      <div>
-                        <label className="block text-xs font-semibold text-purple-950 mb-1">
-                          Select Batch
-                        </label>
-                        <select
-                          name="email_batch_id"
-                          className="w-full rounded border border-purple-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 focus:border-purple-600 focus:outline-none"
-                        >
-                          {batches.map((b) => (
-                            <option key={b.id} value={b.id}>
-                              {b.name} (Exam Year {b.exam_year})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-purple-950 mb-0.5">
-                        Additional Emails (Optional)
-                      </label>
-                      <input
-                        name="email_additional"
-                        placeholder="e.g. extra@gmail.com, guest@yahoo.com"
-                        className="w-full rounded border border-purple-200 bg-white px-3 py-1.5 text-xs text-gray-800 focus:border-purple-600 focus:outline-none"
-                      />
-                      <p className="text-[11px] text-purple-700/80 mt-0.5">Comma separated list of extra addresses</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-red-900 mb-0.5">
-                        🚫 Exclude / Block specific IDs or Emails
-                      </label>
-                      <input
-                        name="email_excluded"
-                        placeholder="e.g. STU-2027-3001, blocked@example.com"
-                        className="w-full rounded border border-red-200 bg-white px-3 py-1.5 text-xs text-gray-800 focus:border-red-500 focus:outline-none"
-                      />
-                      <p className="text-[11px] text-red-700/80 mt-0.5">These recipients will NOT receive this email</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <EmailBroadcastCard
+              batches={batches}
+              students={students}
+              defaultEnabled={true}
+              typeLabel="Notice"
+            />
 
             {/* Action buttons */}
             <div className="flex items-center justify-end gap-3 pt-3 border-t">

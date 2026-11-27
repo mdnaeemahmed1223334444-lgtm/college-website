@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { getNotices } from "@/features/content/queries";
-import { getBatches } from "@/features/students/queries";
+import { getBatches, getStudents } from "@/features/students/queries";
 import NoticeManager from "@/components/admin/content/NoticeManager";
 
 export default async function NoticeManagementPage() {
-  const [notices, batches] = await Promise.all([
+  const [notices, batches, students] = await Promise.all([
     getNotices({ status: "all", includeExpired: true }),
     getBatches(),
+    getStudents(),
   ]);
 
   return (
@@ -24,7 +25,7 @@ export default async function NoticeManagementPage() {
         </p>
       </div>
 
-      <NoticeManager notices={notices} batches={batches} />
+      <NoticeManager notices={notices} batches={batches} students={students} />
     </div>
   );
 }

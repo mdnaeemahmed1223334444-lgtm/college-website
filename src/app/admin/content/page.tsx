@@ -48,6 +48,12 @@ export default async function ContentManagementOverviewPage() {
       icon: "💼",
     },
     {
+      title: "Email Broadcast & Sender",
+      href: "/admin/content/email",
+      desc: "Send custom broadcast emails, filter by study group or batch, manage blocked recipients, and view Brevo delivery logs.",
+      icon: "📧",
+    },
+    {
       title: "Holiday Management",
       href: "/admin/content/holidays",
       desc: `Academic calendar closures and national holidays (${stats.totalHolidays} scheduled in 2026).`,
