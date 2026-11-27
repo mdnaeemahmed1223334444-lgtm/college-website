@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getAuthenticatedStudent } from "@/features/students/auth";
 import { getStudentAttendanceSummary } from "@/features/attendance/queries";
-import { formatDhakaDate, getDhakaDate } from "@/lib/utils/datetime";
+import { formatDhakaDate, getDhakaDate, formatDhakaDayOfWeek } from "@/lib/utils/datetime";
+import { privateAdmin } from "@/lib/supabase/private-server";
 
 export const metadata = {
   title: "Student Dashboard | Student Portal",
@@ -69,6 +70,30 @@ export default async function StudentDashboardPage() {
   const attendance = await getStudentAttendanceSummary(student.id);
 
   const today = formatDhakaDate(getDhakaDate());
+  const todayDay = formatDhakaDayOfWeek(getDhakaDate());
+
+  // Fetch today's classes from class_routines for student's batch and group
+  let todayClasses: any[] = [];
+  const supabase = privateAdmin();
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from("class_routines")
+        .select("*")
+        .eq("is_published", true)
+        .eq("day_of_week", todayDay)
+        .or(`batch_id.is.null,batch_id.eq.${student.batch_id || ""}`)
+        .order("start_time");
+
+      if (data && data.length > 0) {
+        todayClasses = data.filter(
+          (r: any) => !r.study_group || r.study_group === student.study_group
+        );
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   const studyGroupLabel: Record<string, string> = {
     science: "Science",
@@ -147,6 +172,61 @@ export default async function StudentDashboardPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Today's Classes Card */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+            <span>📅</span> Today's Classes — <span className="text-blue-700">{todayDay}</span>
+          </h2>
+          <Link
+            href="/student/class-routine"
+            className="text-xs font-bold text-blue-700 hover:text-blue-900"
+          >
+            Full Timetable →
+          </Link>
+        </div>
+
+        {todayClasses.length === 0 ? (
+          <div className="rounded-xl border border-gray-200 bg-white p-5 text-center text-sm text-gray-500 shadow-xs">
+            {["Friday", "Saturday"].includes(todayDay) ? (
+              <p>🎉 Today is a weekend off-day. No classes scheduled.</p>
+            ) : (
+              <p>No classes scheduled for today.</p>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {todayClasses.map((c: any, i: number) => (
+              <div
+                key={c.id || i}
+                className="rounded-xl border border-gray-200 bg-white p-4 shadow-xs hover:border-blue-300 transition-all"
+                style={c.color ? { borderTopColor: c.color, borderTopWidth: 3 } : {}}
+              >
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-1 font-mono font-bold">
+                  <span>
+                    {c.start_time?.slice(0, 5)} – {c.end_time?.slice(0, 5)}
+                  </span>
+                  {c.room_number && (
+                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
+                      {c.room_number}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-sm font-bold text-gray-900 truncate">{c.subject}</h3>
+                <div className="flex items-center justify-between mt-2 text-xs">
+                  <span className="text-gray-500 truncate">{c.teacher_name || "—"}</span>
+                  {c.is_physical_training && (
+                    <span className="rounded-full bg-orange-100 text-orange-800 border border-orange-200 px-2 py-0.5 text-[10px] font-bold">
+                      🏃 PT
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Attendance Stats */}

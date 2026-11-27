@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getAuthenticatedStudent } from "@/features/students/auth";
+import { privateAdmin } from "@/lib/supabase/private-server";
 
 export const metadata = {
   title: "My Profile - Student Portal",
@@ -38,6 +40,30 @@ const studyGroupLabel: Record<string, string> = {
 export default async function StudentProfilePage() {
   const student = await getAuthenticatedStudent();
   if (!student) redirect("/student/login");
+
+  let results: any[] = [];
+  const supabase = privateAdmin();
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from("exam_results")
+        .select("*")
+        .eq("student_id", student.id)
+        .eq("is_published", true)
+        .order("created_at", { ascending: false });
+      if (data) results = data;
+    } catch {
+      // ignore
+    }
+  }
+
+  // Group by exam_name
+  const byExam = new Map<string, any[]>();
+  for (const r of results) {
+    const key = r.exam_name || "General Examination";
+    if (!byExam.has(key)) byExam.set(key, []);
+    byExam.get(key)!.push(r);
+  }
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -108,6 +134,48 @@ export default async function StudentProfilePage() {
         />
         <InfoRow label="RFID Card ID" value={student.rfid_card_id} />
       </Section>
+
+      {/* Examination Results */}
+      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+        <div className="bg-gray-50 border-b border-gray-200 px-5 py-3 flex items-center justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-600">🏆 Examination Results</h2>
+          <Link href="/student/results" className="text-xs font-bold text-blue-700 hover:text-blue-900">
+            View Full Marksheet →
+          </Link>
+        </div>
+        <div className="p-5">
+          {results.length === 0 ? (
+            <p className="text-xs text-gray-500">No published examination results yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {Array.from(byExam.entries()).map(([exam, items]) => {
+                const totalObtained = items.reduce((acc, c) => acc + (Number(c.obtained_marks) || 0), 0);
+                const totalPossible = items.reduce((acc, c) => acc + (Number(c.total_marks) || 100), 0);
+                const validGpa = items.filter((i) => i.gpa != null);
+                const avgGpa = validGpa.length > 0 ? (validGpa.reduce((acc, c) => acc + Number(c.gpa), 0) / validGpa.length).toFixed(2) : null;
+                return (
+                  <div key={exam} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border border-gray-100 bg-gray-50/50 gap-2">
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">{exam}</p>
+                      <p className="text-xs text-gray-500">{items.length} Subjects Evaluated</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md">
+                        Score: {totalObtained} / {totalPossible}
+                      </span>
+                      {avgGpa && (
+                        <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
+                          GPA: {avgGpa}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Personal Info */}
       <Section title="Personal Information">

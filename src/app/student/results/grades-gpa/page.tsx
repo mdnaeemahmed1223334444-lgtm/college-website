@@ -1,6 +1,5 @@
-import PlaceholderPage from "@/components/shared/PlaceholderPage";
+import { redirect } from "next/navigation";
 
-// Grades & GPA
 export default function Page() {
-  return <PlaceholderPage href="/student/results/grades-gpa" />;
+  redirect("/student/results");
 }

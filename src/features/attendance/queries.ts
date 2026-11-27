@@ -7,6 +7,7 @@ import {
   formatDhakaTime,
   formatDhakaDayOfWeek,
 } from "@/lib/utils/datetime";
+import { getAttendanceTimeSettings } from "@/features/academic/attendance-settings-queries";
 import type {
   StudentAttendanceRecord,
   AttendanceStats,
@@ -215,6 +216,7 @@ export async function getAttendanceStats(date?: string): Promise<AttendanceStats
   let presentCount = 0;
   let lateCount = 0;
   let leaveCount = 0;
+  let isOffDay = false;
 
   if (supabase) {
     try {
@@ -225,6 +227,22 @@ export async function getAttendanceStats(date?: string): Promise<AttendanceStats
         .eq("status", "active");
 
       totalStudents = studentCount || 0;
+
+      // Check if targetDate is a weekly off day or published holiday
+      const [attSettings, holidayRes] = await Promise.all([
+        getAttendanceTimeSettings(),
+        supabase
+          .from("holidays")
+          .select("id")
+          .eq("date", targetDate)
+          .eq("is_active", true)
+          .maybeSingle(),
+      ]);
+
+      const dayOfWeek = formatDhakaDayOfWeek(targetDate);
+      if (attSettings.weekly_off_days.includes(dayOfWeek) || holidayRes.data) {
+        isOffDay = true;
+      }
 
       // 2. Attendance Counts for Date
       const { data: attRecords } = await supabase
@@ -250,8 +268,11 @@ export async function getAttendanceStats(date?: string): Promise<AttendanceStats
   }
 
   const recordedCount = presentCount + lateCount + leaveCount;
-  const absentCount = Math.max(0, totalStudents - recordedCount);
-  const attendanceRate = totalStudents > 0 ? Math.round(((presentCount + lateCount) / totalStudents) * 100) : 0;
+  // If it's an off day or holiday, absentCount is 0 (school was closed)
+  const absentCount = isOffDay ? 0 : Math.max(0, totalStudents - recordedCount);
+  const attendanceRate = totalStudents > 0 
+    ? (isOffDay && recordedCount === 0 ? 100 : Math.round(((presentCount + lateCount) / totalStudents) * 100))
+    : 0;
 
   return {
     date: targetDate,
@@ -308,6 +329,26 @@ export async function getStudentAttendanceSummary(
       }
     }
 
+    // 3. Load attendance settings + holidays to filter off-days
+    const [attSettings, holidayData] = await Promise.all([
+      getAttendanceTimeSettings(),
+      supabase
+        .from("holidays")
+        .select("date")
+        .eq("is_active", true)
+        .then((res) => res.data || []),
+    ]);
+
+    const holidaySet = new Set<string>(holidayData.map((h: any) => h.date as string));
+    const weeklyOffDays = new Set<string>(attSettings.weekly_off_days);
+
+    function isCollegeDay(dateStr: string): boolean {
+      const dayName = formatDhakaDayOfWeek(dateStr);
+      if (weeklyOffDays.has(dayName)) return false;
+      if (holidaySet.has(dateStr)) return false;
+      return true;
+    }
+
     const records: StudentAttendanceRecord[] = Array.from(dateMap.values()).map((row) => ({
       id: row.id,
       student_id: student.id,
@@ -327,7 +368,7 @@ export async function getStudentAttendanceSummary(
       remarks: row.remarks,
     }));
 
-    // 3. Count total active college days recorded in system
+    // Count college days from all attendance records, excluding off-days and holidays
     let daysQuery = supabase
       .from("student_attendance")
       .select("date");
@@ -337,14 +378,20 @@ export async function getStudentAttendanceSummary(
     }
 
     const { data: allDates } = await daysQuery;
-    const uniqueCollegeDates = new Set((allDates || []).map((d: any) => d.date));
-    const total_class_days = Math.max(records.length, uniqueCollegeDates.size);
+    const uniqueCollegeDates = new Set(
+      (allDates || []).map((d: any) => d.date as string).filter(isCollegeDay)
+    );
+    const total_class_days = Math.max(
+      records.filter((r) => isCollegeDay(r.date)).length,
+      uniqueCollegeDates.size
+    );
 
     let present_days = 0;
     let late_days = 0;
     let leave_days = 0;
 
     for (const r of records) {
+      if (!isCollegeDay(r.date)) continue; // skip off-days in stats
       if (r.status === "present") present_days++;
       else if (r.status === "late") late_days++;
       else if (r.status === "leave") leave_days++;

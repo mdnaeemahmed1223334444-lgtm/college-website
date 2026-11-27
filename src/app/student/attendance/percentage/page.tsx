@@ -1,6 +1,5 @@
-import PlaceholderPage from "@/components/shared/PlaceholderPage";
+import { redirect } from "next/navigation";
 
-// Attendance Percentage
 export default function Page() {
-  return <PlaceholderPage href="/student/attendance/percentage" />;
+  redirect("/student/attendance");
 }

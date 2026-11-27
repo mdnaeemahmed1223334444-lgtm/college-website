@@ -4,8 +4,10 @@ import {
   getDhakaDate,
   formatDhakaTime,
   formatDhakaDate,
+  formatDhakaDayOfWeek,
   DHAKA_TIMEZONE,
 } from "@/lib/utils/datetime";
+import { getAttendanceTimeSettings } from "@/features/academic/attendance-settings-queries";
 
 function getDhakaTimeParts() {
   const now = new Date();
@@ -124,7 +126,7 @@ export async function POST(req: NextRequest) {
       if (normalizedData) {
         const { data: matchByData } = await privClient
           .from("students")
-          .select("id, student_code, full_name, status, rfid_card_id, rfid_card_data")
+          .select("id, student_code, full_name, status, rfid_card_id, rfid_card_data, batch_id, study_group")
           .or(
             `student_code.ilike.${normalizedData},rfid_card_data.ilike.${normalizedData},rfid_card_id.ilike.${normalizedData}`
           )
@@ -137,7 +139,7 @@ export async function POST(req: NextRequest) {
       if (!student && normalizedUid) {
         const { data: matchByUid } = await privClient
           .from("students")
-          .select("id, student_code, full_name, status, rfid_card_id, rfid_card_data")
+          .select("id, student_code, full_name, status, rfid_card_id, rfid_card_data, batch_id, study_group")
           .ilike("rfid_card_id", normalizedUid)
           .maybeSingle();
 
@@ -177,10 +179,40 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // 3. Duplicate scan prevention (Debounce cooldown: 3 minutes)
+      // Load attendance time settings & student's class routine for today
+      const attSettings = await getAttendanceTimeSettings();
+      const dayOfWeek = formatDhakaDayOfWeek(dateStr);
+      const currentMinutes = hour * 60 + minute;
+
+      let routineRecords: any[] = [];
+      try {
+        const { data: routines } = await privClient
+          .from("class_routines")
+          .select("*")
+          .eq("is_published", true)
+          .eq("day_of_week", dayOfWeek)
+          .or(`batch_id.is.null,batch_id.eq.${student.batch_id || ""}`);
+        if (routines) {
+          routineRecords = routines.filter(
+            (r: any) => !r.study_group || r.study_group === student.study_group
+          );
+        }
+      } catch {
+        // Class routines table fallback
+      }
+
+      // Check if current scan is during a Physical Training (PT) period
+      const isPtClassNow = routineRecords.some(
+        (r: any) =>
+          r.is_physical_training &&
+          r.start_time?.slice(0, 5) <= timeStr.slice(0, 5) &&
+          r.end_time?.slice(0, 5) >= timeStr.slice(0, 5)
+      );
+
+      // 3. Check for existing attendance record today
       const { data: recentScan } = await privClient
         .from("student_attendance")
-        .select("id, scan_timestamp, in_time, status")
+        .select("id, scan_timestamp, in_time, out_time, status, remarks")
         .eq("student_id", student.id)
         .eq("date", dateStr)
         .order("scan_timestamp", { ascending: false })
@@ -208,10 +240,81 @@ export async function POST(req: NextRequest) {
             duplicate_ignored: true,
           });
         }
+
+        // PT class check: Physical training should not count as getting out of college
+        if (isPtClassNow) {
+          return NextResponse.json({
+            success: true,
+            status: "PT_SESSION",
+            identifier: normalizedData || student.student_code,
+            uid: normalizedUid,
+            card_data: normalizedData,
+            student_name: student.full_name,
+            student_code: student.student_code,
+            time: formattedTime12,
+            date: formatDhakaDate(dateStr),
+            message: `Physical Training (PT) scan recorded at ${formattedTime12}. Not counted as departure.`,
+          });
+        }
+
+        // Subsquent scan: CHECK-OUT / GETTING OUT OF COLLEGE
+        // Determine expected departure time from student's routine
+        let expectedExitTime = attSettings.exit_time_default || "13:30";
+        const regularClasses = routineRecords.filter((r: any) => !r.is_physical_training);
+        const targetClasses = regularClasses.length > 0 ? regularClasses : routineRecords;
+        if (targetClasses.length > 0) {
+          const sortedByEnd = [...targetClasses].sort((a: any, b: any) =>
+            (b.end_time || "").localeCompare(a.end_time || "")
+          );
+          if (sortedByEnd[0]?.end_time) {
+            expectedExitTime = sortedByEnd[0].end_time.slice(0, 5);
+          }
+        }
+
+        const [exitHour, exitMin] = expectedExitTime.split(":").map(Number);
+        const expectedExitMinutes = (exitHour || 13) * 60 + (exitMin || 30);
+        const earlyThreshold = attSettings.exit_early_threshold_minutes || 15;
+        const isLeftEarly = currentMinutes < expectedExitMinutes - earlyThreshold;
+
+        const checkoutRemarks = isLeftEarly
+          ? `${recentScan.remarks || "Check-in"} | Left early at ${formattedTime12} (Expected: ${formatDhakaTime(expectedExitTime)})`
+          : `${recentScan.remarks || "Check-in"} | Departed at ${formattedTime12}`;
+
+        await privClient
+          .from("student_attendance")
+          .update({
+            out_time: timeStr,
+            remarks: checkoutRemarks,
+          })
+          .eq("id", recentScan.id);
+
+        await privClient
+          .from("attendance_devices")
+          .update({ last_seen_at: new Date().toISOString() })
+          .eq("device_id", deviceId);
+
+        const displayStatus = isLeftEarly ? "LEFT_EARLY" : "DEPARTED";
+
+        return NextResponse.json({
+          success: true,
+          status: displayStatus,
+          identifier: normalizedData || student.student_code,
+          uid: normalizedUid,
+          card_data: normalizedData,
+          student_name: student.full_name,
+          student_code: student.student_code,
+          time: formattedTime12,
+          date: formatDhakaDate(dateStr),
+          message: isLeftEarly
+            ? `Early departure: Student left early at ${formattedTime12} (Scheduled departure: ${formatDhakaTime(expectedExitTime)})`
+            : `Check-out recorded successfully at ${formattedTime12}. Goodbye!`,
+        });
       }
 
-      // 4. Determine PRESENT vs LATE status (Cutoff: 09:15 AM Asia/Dhaka)
-      const isLate = hour > 9 || (hour === 9 && minute > 15);
+      // 4. First scan of the day: ENTRY / CHECK-IN
+      const [eHour, eMinute] = (attSettings.entry_time || "09:00").split(":").map(Number);
+      const entryCutoffMinutes = (eHour || 9) * 60 + (eMinute || 0) + (attSettings.entry_grace_minutes || 15);
+      const isLate = currentMinutes > entryCutoffMinutes;
       const scanStatus: "present" | "late" = isLate ? "late" : "present";
       const displayStatus = isLate ? "LATE" : "PRESENT";
 
@@ -224,7 +327,9 @@ export async function POST(req: NextRequest) {
         rfid_card_id: normalizedUid || normalizedData || "UNKNOWN",
         device_id: deviceId,
         scan_timestamp: new Date().toISOString(),
-        remarks: `Gate check-in at ${formattedTime12} (Key: ${normalizedData || normalizedUid})`,
+        remarks: isLate
+          ? `Late arrival at ${formattedTime12} (Gate entry: ${formatDhakaTime(attSettings.entry_time)})`
+          : `Gate check-in at ${formattedTime12}`,
       });
 
       if (insertErr) {
@@ -248,7 +353,9 @@ export async function POST(req: NextRequest) {
         student_code: student.student_code,
         time: formattedTime12,
         date: formatDhakaDate(dateStr),
-        message: `Attendance recorded successfully: ${displayStatus} at ${formattedTime12}`,
+        message: isLate
+          ? `Recorded as LATE: Arrival at ${formattedTime12} (Standard arrival: ${formatDhakaTime(attSettings.entry_time)})`
+          : `Attendance recorded successfully: PRESENT at ${formattedTime12}`,
       });
     }
 
