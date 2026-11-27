@@ -8,7 +8,13 @@ import {
   testAiConnection,
   generateBeautifiedEmailHtml,
 } from "@/lib/ai/email-ai-service";
-import type { EmailAiConfig } from "./ai-types";
+import {
+  getAllEmailTemplates,
+  saveEmailTemplateItem,
+  deleteEmailTemplateItem,
+  resetEmailTemplatesToDefault,
+} from "@/lib/ai/email-template-service";
+import type { EmailAiConfig, EmailTemplateItem } from "./ai-types";
 import { getBrandingSettings } from "@/features/website/queries";
 
 /**
@@ -56,16 +62,26 @@ export async function testAiConfigAction(
 }
 
 /**
- * Transforms raw email text into a stunning HTML email using AI
+ * Transforms raw email text into a stunning, phone & PC responsive HTML email using AI
  */
 export async function generateAiEmailHtmlAction({
   rawText,
   subject,
   style = "institutional",
+  templateId,
+  customPromptInstructions,
+  primaryColor,
+  accentColor,
+  badgeLabel,
 }: {
   rawText: string;
   subject?: string;
-  style?: "institutional" | "urgent" | "celebration" | "clean";
+  style?: string;
+  templateId?: string;
+  customPromptInstructions?: string;
+  primaryColor?: string;
+  accentColor?: string;
+  badgeLabel?: string;
 }): Promise<{ success: boolean; html?: string; error?: string }> {
   try {
     await requireRole(["admin"]);
@@ -76,6 +92,11 @@ export async function generateAiEmailHtmlAction({
       rawText,
       subject,
       style,
+      templateId,
+      customPromptInstructions,
+      primaryColor,
+      accentColor,
+      badgeLabel,
       collegeName,
     });
   } catch (err: any) {
@@ -83,5 +104,76 @@ export async function generateAiEmailHtmlAction({
       success: false,
       error: err.message || "Failed to generate email template",
     };
+  }
+}
+
+/**
+ * Returns all email templates (built-in + custom)
+ */
+export async function getEmailTemplatesAction(): Promise<EmailTemplateItem[]> {
+  try {
+    await requireRole(["admin"]);
+    return await getAllEmailTemplates();
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Saves or updates an email template
+ */
+export async function saveEmailTemplateAction(
+  template: EmailTemplateItem
+): Promise<{ success: boolean; template?: EmailTemplateItem; error?: string }> {
+  try {
+    await requireRole(["admin"]);
+    const res = await saveEmailTemplateItem(template);
+    if (res.success) {
+      revalidatePath("/admin/communication/email");
+      revalidatePath("/admin/content/email");
+    }
+    return res;
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to save template" };
+  }
+}
+
+/**
+ * Deletes an email template
+ */
+export async function deleteEmailTemplateAction(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireRole(["admin"]);
+    const res = await deleteEmailTemplateItem(id);
+    if (res.success) {
+      revalidatePath("/admin/communication/email");
+      revalidatePath("/admin/content/email");
+    }
+    return res;
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to delete template" };
+  }
+}
+
+/**
+ * Resets templates back to default system templates
+ */
+export async function resetEmailTemplatesAction(): Promise<{
+  success: boolean;
+  templates?: EmailTemplateItem[];
+  error?: string;
+}> {
+  try {
+    await requireRole(["admin"]);
+    const res = await resetEmailTemplatesToDefault();
+    if (res.success) {
+      revalidatePath("/admin/communication/email");
+      revalidatePath("/admin/content/email");
+    }
+    return res;
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to reset templates" };
   }
 }

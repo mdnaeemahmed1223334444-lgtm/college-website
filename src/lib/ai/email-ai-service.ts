@@ -231,18 +231,28 @@ export async function testAiConnection(
 }
 
 /**
- * Converts raw email draft into a stunning, responsive, inline-styled HTML email.
+ * Converts raw email draft into a stunning, responsive, mobile (phone) & PC desktop compatible HTML email.
  * Includes automatic Gemini multi-key rotation on 429 quota errors.
  */
 export async function generateBeautifiedEmailHtml({
   rawText,
   subject,
   style = "institutional",
+  templateId,
+  customPromptInstructions,
+  primaryColor,
+  accentColor,
+  badgeLabel,
   collegeName = "Haji Rahmatullah Model Degree College",
 }: {
   rawText: string;
   subject?: string;
-  style?: "institutional" | "urgent" | "celebration" | "clean";
+  style?: string;
+  templateId?: string;
+  customPromptInstructions?: string;
+  primaryColor?: string;
+  accentColor?: string;
+  badgeLabel?: string;
   collegeName?: string;
 }): Promise<{ success: boolean; html?: string; error?: string }> {
   if (!rawText || rawText.trim().length === 0) {
@@ -252,47 +262,93 @@ export async function generateBeautifiedEmailHtml({
   const config = await getEmailAiConfig();
   const title = subject?.trim() || "Official College Announcement";
 
-  // System Prompt for generating stunning HTML emails
-  const prompt = `You are a master institutional email designer and senior communications strategist for "${collegeName}".
-Your task is to transform the following raw draft into a stunning, professional, and responsive HTML email template.
+  // Palette & style definitions
+  let pColor = primaryColor || "#1e3a8a";
+  let aColor = accentColor || "#c5a46d";
+  let badge = badgeLabel || "OFFICIAL NOTICE";
 
-### Email Details:
-- College Name: ${collegeName}
-- Subject / Title: ${title}
-- Selected Visual Style: ${style.toUpperCase()}
+  if (style === "urgent") {
+    pColor = primaryColor || "#b91c1c";
+    aColor = accentColor || "#fee2e2";
+    badge = badgeLabel || "URGENT ALERT";
+  } else if (style === "celebration") {
+    pColor = primaryColor || "#4f46e5";
+    aColor = accentColor || "#a855f7";
+    badge = badgeLabel || "CAMPUS CELEBRATION";
+  } else if (style === "clean") {
+    pColor = primaryColor || "#0f172a";
+    aColor = accentColor || "#0284c7";
+    badge = badgeLabel || "CAMPUS UPDATE";
+  } else if (style === "academic") {
+    pColor = primaryColor || "#065f46";
+    aColor = accentColor || "#d97706";
+    badge = badgeLabel || "ACADEMIC CIRCULAR";
+  }
 
-### Raw Draft Input:
+  // System Prompt for generating stunning, bulletproof mobile & PC HTML emails
+  const prompt = `You are a world-class HTML email designer and senior communications director for "${collegeName}".
+Your mission is to transform the user's raw draft into a stunning, executive-grade, and 100% responsive HTML email that looks flawless on both smartphones (iOS Mail, Android Gmail, Samsung Mail) and desktop PCs (Outlook, Gmail Web, Apple Mail).
+
+### Core Parameters:
+- College / Institution: ${collegeName}
+- Subject / Headline: ${title}
+- Visual Theme Style: ${style.toUpperCase()} (Primary Color: ${pColor}, Accent/Highlight: ${aColor}, Badge: "${badge}")
+${customPromptInstructions ? `- Custom Style Instructions: ${customPromptInstructions}` : ""}
+
+### User's Raw Draft:
 """
 ${rawText.trim()}
 """
 
-### Design & HTML Requirements:
-1. Output format: Return ONLY the raw HTML string for the email body.
-   - Do NOT wrap in markdown code blocks (NO \`\`\`html or \`\`\`).
-   - Do NOT include <html> or <head> tags; provide the top-level container:
-     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
-     ...
-     </div>
-2. Header Section:
-   - Modern branded banner containing "${collegeName}".
-   - Tagline / Badge according to style:
-     ${
-       style === "urgent"
-         ? 'Emergency / Urgent badge: Red/Amber background (#fee2e2), dark red text (#991b1b).'
-         : style === "celebration"
-         ? 'Celebration / Achievement badge: Emerald/Purple gradient or gold accent.'
-         : style === "clean"
-         ? 'Minimalist slate header (#0f172a), subtle silver accent.'
-         : 'Official Institutional Header: Deep Navy (#1e3a8a) with rich gold accent (#c5a46d).'
-     }
-3. Content & Typography:
-   - Title: <h2> or <h1> with bold, crisp styling (22px to 26px).
-   - Paragraphs: 15px font size, line-height 1.65, text color #374151.
-   - Key Information / Bullet Points: Turn any dates, times, schedules, instructions, or rules into stylish highlight boxes or styled cards with subtle borders and icons (e.g. 📅, ⏰, 📍, ⚠️, 📌).
-   - Action Items: If the text mentions links, forms, or actions, render an elegant centered CTA button with inline styles.
-4. Professional Footer:
-   - Formal sign-off: "Office of Communications & Administration", College name, and automated system disclaimer.
-5. All CSS MUST be 100% INLINE on HTML elements (e.g. style="..."). No <style> tags or CSS classes because email clients like Gmail strip them.`;
+### Strict Email Client & Mobile/PC Compatibility Standards:
+1. **Outer & Inner Architecture (100% Fluid & Desktop/Mobile Compatible):**
+   - Output ONLY the HTML markup. NO \`\`\`html or markdown wrapper.
+   - Start with an outer fluid table:
+     <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100% !important; min-width:100%; background-color:#f8fafc; margin:0; padding:20px 10px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+       <tr>
+         <td align="center" style="padding:0;">
+           <!-- Card container: 100% width on mobile phone screens, max 600px on PC monitors -->
+           <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.06); border:1px solid #e2e8f0; margin:0 auto;">
+   - Close all tables cleanly at the end.
+
+2. **Branded Header Banner (Stunning Visual Appeal):**
+   - Top banner with background color "${pColor}" (or elegant gradient if celebration).
+   - Padding: 30px 24px on desktop, scaling smoothly on mobile.
+   - Branded institution name: "${collegeName}" in crisp white font (font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ffffff; opacity: 0.95;).
+   - Distinctive pill badge:
+     <span style="display:inline-block; margin-top:8px; padding:4px 12px; border-radius:9999px; font-size:11px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; background-color:rgba(255,255,255,0.18); color:#ffffff; border:1px solid rgba(255,255,255,0.3);">${badge}</span>
+
+3. **Content Body & Typography (Readable & Impactful):**
+   - Inside padding: 30px 24px.
+   - Heading (Subject): <h1 style="margin:0 0 16px 0; font-size:23px; line-height:1.35; font-weight:800; color:#0f172a; letter-spacing:-0.01em;">${title}</h1>
+   - Paragraphs: font-size 15px, line-height 1.65, color #334155, margin 0 0 14px 0.
+   - **Key Information Cards:** If the draft mentions dates, times, deadlines, rooms, rules, or requirements, organize them into a beautiful highlight card:
+     <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f1f5f9; border-left:4px solid ${pColor}; border-radius:8px; margin:18px 0;">
+       <tr>
+         <td style="padding:14px 18px; font-size:14px; color:#1e293b; line-height:1.6;">
+           ... highlight items with icons 📅 ⏰ 📍 📌 ⚠️ ...
+         </td>
+       </tr>
+     </table>
+   - **Call-to-Action (CTA):** If the text mentions an action (e.g. view schedule, submit form, visit portal, attend meeting), provide an eye-catching centered button:
+     <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:24px auto;">
+       <tr>
+         <td align="center" style="border-radius:10px; background-color:${pColor}; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+           <a href="#" target="_blank" style="font-size:14px; font-weight:700; color:#ffffff !important; text-decoration:none; padding:13px 28px; display:inline-block; border-radius:10px; letter-spacing:0.02em;">
+             Take Action &rarr;
+           </a>
+         </td>
+       </tr>
+     </table>
+
+4. **Executive Institutional Footer:**
+   - Background: #f8fafc with top border 1px solid #e2e8f0, padding 24px 20px, text-align center.
+   - Formal sign-off: "Office of Academic Administration & Communications" • "${collegeName}".
+   - Automated system notice: "This is an official communication delivered via the college dispatch network."
+
+5. **100% INLINE CSS Only:**
+   - Every single <table>, <tr>, <td>, <p>, <span>, <a>, <h1> MUST have full inline style="..." properties.
+   - Do NOT use <style> tags or external CSS classes.`;
 
   try {
     if (config.provider === "google") {

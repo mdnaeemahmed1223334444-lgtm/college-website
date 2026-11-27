@@ -17,11 +17,18 @@ import {
 import RichEmailEditor from "./RichEmailEditor";
 import AiEmailGenerator from "./AiEmailGenerator";
 import AiEmailSettingsManager from "./AiEmailSettingsManager";
-import { type EmailAiConfig, defaultEmailAiConfig } from "@/features/communication/ai-types";
+import EmailTemplateManager from "./EmailTemplateManager";
+import {
+  type EmailAiConfig,
+  type EmailTemplateItem,
+  defaultEmailAiConfig,
+  defaultBuiltInTemplates,
+} from "@/features/communication/ai-types";
 
 interface Props {
   initialSettings: EmailBroadcastSettings;
   initialAiConfig?: EmailAiConfig;
+  initialTemplates?: EmailTemplateItem[];
   batches: BatchRecord[];
   students?: StudentRecord[];
   logs: BroadcastLogItem[];
@@ -31,12 +38,17 @@ interface Props {
 export default function EmailManager({
   initialSettings,
   initialAiConfig,
+  initialTemplates = defaultBuiltInTemplates,
   batches,
   students = [],
   logs,
   collegeName,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<"compose" | "ai_settings" | "blocked" | "settings" | "logs">("compose");
+  const [activeTab, setActiveTab] = useState<
+    "compose" | "templates" | "ai_settings" | "blocked" | "settings" | "logs"
+  >("compose");
+  const [templates, setTemplates] = useState<EmailTemplateItem[]>(initialTemplates);
+  const [livePreviewDevice, setLivePreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [settings, setSettings] = useState(initialSettings);
   const [aiConfig, setAiConfig] = useState<EmailAiConfig>(initialAiConfig || defaultEmailAiConfig);
   const [isPending, startTransition] = useTransition();
@@ -306,6 +318,11 @@ export default function EmailManager({
           {[
             { id: "compose", label: "✉️ Compose & Broadcast", count: null },
             {
+              id: "templates",
+              label: "🎨 HTML Templates & Styles",
+              count: `${templates.length} Styles`,
+            },
+            {
               id: "ai_settings",
               label: "🤖 AI Assistant & Keys",
               count:
@@ -560,6 +577,8 @@ export default function EmailManager({
             {aiConfig.enabled && (
               <AiEmailGenerator
                 currentSubject={subjectText}
+                templates={templates}
+                collegeName={collegeName}
                 onApplyHtml={(generatedHtml) => {
                   setPreAiHtml(currentHtml);
                   setCurrentHtml(generatedHtml);
@@ -582,6 +601,7 @@ export default function EmailManager({
                   setShowPreview(false);
                 }}
                 onOpenSettings={() => setActiveTab("ai_settings")}
+                onOpenTemplatesManager={() => setActiveTab("templates")}
               />
             )}
 
@@ -632,29 +652,83 @@ export default function EmailManager({
 
             {/* Live Preview Modal / Card */}
             {showPreview && (
-              <div className="rounded-xl border border-blue-200 bg-gray-50 p-5 space-y-3">
-                <div className="flex items-center justify-between border-b pb-2">
-                  <h3 className="text-xs font-bold text-blue-900 uppercase tracking-wide">
-                    Inbox Preview: {collegeName}
-                  </h3>
-                  <span className="text-[11px] text-gray-500">Subject: {subjectText || "(No subject yet)"}</span>
-                </div>
-                <div className="rounded-lg bg-white p-6 shadow-sm border border-gray-200 max-w-xl mx-auto">
-                  <div className="border-b pb-3 mb-4">
-                    <p className="text-xs text-gray-400">From: {settings.sender_name} &lt;{settings.sender_email}&gt;</p>
-                    <p className="text-xs text-gray-400">To: {target} recipients</p>
-                    <h2 className="text-base font-bold text-gray-900 mt-1">{subjectText || "Your Subject Line"}</h2>
+              <div className="rounded-2xl border border-blue-200 bg-gray-50 p-5 space-y-4 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-gray-200 pb-3">
+                  <div>
+                    <h3 className="text-xs font-bold text-blue-950 uppercase tracking-wide flex items-center gap-1.5">
+                      <span>👁️</span>
+                      <span>Inbox Device Preview: {collegeName}</span>
+                    </h3>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Verify layout fidelity across smartphone and PC email clients before sending.
+                    </p>
                   </div>
+
+                  {/* Device Switcher */}
+                  <div className="flex items-center bg-white rounded-xl p-0.5 border border-gray-300 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setLivePreviewDevice("desktop")}
+                      className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        livePreviewDevice === "desktop"
+                          ? "bg-blue-600 text-white shadow-xs"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      <span>💻</span>
+                      <span>PC / Desktop</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLivePreviewDevice("mobile")}
+                      className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        livePreviewDevice === "mobile"
+                          ? "bg-blue-600 text-white shadow-xs"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      <span>📱</span>
+                      <span>Phone / Mobile</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preview Frame */}
+                <div className="flex justify-center py-2">
                   <div
-                    className="email-editor-body text-sm text-gray-800 space-y-2"
-                    dangerouslySetInnerHTML={{ __html: currentHtml || "<p>Your email message...</p>" }}
-                  />
-                  {selectedFiles.length > 0 && (
-                    <div className="mt-4 pt-3 border-t text-xs text-gray-600">
-                      <strong>Attachments ({selectedFiles.length}):</strong>{" "}
-                      {selectedFiles.map((f) => f.name).join(", ")}
+                    className={`w-full bg-white transition-all shadow-md border ${
+                      livePreviewDevice === "mobile"
+                        ? "max-w-[380px] rounded-3xl p-4 border-gray-400 ring-8 ring-gray-100"
+                        : "max-w-[620px] rounded-xl p-6 border-gray-200"
+                    }`}
+                  >
+                    <div className="border-b border-gray-200 pb-3 mb-4">
+                      <div className="flex items-center justify-between text-[11px] text-gray-400 mb-1">
+                        <span>From: {settings.sender_name} &lt;{settings.sender_email}&gt;</span>
+                        <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                          {livePreviewDevice === "mobile" ? "Mobile View" : "Desktop View"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400">To: {target} recipients</p>
+                      <h2 className="text-base font-bold text-gray-900 mt-1">
+                        {subjectText || "Your Subject Line"}
+                      </h2>
                     </div>
-                  )}
+
+                    <div
+                      className="email-editor-body text-sm text-gray-800 space-y-2 overflow-x-auto"
+                      dangerouslySetInnerHTML={{
+                        __html: currentHtml || "<p>Your email message...</p>",
+                      }}
+                    />
+
+                    {selectedFiles.length > 0 && (
+                      <div className="mt-4 pt-3 border-t text-xs text-gray-600">
+                        <strong>Attachments ({selectedFiles.length}):</strong>{" "}
+                        {selectedFiles.map((f) => f.name).join(", ")}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -842,6 +916,27 @@ export default function EmailManager({
             </div>
           </div>
         </form>
+      )}
+
+      {/* TAB: HTML EMAIL TEMPLATES & STYLE LIBRARY */}
+      {activeTab === "templates" && (
+        <EmailTemplateManager
+          initialTemplates={templates}
+          collegeName={collegeName}
+          onSelectTemplateForCompose={(tpl) => {
+            if (tpl.sampleBody) {
+              const formatted = tpl.sampleBody
+                .split("\n\n")
+                .map((p) => `<p>${p.replace(/\n/g, "<br/>")}</p>`)
+                .join("");
+              setCurrentHtml(formatted);
+            }
+            if (tpl.sampleSubject) {
+              setSubjectText(tpl.sampleSubject);
+            }
+            setActiveTab("compose");
+          }}
+        />
       )}
 
       {/* TAB 2: PERMANENTLY SAVED BLOCKED RECIPIENTS */}

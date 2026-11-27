@@ -1,5 +1,5 @@
 import { getEmailSettingsAction, getBroadcastLogsAction } from "@/features/communication/email-actions";
-import { getEmailAiConfigAction } from "@/features/communication/ai-actions";
+import { getEmailAiConfigAction, getEmailTemplatesAction } from "@/features/communication/ai-actions";
 import { getBatches, getStudents } from "@/features/students/queries";
 import { getBrandingSettings } from "@/features/website/queries";
 import EmailManager from "@/components/admin/communication/EmailManager";
@@ -10,9 +10,10 @@ export const metadata = {
 };
 
 export default async function EmailCommunicationPage() {
-  const [settings, aiConfig, batches, students, logs, branding] = await Promise.all([
+  const [settings, aiConfig, templates, batches, students, logs, branding] = await Promise.all([
     getEmailSettingsAction(),
     getEmailAiConfigAction(),
+    getEmailTemplatesAction(),
     getBatches(),
     getStudents(),
     getBroadcastLogsAction(),
@@ -24,6 +25,7 @@ export default async function EmailCommunicationPage() {
       <EmailManager
         initialSettings={settings}
         initialAiConfig={aiConfig}
+        initialTemplates={templates}
         batches={batches}
         students={students}
         logs={logs}
