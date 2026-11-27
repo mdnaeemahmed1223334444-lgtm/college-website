@@ -32,9 +32,9 @@ export default function PortalShell({
           </form>
         </div>
       </header>
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-w-0">
         <PortalSidebar items={nav} />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 min-w-0 max-w-full overflow-x-hidden">{children}</main>
       </div>
     </div>
   );

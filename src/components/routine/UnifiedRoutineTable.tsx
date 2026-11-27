@@ -223,19 +223,19 @@ export default function UnifiedRoutineTable({
 
       {/* Master 7-Period Unified Routine Table */}
       <div className="routine-container rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="routine-table w-full text-left border-collapse text-xs">
+        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
+          <table className="routine-table w-full text-left border-collapse text-xs min-w-[760px]">
             <thead>
               <tr className="bg-slate-900 text-white font-bold border-b border-slate-800">
-                <th className="px-3 py-3 border-r border-slate-800 uppercase tracking-wider w-24 text-center">
+                <th className="px-2 py-3 border-r border-slate-800 uppercase tracking-wider w-20 text-center shrink-0">
                   Day
                 </th>
                 {morningPeriods.map((slot) => (
                   <th
                     key={slot.number}
-                    className="px-2.5 py-3 border-r border-slate-800 text-center min-w-[120px]"
+                    className="px-2 py-2.5 border-r border-slate-800 text-center min-w-[95px] lg:min-w-[110px]"
                   >
-                    <div className="font-black text-[13px] text-white">Period {slot.number}</div>
+                    <div className="font-black text-xs text-white">Period {slot.number}</div>
                     <div className="text-[10px] text-blue-200 font-mono mt-0.5">
                       {slot.defaultStart} – {slot.defaultEnd}
                     </div>
@@ -243,15 +243,15 @@ export default function UnifiedRoutineTable({
                 ))}
 
                 {/* Official Tiffin Break Column after Period 3 */}
-                <th className="break-column px-2.5 py-3 border-r border-amber-300 bg-amber-500 text-slate-900 text-center min-w-[100px] w-28">
-                  <div className="flex items-center justify-center gap-1 font-black text-[12px] text-slate-950">
+                <th className="break-column px-1.5 py-2.5 border-r border-amber-300 bg-amber-500 text-slate-900 text-center w-20 min-w-[75px] shrink-0">
+                  <div className="flex items-center justify-center gap-1 font-black text-[11px] text-slate-950">
                     <span>☕</span>
                     <span>TIFFIN</span>
                   </div>
-                  <div className="text-[10px] font-mono font-bold text-slate-900 mt-0.5">
-                    {tiffinBreak.defaultStart} – {tiffinBreak.defaultEnd}
+                  <div className="text-[9px] font-mono font-bold text-slate-900 mt-0.5 whitespace-nowrap">
+                    {tiffinBreak.defaultStart}–{tiffinBreak.defaultEnd}
                   </div>
-                  <div className="text-[9px] uppercase tracking-wider font-extrabold text-amber-900">
+                  <div className="text-[8px] uppercase tracking-wider font-extrabold text-amber-950">
                     (Break)
                   </div>
                 </th>
@@ -259,9 +259,9 @@ export default function UnifiedRoutineTable({
                 {afternoonPeriods.map((slot) => (
                   <th
                     key={slot.number}
-                    className="px-2.5 py-3 border-r border-slate-800 text-center min-w-[120px] last:border-0"
+                    className="px-2 py-2.5 border-r border-slate-800 text-center min-w-[95px] lg:min-w-[110px] last:border-0"
                   >
-                    <div className="font-black text-[13px] text-white">Period {slot.number}</div>
+                    <div className="font-black text-xs text-white">Period {slot.number}</div>
                     <div className="text-[10px] text-blue-200 font-mono mt-0.5">
                       {slot.defaultStart} – {slot.defaultEnd}
                     </div>

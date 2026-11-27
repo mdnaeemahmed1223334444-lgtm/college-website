@@ -212,7 +212,7 @@ export const publicNav: NavNode[] = [
     "href": "/contact"
   },
   {
-    "title": "Portals",
+    "title": "Login",
     "href": "/login",
     "children": [
       {
@@ -228,7 +228,7 @@ export const publicNav: NavNode[] = [
         "href": "/admin"
       },
       {
-        "title": "All Portals Login",
+        "title": "Unified Login Page",
         "href": "/login"
       }
     ]

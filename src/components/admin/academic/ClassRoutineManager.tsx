@@ -36,8 +36,10 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
   const [isPending, startTransition] = useTransition();
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  // Period timings
+  // Period timings + tiffin break (all editable by admin)
   const [periodTimings, setPeriodTimings] = useState<PeriodSlot[]>(DEFAULT_PERIODS);
+  const [tiffinStart, setTiffinStart] = useState<string>(TIFFIN_BREAK.defaultStart);
+  const [tiffinEnd, setTiffinEnd] = useState<string>(TIFFIN_BREAK.defaultEnd);
   const [showTimingsModal, setShowTimingsModal] = useState(false);
 
   // Cell editor modal
@@ -401,17 +403,17 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
       {/* Unified 7-Period Timetable Table with Tiffin Break */}
       <div className="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse" style={{ minWidth: "900px" }}>
             <thead>
               <tr className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white text-xs font-bold">
-                <th className="px-4 py-3 border-r border-blue-600/50 w-28 uppercase tracking-wider">
+                <th className="px-3 py-3 border-r border-blue-600/50 w-24 uppercase tracking-wider">
                   Day
                 </th>
                 {/* Periods 1-3 */}
                 {periodsBeforeTiffin.map((slot) => (
                   <th
                     key={slot.number}
-                    className="px-3 py-3 border-r border-blue-600/50 text-center min-w-[130px]"
+                    className="px-2 py-3 border-r border-blue-600/50 text-center min-w-[110px]"
                   >
                     <div className="font-extrabold">{slot.label}</div>
                     <div className="text-[10px] text-blue-200 font-mono font-normal">
@@ -421,16 +423,15 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
                 ))}
 
                 {/* Tiffin Break Column Header */}
-                <th className="px-2 py-3 bg-amber-600 text-white text-center w-24 border-r border-amber-500">
+                <th className="px-2 py-3 bg-amber-600 text-white text-center w-20 border-r border-amber-500">
                   <div className="font-black text-[11px]">☕ TIFFIN</div>
-                  <div className="text-[9px] text-amber-100 font-mono">11:15–11:45</div>
+                  <div className="text-[9px] text-amber-100 font-mono whitespace-nowrap">{tiffinStart}–{tiffinEnd}</div>
                 </th>
-
                 {/* Periods 4-7 */}
                 {periodsAfterTiffin.map((slot) => (
                   <th
                     key={slot.number}
-                    className="px-3 py-3 border-r border-blue-600/50 text-center min-w-[130px] last:border-0"
+                    className="px-2 py-3 border-r border-blue-600/50 text-center min-w-[110px] last:border-0"
                   >
                     <div className="font-extrabold">{slot.label}</div>
                     <div className="text-[10px] text-blue-200 font-mono font-normal">
@@ -444,7 +445,7 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
               {COLLEGE_DAYS.map((day) => (
                 <tr key={day} className="hover:bg-blue-50/20 transition-colors">
                   {/* Day Column */}
-                  <td className="px-4 py-3 bg-gray-50 font-black text-gray-900 border-r border-gray-200">
+                  <td className="px-3 py-3 bg-gray-50 font-black text-gray-900 border-r border-gray-200 whitespace-nowrap">
                     <div>{day}</div>
                     <div className="text-[10px] text-gray-500 font-normal">7 Periods</div>
                   </td>
@@ -509,11 +510,11 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
                   })}
 
                   {/* Tiffin Break Column Body */}
-                  <td className="px-2 py-3 bg-amber-50/90 text-center border-r border-amber-200">
+                  <td className="px-2 py-3 bg-amber-50/90 text-center border-r border-amber-200 whitespace-nowrap">
                     <div className="text-[10px] font-extrabold text-amber-800 uppercase tracking-tighter">
                       BREAK
                     </div>
-                    <div className="text-[9px] text-amber-600 font-mono">30 min</div>
+                    <div className="text-[9px] text-amber-600 font-mono">{tiffinStart}–{tiffinEnd}</div>
                   </td>
 
                   {/* Periods 4 to 7 */}
@@ -730,9 +731,9 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
           <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden border border-gray-200">
             <div className="bg-blue-700 p-4 text-white flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-sm">Configure 7 Periods Standard Timings</h3>
+                <h3 className="font-bold text-sm">Configure Period Timings & Tiffin Break</h3>
                 <p className="text-xs text-blue-200">
-                  Tiffin break is automatically observed after Period 3 (11:15 AM – 11:45 AM).
+                  Edit start/end times for all 7 periods and the Tiffin break below.
                 </p>
               </div>
               <button
@@ -743,7 +744,7 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
               </button>
             </div>
 
-            <div className="p-5 space-y-3 max-h-[60vh] overflow-y-auto text-xs">
+            <div className="p-5 space-y-3 max-h-[65vh] overflow-y-auto text-xs">
               {periodTimings.map((slot, idx) => (
                 <div key={slot.number} className="space-y-2">
                   <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-gray-100 bg-gray-50/70">
@@ -775,9 +776,32 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
                     </div>
                   </div>
 
+                  {/* Tiffin Break — editable, shown between Period 3 and Period 4 */}
                   {slot.number === 3 && (
-                    <div className="rounded-lg bg-amber-50 border border-amber-200 p-2 text-center text-xs font-bold text-amber-900">
-                      ☕ Tiffin Break: 11:15 AM – 11:45 AM (Recess)
+                    <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-black text-amber-900">
+                        <span>☕</span>
+                        <span>Tiffin / Recess Break (after Period 3)</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-amber-800 font-bold w-16">Break Start</span>
+                        <input
+                          type="time"
+                          value={tiffinStart}
+                          onChange={(e) => setTiffinStart(e.target.value)}
+                          className="rounded-lg border border-amber-300 bg-white px-2 py-1 text-xs font-mono font-bold text-amber-900 focus:border-amber-500 focus:outline-none"
+                        />
+                        <span className="text-amber-700 font-bold">to</span>
+                        <input
+                          type="time"
+                          value={tiffinEnd}
+                          onChange={(e) => setTiffinEnd(e.target.value)}
+                          className="rounded-lg border border-amber-300 bg-white px-2 py-1 text-xs font-mono font-bold text-amber-900 focus:border-amber-500 focus:outline-none"
+                        />
+                      </div>
+                      <p className="text-[10px] text-amber-700 italic">
+                        Students are on break — RFID attendance is paused during this window.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -789,6 +813,8 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
                 type="button"
                 onClick={() => {
                   setPeriodTimings(DEFAULT_PERIODS);
+                  setTiffinStart(TIFFIN_BREAK.defaultStart);
+                  setTiffinEnd(TIFFIN_BREAK.defaultEnd);
                   setShowTimingsModal(false);
                 }}
                 className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-100"
@@ -799,7 +825,7 @@ export default function ClassRoutineManager({ initialRecords, batches, teachers 
                 type="button"
                 onClick={() => {
                   setShowTimingsModal(false);
-                  showToast("success", "Period timings updated.");
+                  showToast("success", "Period timings & tiffin break updated. Save & Publish to apply.");
                 }}
                 className="rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-bold text-white hover:bg-blue-800"
               >

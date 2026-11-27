@@ -114,8 +114,24 @@ export async function saveFullRoutineGridAction(
       });
 
     if (validItems.length > 0) {
-      const { error: insertErr } = await supabase.from("class_routines").insert(validItems);
-      if (insertErr) return { error: insertErr.message };
+      let insertRes = await supabase.from("class_routines").insert(validItems);
+      if (insertRes.error && (insertRes.error.message.includes("is_practical") || insertRes.error.message.includes("column"))) {
+        // Fallback: If DB schema doesn't have is_practical column, omit it from the payload
+        // and ensure subject text reflects Practical so attendance scanner & UI viewers detect it
+        const sanitizedItems = validItems.map((item) => {
+          const { is_practical, ...rest } = item;
+          let sub = rest.subject;
+          if (is_practical && !sub.toLowerCase().includes("practical")) {
+            sub = `${sub} (Practical)`;
+          }
+          return {
+            ...rest,
+            subject: sub,
+          };
+        });
+        insertRes = await supabase.from("class_routines").insert(sanitizedItems);
+      }
+      if (insertRes.error) return { error: insertRes.error.message };
     }
 
     revalidatePath("/admin/academic/routines");
